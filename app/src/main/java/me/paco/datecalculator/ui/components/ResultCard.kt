@@ -151,7 +151,7 @@ fun ResultCard(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // 清晰对比度新拟物复制按钮 (专针对蓝色卡片背景调优光影，绝不发糊)
+                // 完全对齐原素材图效的新拟物复制按钮 (无硬描边，柔和自然 3D 光影)
                 NeumorphicCopyButton(
                     text = stringResource(R.string.label_copy_result),
                     onClick = {
@@ -167,7 +167,7 @@ fun ResultCard(
 }
 
 /**
- * 专为卡片内部设计的高清晰新拟物复制胶囊按键 (解决白光在浅蓝卡片上发糊的问题)
+ * 专为浅蓝卡片背景设计的新拟物复制胶囊按键 (完全贴合原素材图效，绝无硬线条描边)
  */
 @Composable
 fun NeumorphicCopyButton(
@@ -176,8 +176,8 @@ fun NeumorphicCopyButton(
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
-    val shadowDark = if (isDark) Color.Black.copy(alpha = 0.6f) else Color(0xFF7C8EA9).copy(alpha = 0.60f)
-    val shadowLight = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.95f)
+    val shadowDark = if (isDark) Color.Black.copy(alpha = 0.6f) else Color(0xFF7A8DA8).copy(alpha = 0.50f)
+    val shadowLight = if (isDark) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.45f)
 
     Box(
         modifier = modifier
@@ -187,14 +187,14 @@ fun NeumorphicCopyButton(
                 val shadowRadius = 4.dp.toPx()
                 val shapeOutline = CircleShape.createOutline(size, layoutDirection, this)
 
-                // 1. 右下深蓝灰清晰阴影
+                // 1. 右下自然蓝灰柔暗影
                 drawIntoCanvas { canvas ->
                     val paint = Paint().apply {
                         asFrameworkPaint().apply {
                             isAntiAlias = true
                             color = android.graphics.Color.TRANSPARENT
                             setShadowLayer(
-                                shadowRadius * 1.1f,
+                                shadowRadius,
                                 shadowRadius * 0.5f,
                                 shadowRadius * 0.5f,
                                 shadowDark.toArgb()
@@ -204,7 +204,7 @@ fun NeumorphicCopyButton(
                     canvas.drawOutline(shapeOutline, paint)
                 }
 
-                // 2. 左上紧凑清晰纯白高光
+                // 2. 左上自然柔和白高光
                 drawIntoCanvas { canvas ->
                     val paint = Paint().apply {
                         asFrameworkPaint().apply {

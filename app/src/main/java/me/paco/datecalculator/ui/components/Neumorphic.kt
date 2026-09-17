@@ -24,7 +24,7 @@ val NeumorphicBg @Composable get() = if (isSystemInDarkTheme()) {
     Color(0xFFF2F5FA)
 }
 
-// 凹陷按下沉降底色 (显著加深呈现 3D 沉降凹槽感)
+// 凹陷按下沉降底色
 val NeumorphicSunkenBg @Composable get() = if (isSystemInDarkTheme()) {
     MaterialTheme.colorScheme.surfaceVariant
 } else {
@@ -40,22 +40,23 @@ val NeumorphicTextPrimary @Composable get() = if (isSystemInDarkTheme()) {
 }
 
 /**
- * 凸起悬浮 3D 新拟物效果 (Extruded Neumorphism)
+ * 凸起悬浮 3D 新拟物效果 (去除硬描边，完全贴合原素材图效的柔和 3D 光影)
  */
 @Composable
 fun Modifier.neumorphicExtruded(
     shape: Shape = RoundedCornerShape(16.dp),
-    elevation: Dp = 6.dp
+    elevation: Dp = 4.dp
 ): Modifier {
     val isDark = isSystemInDarkTheme()
-    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White
-    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0xFFC8D1DC).copy(alpha = 0.65f)
+    // 左上白色高光降低透明度 (0.45f)，防止过白模糊；右下暗影调柔 (0.50f)，无任何硬描边线
+    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.45f)
+    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0xFFB8C4D2).copy(alpha = 0.50f)
 
     return this.drawBehind {
         val shadowRadius = elevation.toPx()
         val shapeOutline = shape.createOutline(size, layoutDirection, this)
 
-        // 右下角柔和深色阴影
+        // 1. 右下角柔和自然暗影
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
@@ -63,8 +64,8 @@ fun Modifier.neumorphicExtruded(
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
                         shadowRadius,
-                        shadowRadius * 0.6f,
-                        shadowRadius * 0.6f,
+                        shadowRadius * 0.5f,
+                        shadowRadius * 0.5f,
                         darkShadowColor.toArgb()
                     )
                 }
@@ -72,16 +73,16 @@ fun Modifier.neumorphicExtruded(
             canvas.drawOutline(shapeOutline, paint)
         }
 
-        // 左上角纯白高光阴影
+        // 2. 左上角自然柔和高光 (绝不糊成一片)
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius,
-                        -shadowRadius * 0.6f,
-                        -shadowRadius * 0.6f,
+                        shadowRadius * 0.8f,
+                        -shadowRadius * 0.4f,
+                        -shadowRadius * 0.4f,
                         lightShadowColor.toArgb()
                     )
                 }
@@ -92,17 +93,16 @@ fun Modifier.neumorphicExtruded(
 }
 
 /**
- * 凹陷凹槽 3D 新拟物效果 (强烈震撼版 True Sunken / Inset Neumorphism)
- * 采用内部暗影与内侧高光结合，展现绝对清晰的 3D 凹陷沉降效果
+ * 凹陷凹槽 3D 新拟物效果 (去除硬描边，完全贴合原素材图效)
  */
 @Composable
 fun Modifier.neumorphicInset(
     shape: Shape = RoundedCornerShape(16.dp),
-    elevation: Dp = 6.dp
+    elevation: Dp = 4.dp
 ): Modifier {
     val isDark = isSystemInDarkTheme()
-    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.20f) else Color.White
-    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.85f) else Color(0xFF8896A8)
+    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.50f)
+    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.65f) else Color(0xFFA2B0C2).copy(alpha = 0.55f)
 
     return this.drawBehind {
         val shadowRadius = elevation.toPx()
@@ -114,33 +114,32 @@ fun Modifier.neumorphicInset(
             val path = Path().apply {
                 addOutline(shapeOutline)
             }
-            // 裁切画布，确保光影严格渲染在控件边界内部
             canvas.clipPath(path)
 
-            // 1. 左上内侧深色强烈沉降阴影
+            // 1. 左上内侧自然沉降暗影
             val darkPaint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius * 1.5f,
-                        shadowRadius * 0.8f,
-                        shadowRadius * 0.8f,
+                        shadowRadius * 1.1f,
+                        shadowRadius * 0.6f,
+                        shadowRadius * 0.6f,
                         darkShadowColor.toArgb()
                     )
                 }
             }
             canvas.drawPath(path, darkPaint)
 
-            // 2. 右下内侧亮白反射光影
+            // 2. 右下内侧柔和反射高光
             val lightPaint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius * 1.5f,
-                        -shadowRadius * 0.8f,
-                        -shadowRadius * 0.8f,
+                        shadowRadius * 1.1f,
+                        -shadowRadius * 0.6f,
+                        -shadowRadius * 0.6f,
                         lightShadowColor.toArgb()
                     )
                 }
