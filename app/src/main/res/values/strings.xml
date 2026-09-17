@@ -1,0 +1,139 @@
+<resources>
+    <!-- Navigation & Headers -->
+    <string name="app_name">Date Calculator</string>
+    <string name="tab_workday">Date Calc</string>
+    <string name="tab_natural_day">Natural Days</string>
+    <string name="tab_date_diff">Countdown</string>
+    <string name="tab_lunar">Lunar Conv</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Section Labels -->
+    <string name="label_rule_prefix">Rule: %1$s | Holiday: %2$s</string>
+    <string name="label_no_holiday_active">Holidays Disabled</string>
+    <string name="label_start_date_section">Select Start Date</string>
+    <string name="label_base_date_fmt">Base Date: %1$s</string>
+    <string name="label_today">Today</string>
+    <string name="label_tomorrow">Tomorrow</string>
+    <string name="label_yesterday">Yesterday</string>
+    <string name="label_plus_1_week">+1 Week</string>
+    <string name="label_plus_30_days">+30 Days</string>
+    <string name="label_plus_1_month">+1 Month</string>
+
+    <!-- Direction & Calculation -->
+    <string name="label_calc_direction">Calculation Direction &amp; Days</string>
+    <string name="label_add">+ Add</string>
+    <string name="label_subtract">- Subtract</string>
+    <string name="label_days">Days</string>
+    <string name="label_days_workday">Workdays</string>
+    <string name="label_days_natural">Natural Days</string>
+
+    <!-- Result Card -->
+    <string name="label_result_title_workday">Workday Calculation Result</string>
+    <string name="label_result_title_natural">Natural Day Calculation Result</string>
+    <string name="label_copy_result">Copy Result</string>
+    <string name="label_save_history">Save to History</string>
+    <string name="label_workday_chip">Workday (Project Active)</string>
+    <string name="label_weekend_chip">Non-Workday (Rest/Holiday)</string>
+    <string name="label_natural_mode_info">Natural Day Mode: Counts all consecutive days without excluding weekends/holidays.</string>
+
+    <!-- Date Diff & Countdown -->
+    <string name="label_date_diff_title">Days Interval &amp; Countdown</string>
+    <string name="label_base_date_default">Base Date (Default Today):</string>
+    <string name="label_set_today">Set to Today</string>
+    <string name="label_preset_countdown">Upcoming Festival Shortcuts:</string>
+    <string name="label_target_date">Target Date:</string>
+    <string name="label_custom_target_date">Custom Target Date:</string>
+    <string name="label_solar">Solar (Gregorian)</string>
+    <string name="label_lunar">Lunar</string>
+    <string name="label_result_diff_title">Interval &amp; Countdown Result</string>
+    <string name="label_days_diff">Natural Days Diff</string>
+    <string name="label_workdays_diff">Workdays Diff</string>
+    <string name="label_period_len">• Duration: %1$s</string>
+    <string name="label_weeks_len">• Approx. Weeks: %1$s Weeks</string>
+    <string name="label_holiday_std">• Holiday Standard: %1$s</string>
+    <string name="label_rest_days_len">• Rest/Non-workdays: %1$s Days</string>
+    <string name="label_copy_comparison">Copy Comparison</string>
+    <string name="label_status_future">%1$d days remaining until target (Future)</string>
+    <string name="label_status_past">%1$d days passed since base date (Past)</string>
+    <string name="label_status_same">Target date and base date are the same day</string>
+
+    <!-- Preset Countdown Labels -->
+    <string name="preset_national_day">🇨🇳 National Day</string>
+    <string name="preset_new_year">🎆 New Year\'s Day</string>
+    <string name="preset_spring_festival">🧧 Spring Festival</string>
+    <string name="preset_mid_autumn">🥮 Mid-Autumn</string>
+    <string name="preset_dragon_boat">🎏 Dragon Boat</string>
+    <string name="preset_gaokao">📚 College Exam</string>
+
+    <!-- Lunar Converter -->
+    <string name="label_lunar_conv_title">Lunar / Solar Converter</string>
+    <string name="label_solar_to_lunar">Solar ➔ Lunar</string>
+    <string name="label_lunar_to_solar">Lunar ➔ Solar</string>
+    <string name="label_select_solar_date">Select Solar Date</string>
+    <string name="label_lunar_result">Lunar Result</string>
+    <string name="label_solar_result">Solar Result Date</string>
+    <string name="label_copy_lunar">Copy Lunar</string>
+    <string name="label_copy_solar">Copy Solar</string>
+    <string name="label_select_lunar_date">Select Lunar Date</string>
+    <string name="label_gregorian_year">Gregorian Year</string>
+    <string name="label_lunar_month">Lunar Month</string>
+    <string name="label_lunar_day">Lunar Day</string>
+    <string name="label_leap_month_check">Leap Month (%1$s)</string>
+    <string name="label_corresponding_solar">Corresponding Solar Date: %1$s</string>
+    <string name="label_gregorian_year_hint">Select Gregorian Year with corresponding GanZhi: %1$s</string>
+    <string name="label_traditional_festival">🎉 Traditional Festival: %1$s</string>
+
+    <!-- Settings & History -->
+    <string name="label_rules_and_history">Rule Configuration &amp; History</string>
+    <string name="label_weekend_mode">Weekend Rest Mode</string>
+    <string name="label_region_selection">Holiday Region Selection</string>
+    <string name="label_region_sub_info">Automatically exclude holidays and calculate shift workdays based on selected region:</string>
+    <string name="label_current_region">Current Selected Region: %1$s %2$s</string>
+    <string name="label_region_holiday_count">• Total Statutory Holidays: %1$d Days%2$s</string>
+    <string name="label_shift_count_fmt"> | Shift Workdays: %1$d Days</string>
+    <string name="label_big_small_setting">Big/Small Week Setting:</string>
+    <string name="label_this_week_big">Big Week This Week (Sat/Sun Rest)</string>
+    <string name="label_this_week_small">Small Week This Week (Sun Rest)</string>
+
+    <string name="label_database_support">Multi-Region Holiday Database Support</string>
+    <string name="label_database_support_desc">• Includes statutory holidays and shift workday arrangements for 8 major countries/regions (China, Taiwan, Hong Kong, Macao, Japan, South Korea, US, Thailand).\n• Data covers 2024-2026 for cross-border projects, travel scheduling, and holiday planning.</string>
+
+    <string name="label_history">History</string>
+    <string name="label_rules">Rule Settings</string>
+    <string name="label_history_count_fmt">History (%1$d)</string>
+    <string name="label_clear">Clear All</string>
+    <string name="label_clear_dialog_title">Clear Calculation History</string>
+    <string name="label_clear_dialog_msg">This operation cannot be undone. Are you sure you want to delete all history?</string>
+    <string name="label_clear_confirm">Clear</string>
+    <string name="label_cancel">Cancel</string>
+    <string name="label_empty_history">No calculation history yet</string>
+
+    <!-- Weekend Rule Names & Descriptions -->
+    <string name="rule_five_days">Standard 5 Days (Sat/Sun Rest)</string>
+    <string name="rule_five_days_desc">Monday to Friday are workdays, Saturday and Sunday are rest days.</string>
+    <string name="rule_big_small_weeks">Alternate Weeks (5/6 Days)</string>
+    <string name="rule_big_small_weeks_desc">Alternates between 6-day week (Sun off) and 5-day week (Sat/Sun off).</string>
+    <string name="rule_six_days_sunday">Single Rest (Sunday Off)</string>
+    <string name="rule_six_days_sunday_desc">Monday to Saturday are workdays, only Sunday is off.</string>
+    <string name="rule_six_days_saturday">Single Rest (Saturday Off)</string>
+    <string name="rule_six_days_saturday_desc">Sunday and Mon-Fri are workdays, only Saturday is off.</string>
+    <string name="rule_seven_days">7 Days Work (No Rest)</string>
+    <string name="rule_seven_days_desc">All 7 days of the week are workdays, no weekend rest.</string>
+
+    <!-- Holiday Region Descriptions (English) -->
+    <string name="region_desc_cn">Includes statutory holidays and shift workdays (2024-2026)</string>
+    <string name="region_desc_tw">Includes statutory holidays and makeup workday arrangements</string>
+    <string name="region_desc_hk">Includes public holidays and substitute holiday arrangements</string>
+    <string name="region_desc_mo">Includes mandatory holidays and public holidays</string>
+    <string name="region_desc_jp">Includes national holidays (国民の祝日) and substitute holidays</string>
+    <string name="region_desc_kr">Includes public holidays and substitute public holidays</string>
+    <string name="region_desc_us">Includes US Federal Holidays</string>
+    <string name="region_desc_th">Includes Thai statutory public holidays and substitute holidays</string>
+    <string name="region_desc_none">Calculates based solely on weekend rules without excluding holidays</string>
+
+    <!-- Toasts -->
+    <string name="toast_copied">Result copied to clipboard</string>
+    <string name="toast_saved">Saved to history</string>
+    <string name="toast_history_cleared">History cleared</string>
+    <string name="toast_holidays_synced">Synced latest holidays</string>
+</resources>
