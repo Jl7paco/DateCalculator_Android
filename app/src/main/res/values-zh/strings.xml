@@ -100,7 +100,7 @@
     <string name="label_this_week_small">本周是小周 (仅周日休息)</string>
 
     <string name="label_database_support">多地区节假日安排说明</string>
-    <string name="label_database_support_desc">• 支持中国大陆、臺灣、香港、澳門、日本、대한민국、United States、ประเทศไทย共 8 个主要国家/地区的法定节假日与调休安排。\n• 精准支持不同地区项目推进、差旅排期与休假规划。</string>
+    <string name="label_database_support_desc">• 支持中国大陆、臺灣、香港、澳門、新加坡、马来西亚、越南、日本、대한민국、Australia、New Zealand、United States、ประเทศไทย共 13 个主要国家/地区的法定节假日与调休安排。\n• 精准支持不同地区项目推进、差旅排期与休假规划。</string>
 
     <string name="label_history">历史记录</string>
     <string name="label_rules">规则设置</string>
@@ -133,7 +133,6 @@
     <string name="region_desc_kr">含公休日与替代公休日</string>
     <string name="region_desc_us">含联邦法定节假日 (Federal Holidays)</string>
     <string name="region_desc_th">含泰国法定公众假期及补假</string>
-    <string name="region_desc_none">仅按周末规则计算，不排除节假日</string>
 
     <!-- Toasts -->
     <string name="toast_copied">结果已复制到剪贴板</string>

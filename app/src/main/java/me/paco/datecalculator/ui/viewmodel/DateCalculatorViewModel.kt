@@ -1,5 +1,6 @@
 package me.paco.datecalculator.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DateMode
@@ -7,6 +8,7 @@ import me.paco.datecalculator.data.HistoryItem
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LocationUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,9 +28,6 @@ data class CustomEventItem(
     val targetDate: LocalDate,
     val repeatMode: EventRepeatMode = EventRepeatMode.NONE
 ) {
-    /**
-     * 根据当前基准日期自动滚动推算下一个周期的目标日期
-     */
     fun getNextUpcomingDate(baseDate: LocalDate = LocalDate.now()): LocalDate {
         if (repeatMode == EventRepeatMode.NONE || !targetDate.isBefore(baseDate)) {
             return targetDate
@@ -67,6 +66,7 @@ data class DateCalculatorUiState(
     val isCurrentWeekBigWeek: Boolean = true,
     val enableChineseHolidays: Boolean = true,
     val holidayRegion: HolidayRegion = HolidayRegion.CHINA,
+    val isGpsAutoDetectEnabled: Boolean = false, // GPS 自动识别开关 (默认关闭)
     val showResult: Boolean = false,
     val historyList: List<HistoryItem> = emptyList(),
     val customEvents: List<CustomEventItem> = emptyList(),
@@ -119,6 +119,14 @@ class DateCalculatorViewModel : ViewModel() {
             weekendRule = rule,
             showResult = false
         )
+    }
+
+    fun updateGpsAutoDetect(enabled: Boolean, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(isGpsAutoDetectEnabled = enabled)
+        if (enabled && context != null) {
+            val detected = LocationUtils.detectCurrentRegion(context)
+            updateHolidayRegion(detected)
+        }
     }
 
     fun setToday() {

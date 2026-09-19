@@ -3,15 +3,15 @@
     <string name="app_name">Date Calculator</string>
     <string name="tab_workday">Date Calc</string>
     <string name="tab_natural_day">Natural Days</string>
-    <string name="tab_date_diff">Countdown</string>
-    <string name="tab_lunar">Lunar Conv</string>
-    <string name="tab_settings">Settings</string>
+    <string name="tab_date_diff">Date Countdown</string>
+    <string name="tab_lunar">Lunar &amp; Solar</string>
+    <string name="tab_settings">History &amp; Settings</string>
 
     <!-- Section Labels -->
     <string name="label_rule_prefix">Rule: %1$s | Holiday: %2$s</string>
     <string name="label_no_holiday_active">Holidays Disabled</string>
-    <string name="label_start_date_section">Select Start Date</string>
-    <string name="label_base_date_fmt">Base Date: %1$s</string>
+    <string name="label_start_date_section">Start Date</string>
+    <string name="label_base_date_fmt">Target Date: %1$s</string>
     <string name="label_today">Today</string>
     <string name="label_tomorrow">Tomorrow</string>
     <string name="label_yesterday">Yesterday</string>
@@ -20,34 +20,34 @@
     <string name="label_plus_1_month">+1 Month</string>
 
     <!-- Direction & Calculation -->
-    <string name="label_calc_direction">Calculation Direction &amp; Days</string>
-    <string name="label_add">+ Add</string>
-    <string name="label_subtract">- Subtract</string>
+    <string name="label_calc_direction">Calculate Plus/Minus Days</string>
+    <string name="label_add">+ Add Days</string>
+    <string name="label_subtract">- Subtract Days</string>
     <string name="label_days">Days</string>
     <string name="label_days_workday">Workdays</string>
     <string name="label_days_natural">Natural Days</string>
 
     <!-- Result Card -->
-    <string name="label_result_title_workday">Workday Calculation Result</string>
+    <string name="label_result_title_workday">Calculation Result Date</string>
     <string name="label_result_title_natural">Natural Day Calculation Result</string>
     <string name="label_copy_result">Copy Result</string>
     <string name="label_save_history">Save to History</string>
     <string name="label_workday_chip">Workday (Slacking Off)</string>
     <string name="label_weekend_chip">Non-Workday (Rest/Holiday)</string>
-    <string name="label_natural_mode_info">Natural Day Mode: Counts all consecutive days without excluding weekends/holidays.</string>
+    <string name="label_natural_mode_info">Natural Day Mode: Counts consecutive calendar days without excluding weekends or holidays.</string>
 
     <!-- Date Diff & Countdown -->
-    <string name="label_date_diff_title">Days Interval &amp; Countdown</string>
-    <string name="label_base_date_default">Base Date</string>
+    <string name="label_date_diff_title">Target Date Countdown</string>
+    <string name="label_base_date_default">Start Base Date</string>
     <string name="label_set_today">Set to Today</string>
-    <string name="label_preset_countdown">Countdown Shortcuts</string>
-    <string name="label_add_custom_countdown">+ Custom Special Date</string>
+    <string name="label_preset_countdown">Popular Countdown Holidays</string>
+    <string name="label_add_custom_countdown">+ Add Countdown</string>
     <string name="label_custom_event_dialog_title">Add Custom Countdown</string>
     <string name="label_event_name">Event Name (e.g. Birthday)</string>
-    <string name="label_set_reminder">Set Alarm / Calendar Reminder</string>
+    <string name="label_set_reminder">Add System Reminder</string>
     <string name="label_target_date">Target Date:</string>
-    <string name="label_custom_target_date">Days From Base Date</string>
-    <string name="label_solar">Solar (Gregorian)</string>
+    <string name="label_custom_target_date">Target Date</string>
+    <string name="label_solar">Solar</string>
     <string name="label_lunar">Lunar</string>
     <string name="label_result_diff_title">Interval &amp; Countdown Result</string>
     <string name="label_days_diff">Natural Days Diff</string>
@@ -56,10 +56,10 @@
     <string name="label_weeks_len">• Approx. Weeks: %1$s Weeks</string>
     <string name="label_holiday_std">• Holiday Standard: %1$s</string>
     <string name="label_rest_days_len">• Rest/Non-workdays: %1$s Days</string>
-    <string name="label_copy_comparison">Copy Comparison</string>
-    <string name="label_status_future">%1$d days remaining until target (Future)</string>
-    <string name="label_status_past">%1$d days passed since base date (Past)</string>
-    <string name="label_status_same">Target date and base date are the same day</string>
+    <string name="label_copy_comparison">Copy Result</string>
+    <string name="label_status_future">%1$d Days Remaining</string>
+    <string name="label_status_past">%1$d Days Passed</string>
+    <string name="label_status_same">Target date and start date are the same day</string>
 
     <!-- Preset Countdown Labels -->
     <string name="preset_national_day">🇨🇳 National Day</string>
@@ -70,27 +70,27 @@
     <string name="preset_gaokao">📚 College Exam</string>
 
     <!-- Lunar Converter -->
-    <string name="label_lunar_conv_title">Lunar / Solar Converter</string>
+    <string name="label_lunar_conv_title">Lunar &amp; Solar Converter</string>
     <string name="label_solar_to_lunar">Solar ➔ Lunar</string>
     <string name="label_lunar_to_solar">Lunar ➔ Solar</string>
-    <string name="label_select_solar_date">Select Solar Date</string>
-    <string name="label_lunar_result">Lunar Result</string>
-    <string name="label_solar_result">Solar Result Date</string>
+    <string name="label_select_solar_date">Solar Date</string>
+    <string name="label_lunar_result">Lunar Date</string>
+    <string name="label_solar_result">Solar Date</string>
     <string name="label_copy_lunar">Copy Lunar</string>
     <string name="label_copy_solar">Copy Solar</string>
-    <string name="label_select_lunar_date">Select Lunar Date</string>
+    <string name="label_select_lunar_date">Input Lunar Date</string>
     <string name="label_gregorian_year">Gregorian Year</string>
     <string name="label_lunar_month">Lunar Month</string>
     <string name="label_lunar_day">Lunar Day</string>
     <string name="label_leap_month_check">Leap Month (%1$s)</string>
     <string name="label_corresponding_solar">Corresponding Solar Date: %1$s</string>
-    <string name="label_gregorian_year_hint">Select Gregorian Year with corresponding GanZhi: %1$s</string>
+    <string name="label_gregorian_year_hint">Input Gregorian Year (Auto-matches Zodiac): %1$s</string>
     <string name="label_traditional_festival">🎉 Traditional Festival: %1$s (Tap for Fireworks)</string>
 
     <!-- Settings & History -->
-    <string name="label_rules_and_history">Rule Configuration &amp; History</string>
+    <string name="label_rules_and_history">Workday &amp; Holiday Rules</string>
     <string name="label_weekend_mode">Weekend Rest Mode</string>
-    <string name="label_region_selection">Holiday Region Selection</string>
+    <string name="label_region_selection">Holiday Region</string>
     <string name="label_region_sub_info">Automatically exclude holidays and calculate shift workdays based on selected region:</string>
     <string name="label_current_region">Current Selected Region: %1$s %2$s</string>
     <string name="label_region_holiday_count">• Total Statutory Holidays: %1$d Days%2$s</string>
@@ -100,7 +100,7 @@
     <string name="label_this_week_small">Small Week This Week (Sun Rest)</string>
 
     <string name="label_database_support">Multi-Region Holiday Database Support</string>
-    <string name="label_database_support_desc">• Includes statutory holidays and shift workday arrangements for 8 major countries/regions (China, Taiwan, Hong Kong, Macao, Japan, South Korea, US, Thailand).\n• Data covers 2024-2026 for cross-border projects, travel scheduling, and holiday planning.</string>
+    <string name="label_database_support_desc">• Includes statutory holidays and shift workday arrangements for 13 major countries/regions (China, Taiwan, Hong Kong, Macao, Singapore, Malaysia, Vietnam, Japan, South Korea, Australia, New Zealand, US, Thailand).\n• Data covers multi-region project scheduling, travel, and holiday planning.</string>
 
     <string name="label_history">History</string>
     <string name="label_rules">Rule Settings</string>
@@ -125,7 +125,7 @@
     <string name="rule_seven_days_desc">All 7 days of the week are workdays, no weekend rest.</string>
 
     <!-- Holiday Region Descriptions (English) -->
-    <string name="region_desc_cn">Includes statutory holidays and shift workdays (2024-2026)</string>
+    <string name="region_desc_cn">Includes statutory holidays and shift workdays</string>
     <string name="region_desc_tw">Includes statutory holidays and makeup workday arrangements</string>
     <string name="region_desc_hk">Includes public holidays and substitute holiday arrangements</string>
     <string name="region_desc_mo">Includes mandatory holidays and public holidays</string>
@@ -133,12 +133,11 @@
     <string name="region_desc_kr">Includes public holidays and substitute public holidays</string>
     <string name="region_desc_us">Includes US Federal Holidays</string>
     <string name="region_desc_th">Includes Thai statutory public holidays and substitute holidays</string>
-    <string name="region_desc_none">Calculates based solely on weekend rules without excluding holidays</string>
 
     <!-- Toasts -->
     <string name="toast_copied">Result copied to clipboard</string>
     <string name="toast_saved">Saved to history</string>
     <string name="toast_history_cleared">History cleared</string>
-    <string name="toast_holidays_synced">Synced latest holidays</string>
+    <string name="toast_holidays_synced">Synced latest holiday data</string>
     <string name="toast_reminder_set">Redirected to Alarm / Calendar reminder</string>
 </resources>

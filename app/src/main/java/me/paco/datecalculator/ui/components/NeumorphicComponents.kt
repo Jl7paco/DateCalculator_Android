@@ -40,7 +40,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 
 /**
- * 新拟物分段切页器 (无论选中还是未选中，每个段位均有清晰凸起 3D 按键图框)
+ * 新拟物分段切页器
  */
 @Composable
 fun NeumorphicSegmentedRow(
@@ -69,12 +69,10 @@ fun NeumorphicSegmentedRow(
             )
 
             val segModifier = if (isSelected) {
-                // 选中态：亮蓝色高亮 3D 按键
                 Modifier
                     .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
                     .background(NeumorphicAccent, shape = CircleShape)
             } else {
-                // 未选中态：清晰 3D 悬浮凸起按键 (绝不隐藏图框)
                 Modifier
                     .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
                     .background(NeumorphicBg, shape = CircleShape)
@@ -108,7 +106,7 @@ fun NeumorphicSegmentedRow(
 }
 
 /**
- * 新拟物单选框 (参照附图 3D 圆形 RadioButton：未选中凸起，选中凹陷 + 蓝色点)
+ * 新拟物单选框
  */
 @Composable
 fun NeumorphicRadioButton(
@@ -149,7 +147,7 @@ fun NeumorphicRadioButton(
 }
 
 /**
- * 新拟物全圆角胶囊 Chip 按钮 (未选中 3D 凸起，选中亮蓝色高亮，图框 100% 显现)
+ * 新拟物全圆角胶囊 Chip 按钮
  */
 @Composable
 fun NeumorphicChip(
@@ -168,12 +166,10 @@ fun NeumorphicChip(
     )
 
     val chipModifier = if (selected) {
-        // 选中态：亮蓝色高亮胶囊
         Modifier
             .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
             .background(NeumorphicAccent, shape = CircleShape)
     } else {
-        // 未选中态：3D 凸起按键
         Modifier
             .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
             .background(NeumorphicBg, shape = CircleShape)
@@ -205,12 +201,15 @@ fun NeumorphicChip(
 }
 
 /**
- * 自定义纯物理 Popup 下拉菜单 (绝对零外框阴影，100% 呈现 18.dp 平滑 R 角与新拟物光影)
+ * 自定义纯物理 Popup 下拉菜单 (支持自定义宽度 width 与高度 height，绝对零外框阴影，100% 呈现 18.dp 平滑 R 角与新拟物光影)
  */
 @Composable
 fun NeumorphicCustomPopup(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    width: Dp = 110.dp,
+    height: Dp = 260.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
     if (expanded) {
@@ -223,9 +222,9 @@ fun NeumorphicCustomPopup(
             )
         ) {
             Box(
-                modifier = Modifier
-                    .width(110.dp)
-                    .height(260.dp)
+                modifier = modifier
+                    .width(width)
+                    .height(height)
                     .padding(10.dp)
                     .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 8.dp)
                     .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))

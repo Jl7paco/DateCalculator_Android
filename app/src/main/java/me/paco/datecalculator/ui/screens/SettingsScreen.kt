@@ -1,6 +1,10 @@
 package me.paco.datecalculator.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +37,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,6 +58,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import me.paco.datecalculator.R
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.RegionalHolidays
@@ -84,6 +90,23 @@ fun SettingsScreen(
     var regionMenuExpanded by remember { mutableStateOf(false) }
 
     val syncedToastText = stringResource(R.string.toast_holidays_synced)
+
+    // 定位运行时动态权限申请 Launcher (第一次开启时询问授权)
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+
+        if (fineGranted || coarseGranted) {
+            viewModel.updateGpsAutoDetect(true, context)
+            val detected = LocationUtils.detectCurrentRegion(context)
+            Toast.makeText(context, "已成功根据 GPS 识别所在地: ${detected.flagEmoji} ${detected.nativeName}", Toast.LENGTH_SHORT).show()
+        } else {
+            viewModel.updateGpsAutoDetect(false)
+            Toast.makeText(context, "需要定位权限以自动识别所在地节假日", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -134,57 +157,67 @@ fun SettingsScreen(
                         .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Public,
+                                contentDescription = null,
+                                tint = NeumorphicAccent
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.label_region_selection),
+                                fontWeight = FontWeight.Bold,
+                                color = NeumorphicAccent
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 🛰️ GPS 自动定位识别所在地开关行 (首次开启主动弹出权限询问)
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                                .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
+                                .background(NeumorphicBg, shape = RoundedCornerShape(14.dp))
+                                .padding(horizontal = 14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Public,
-                                    contentDescription = null,
-                                    tint = NeumorphicAccent
-                                )
+                                Icon(imageVector = Icons.Default.GpsFixed, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(R.string.label_region_selection),
-                                    fontWeight = FontWeight.Bold,
-                                    color = NeumorphicAccent
-                                )
+                                Text("GPS 自动识别所在地", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 14.sp)
                             }
 
-                            // 🛰️ GPS 自动定位识别所在地按钮 (无障碍视觉障碍模式适配: 48dp 最小热区 + 语义标签)
-                            Box(
-                                modifier = Modifier
-                                    .height(44.dp)
-                                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                                    .background(NeumorphicBg, shape = CircleShape)
-                                    .clip(CircleShape)
-                                    .semantics {
-                                        role = Role.Button
-                                        contentDescription = "点击使用 GPS 自动识别当前国家与地区节假日"
+                            Switch(
+                                checked = uiState.isGpsAutoDetectEnabled,
+                                onCheckedChange = { enabled ->
+                                    if (enabled) {
+                                        val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                                        val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+                                        if (!hasFine && !hasCoarse) {
+                                            // 首次开启主动触发定位权限询问弹窗
+                                            locationPermissionLauncher.launch(
+                                                arrayOf(
+                                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                                )
+                                            )
+                                        } else {
+                                            viewModel.updateGpsAutoDetect(true, context)
+                                            val detected = LocationUtils.detectCurrentRegion(context)
+                                            Toast.makeText(context, "已开启 GPS 自动识别，匹配所在地: ${detected.flagEmoji} ${detected.nativeName}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        viewModel.updateGpsAutoDetect(false)
                                     }
-                                    .clickable {
-                                        val detected = LocationUtils.detectCurrentRegion(context)
-                                        viewModel.updateHolidayRegion(detected)
-                                        Toast.makeText(
-                                            context,
-                                            "已成功根据 GPS/网络 识别所在地: ${detected.flagEmoji} ${detected.nativeName}",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.GpsFixed, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("GPS 自动识别", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                                 }
-                            }
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = stringResource(R.string.label_region_sub_info),
                             style = MaterialTheme.typography.bodySmall,
@@ -195,7 +228,7 @@ fun SettingsScreen(
 
                         val selected = uiState.holidayRegion
 
-                        // 新拟物 58dp 下拉菜单选择框 (无障碍读屏焦点与语义适配)
+                        // 新拟物 58dp 下拉菜单选择框 (弹窗宽度 280dp 100% 匹配整个下拉框宽度)
                         Box(modifier = Modifier.fillMaxWidth()) {
                             Box(
                                 modifier = Modifier
@@ -230,7 +263,9 @@ fun SettingsScreen(
 
                             NeumorphicCustomPopup(
                                 expanded = regionMenuExpanded,
-                                onDismissRequest = { regionMenuExpanded = false }
+                                onDismissRequest = { regionMenuExpanded = false },
+                                width = 280.dp,
+                                height = 320.dp
                             ) {
                                 HolidayRegion.values().forEach { region ->
                                     val isCurrent = (region == selected)
@@ -307,7 +342,7 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // 新拟物同步最新假期按键 (无障碍适配: 48dp 热区 + 按钮角色)
+                        // 新拟物同步最新假期按钮
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -335,7 +370,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 周末休假模式 Card (无障碍焦点与单选适配)
+                // 周末休假模式 Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -460,7 +495,7 @@ fun SettingsScreen(
                         .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
                         .semantics(mergeDescendants = true) {
-                            contentDescription = "多地区节假日安排说明及应用版本号 v1.2"
+                            contentDescription = "多地区节假日安排说明及应用版本号 v1.2.1"
                         }
                         .padding(16.dp)
                 ) {
@@ -493,7 +528,7 @@ fun SettingsScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("应用版本", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                             }
-                            Text("v1.2", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                            Text("v1.2.1", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                         }
                     }
                 }

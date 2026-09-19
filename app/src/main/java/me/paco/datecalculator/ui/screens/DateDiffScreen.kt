@@ -1,12 +1,17 @@
 package me.paco.datecalculator.ui.screens
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.AlarmClock
 import android.provider.CalendarContract
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -51,6 +56,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -79,6 +85,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
@@ -99,6 +106,7 @@ import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
+import me.paco.datecalculator.util.NotificationUtils
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.math.abs
@@ -126,7 +134,6 @@ fun DateDiffScreen(
     var customEventDate by remember { mutableStateOf(LocalDate.now().plusDays(30)) }
     var showCustomDatePicker by remember { mutableStateOf(false) }
 
-    // 记录当前选中的特定事件名称，用于闹铃与日历提醒标题的自动带入
     var currentTargetEventName by remember { mutableStateOf("") }
 
     // 0 = 阳历目标日期, 1 = 农历目标日期
@@ -139,6 +146,36 @@ fun DateDiffScreen(
     var targetIsLeapMonth by remember { mutableStateOf(false) }
 
     var showDiffResult by remember { mutableStateOf(false) }
+
+    // 计算真实的结束阳历日期
+    val effectiveEndDate: LocalDate = if (targetCalendarType == 0) {
+        uiState.endDate
+    } else {
+        LunarCalendarUtils.lunarToSolar(targetLunarYear, targetLunarMonth, targetLunarDay, targetIsLeapMonth)
+            ?: uiState.endDate
+    }
+
+    val reminderMessage = if (currentTargetEventName.isNotBlank()) {
+        "$currentTargetEventName ($effectiveEndDate)"
+    } else {
+        "倒计时提醒 ($effectiveEndDate)"
+    }
+
+    // Android 13+ 通知权限运行时询问请求 Launcher
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            NotificationUtils.showCountdownNotification(
+                context = context,
+                title = "🎉 倒计时提醒已设置",
+                message = reminderMessage
+            )
+            Toast.makeText(context, "已成功弹出本地通知提醒！", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "需要通知权限以发送应用倒计时弹出提醒", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // 基准日期切换时的 Pop Bounce 缩放与渐变高亮动效
     val cardScale = remember { Animatable(1.0f) }
@@ -158,7 +195,7 @@ fun DateDiffScreen(
     // 结果展开后自动平滑下滑至结果卡片完全可见区域
     LaunchedEffect(showDiffResult, uiState.endDate) {
         if (showDiffResult) {
-            delay(220) // 等待 AnimatedVisibility 展开动画完成
+            delay(220)
             scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
@@ -193,21 +230,7 @@ fun DateDiffScreen(
         )
     }
 
-    // 计算真实的结束阳历日期
-    val effectiveEndDate: LocalDate = if (targetCalendarType == 0) {
-        uiState.endDate
-    } else {
-        LunarCalendarUtils.lunarToSolar(targetLunarYear, targetLunarMonth, targetLunarDay, targetIsLeapMonth)
-            ?: uiState.endDate
-    }
-
-    val reminderMessage = if (currentTargetEventName.isNotBlank()) {
-        "$currentTargetEventName ($effectiveEndDate)"
-    } else {
-        "倒计时提醒 ($effectiveEndDate)"
-    }
-
-    // 提醒方式选择弹窗 (跳转系统闹铃 与 跳转系统日历)
+    // 提醒方式选择弹窗 (支持 App 弹出通知提醒 + 运行时权限检查)
     if (showReminderDialog) {
         AlertDialog(
             onDismissRequest = { showReminderDialog = false },
@@ -216,16 +239,62 @@ fun DateDiffScreen(
             title = { Text("选择提醒方式", fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary) },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("提醒名称: $reminderMessage", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
 
-                    // 选项 1: 跳转系统闹铃 (取消固定时间，透传名称，打开新建界面)
+                    // 选项 1: App 弹出通知提醒 (若未授权则触发主动询问)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp)
+                            .height(50.dp)
+                            .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
+                            .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable {
+                                showReminderDialog = false
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    val hasPermission = ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.POST_NOTIFICATIONS
+                                    ) == PackageManager.PERMISSION_GRANTED
+
+                                    if (!hasPermission) {
+                                        // 首次/未授权时，自动询问是否授权通知权限
+                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        NotificationUtils.showCountdownNotification(
+                                            context = context,
+                                            title = "🎉 倒计时提醒已设置",
+                                            message = reminderMessage
+                                        )
+                                        Toast.makeText(context, "已成功发送系统通知提醒", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    NotificationUtils.showCountdownNotification(
+                                        context = context,
+                                        title = "🎉 倒计时提醒已设置",
+                                        message = reminderMessage
+                                    )
+                                    Toast.makeText(context, "已成功发送系统通知提醒", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Notifications, contentDescription = null, tint = NeumorphicAccent)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("🔔 App 弹出通知提醒", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = NeumorphicTextPrimary)
+                        }
+                    }
+
+                    // 选项 2: 跳转系统闹铃
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
                             .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
                             .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
                             .clip(RoundedCornerShape(16.dp))
@@ -255,15 +324,15 @@ fun DateDiffScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.Alarm, contentDescription = null, tint = NeumorphicAccent)
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text("跳转系统闹铃", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = NeumorphicTextPrimary)
+                            Text("⏰ 跳转系统闹铃设置界面", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = NeumorphicTextPrimary)
                         }
                     }
 
-                    // 选项 2: 跳转系统日历 (自动带入特定事件名称)
+                    // 选项 3: 跳转系统日历
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp)
+                            .height(50.dp)
                             .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
                             .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
                             .clip(RoundedCornerShape(16.dp))
@@ -293,7 +362,7 @@ fun DateDiffScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.AutoMirrored.Filled.EventNote, contentDescription = null, tint = NeumorphicAccent)
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text("跳转系统日历", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = NeumorphicTextPrimary)
+                            Text("📅 跳转系统日历新建日程", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = NeumorphicTextPrimary)
                         }
                     }
                 }
@@ -332,7 +401,7 @@ fun DateDiffScreen(
         )
     }
 
-    // 自定义倒计时事件添加弹窗 (增加自选图标 Emoji Palettes)
+    // 自定义倒计时事件添加弹窗
     if (showAddCustomDialog) {
         AlertDialog(
             onDismissRequest = { showAddCustomDialog = false },
@@ -678,9 +747,10 @@ fun DateDiffScreen(
                 )
             }
 
-            // 用户自定义特定日期 Chip (支持自选 Emoji 图标，长按或点击小 Close 键轻松删除)
+            // 用户自定义特定日期 Chip (支持自选 Emoji 图标与周期推算)
             uiState.customEvents.forEach { customEvent ->
-                val isSelected = (targetCalendarType == 0 && uiState.endDate == customEvent.targetDate)
+                val effectiveTargetDate = customEvent.getNextUpcomingDate(uiState.baseDate)
+                val isSelected = (targetCalendarType == 0 && uiState.endDate == effectiveTargetDate)
                 val interactionSource = remember { MutableInteractionSource() }
                 val isPressed by interactionSource.collectIsPressedAsState()
                 val scale by animateFloatAsState(
@@ -713,7 +783,7 @@ fun DateDiffScreen(
                             indication = null,
                             onClick = {
                                 targetCalendarType = 0
-                                viewModel.updateEndDate(customEvent.targetDate)
+                                viewModel.updateEndDate(effectiveTargetDate)
                                 currentTargetEventName = customEvent.name
                                 showDiffResult = true
                             },
