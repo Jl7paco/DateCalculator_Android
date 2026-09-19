@@ -12,6 +12,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
 
+data class CustomEventItem(
+    val id: Long = System.nanoTime(),
+    val name: String,
+    val targetDate: LocalDate
+)
+
 data class DateCalculatorUiState(
     val baseDate: LocalDate = LocalDate.now(),
     val endDate: LocalDate = LocalDate.now().plusDays(30),
@@ -23,7 +29,9 @@ data class DateCalculatorUiState(
     val enableChineseHolidays: Boolean = true,
     val holidayRegion: HolidayRegion = HolidayRegion.CHINA,
     val showResult: Boolean = false,
-    val historyList: List<HistoryItem> = emptyList()
+    val historyList: List<HistoryItem> = emptyList(),
+    val customEvents: List<CustomEventItem> = emptyList(),
+    val fireworksTrigger: Int = 0
 )
 
 class DateCalculatorViewModel : ViewModel() {
@@ -76,6 +84,27 @@ class DateCalculatorViewModel : ViewModel() {
 
     fun setToday() {
         _uiState.value = _uiState.value.copy(baseDate = LocalDate.now(), showResult = false)
+    }
+
+    fun triggerFireworks() {
+        _uiState.value = _uiState.value.copy(fireworksTrigger = _uiState.value.fireworksTrigger + 1)
+    }
+
+    fun resetFireworks() {
+        if (_uiState.value.fireworksTrigger != 0) {
+            _uiState.value = _uiState.value.copy(fireworksTrigger = 0)
+        }
+    }
+
+    fun addCustomEvent(name: String, targetDate: LocalDate) {
+        val newEvent = CustomEventItem(name = name, targetDate = targetDate)
+        val updatedEvents = _uiState.value.customEvents + newEvent
+        _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
+    }
+
+    fun deleteCustomEvent(event: CustomEventItem) {
+        val updatedEvents = _uiState.value.customEvents.filterNot { it.id == event.id }
+        _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
     }
 
     /**

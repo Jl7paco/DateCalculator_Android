@@ -9,14 +9,20 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 
 /**
  * 新拟物分段切页器 (无论选中还是未选中，每个段位均有清晰凸起 3D 按键图框)
@@ -193,5 +201,45 @@ fun NeumorphicChip(
             fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold,
             fontSize = 13.sp
         )
+    }
+}
+
+/**
+ * 自定义纯物理 Popup 下拉菜单 (绝对零外框阴影，100% 呈现 18.dp 平滑 R 角与新拟物光影)
+ */
+@Composable
+fun NeumorphicCustomPopup(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    if (expanded) {
+        Popup(
+            onDismissRequest = onDismissRequest,
+            properties = PopupProperties(
+                focusable = true,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(110.dp)
+                    .height(260.dp)
+                    .padding(10.dp)
+                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 8.dp)
+                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 6.dp, horizontal = 4.dp)
+                ) {
+                    content()
+                }
+            }
+        }
     }
 }

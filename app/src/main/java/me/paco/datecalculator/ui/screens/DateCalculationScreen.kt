@@ -76,8 +76,13 @@ fun DateCalculationScreen(
     // 基准日期切换时的 Pop Bounce 缩放与渐变高亮动效
     val cardScale = remember { Animatable(1.0f) }
     val cardAlpha = remember { Animatable(1.0f) }
+    var isInitialLoad by remember { mutableStateOf(true) }
 
     LaunchedEffect(uiState.baseDate) {
+        if (isInitialLoad) {
+            isInitialLoad = false
+            return@LaunchedEffect
+        }
         launch {
             cardScale.animateTo(1.04f, animationSpec = tween(100))
             cardScale.animateTo(1.00f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))

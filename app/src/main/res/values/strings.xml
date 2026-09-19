@@ -32,17 +32,21 @@
     <string name="label_result_title_natural">Natural Day Calculation Result</string>
     <string name="label_copy_result">Copy Result</string>
     <string name="label_save_history">Save to History</string>
-    <string name="label_workday_chip">Workday (Project Active)</string>
+    <string name="label_workday_chip">Workday (Slacking Off)</string>
     <string name="label_weekend_chip">Non-Workday (Rest/Holiday)</string>
     <string name="label_natural_mode_info">Natural Day Mode: Counts all consecutive days without excluding weekends/holidays.</string>
 
     <!-- Date Diff & Countdown -->
     <string name="label_date_diff_title">Days Interval &amp; Countdown</string>
-    <string name="label_base_date_default">Base Date (Default Today):</string>
+    <string name="label_base_date_default">Base Date</string>
     <string name="label_set_today">Set to Today</string>
-    <string name="label_preset_countdown">Upcoming Festival Shortcuts:</string>
+    <string name="label_preset_countdown">Countdown Shortcuts</string>
+    <string name="label_add_custom_countdown">+ Custom Special Date</string>
+    <string name="label_custom_event_dialog_title">Add Custom Countdown</string>
+    <string name="label_event_name">Event Name (e.g. Birthday)</string>
+    <string name="label_set_reminder">Set Alarm / Calendar Reminder</string>
     <string name="label_target_date">Target Date:</string>
-    <string name="label_custom_target_date">Custom Target Date:</string>
+    <string name="label_custom_target_date">Days From Base Date</string>
     <string name="label_solar">Solar (Gregorian)</string>
     <string name="label_lunar">Lunar</string>
     <string name="label_result_diff_title">Interval &amp; Countdown Result</string>
@@ -81,7 +85,7 @@
     <string name="label_leap_month_check">Leap Month (%1$s)</string>
     <string name="label_corresponding_solar">Corresponding Solar Date: %1$s</string>
     <string name="label_gregorian_year_hint">Select Gregorian Year with corresponding GanZhi: %1$s</string>
-    <string name="label_traditional_festival">🎉 Traditional Festival: %1$s</string>
+    <string name="label_traditional_festival">🎉 Traditional Festival: %1$s (Tap for Fireworks)</string>
 
     <!-- Settings & History -->
     <string name="label_rules_and_history">Rule Configuration &amp; History</string>
@@ -136,4 +140,5 @@
     <string name="toast_saved">Saved to history</string>
     <string name="toast_history_cleared">History cleared</string>
     <string name="toast_holidays_synced">Synced latest holidays</string>
+    <string name="toast_reminder_set">Redirected to Alarm / Calendar reminder</string>
 </resources>

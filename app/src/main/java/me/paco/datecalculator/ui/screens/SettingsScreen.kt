@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.EventNote
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -218,7 +219,7 @@ fun SettingsScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("同步最新假期", fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("更新最新假期", fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                     }
@@ -226,7 +227,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 周末模式 Card (悬停/选中项完全保持带 14.dp 圆角的拟物平滑容器，无尖角边框)
+                // 周末模式 Card
                 if (uiState.holidayRegion == HolidayRegion.CHINA || uiState.holidayRegion == HolidayRegion.HONG_KONG || uiState.holidayRegion == HolidayRegion.MACAO) {
                     Box(
                         modifier = Modifier
@@ -341,7 +342,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // 数据库支持卡片
+                // 数据库支持与应用版本信息 Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -364,6 +365,23 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = NeumorphicTextPrimary.copy(alpha = 0.8f)
                         )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = NeumorphicAccent)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("应用版本", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                            }
+                            Text("v1.2", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                        }
                     }
                 }
 

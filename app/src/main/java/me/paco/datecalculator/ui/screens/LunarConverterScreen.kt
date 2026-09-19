@@ -19,6 +19,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,17 +39,12 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -72,9 +68,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
 import me.paco.datecalculator.ui.components.DatePickerModal
+import me.paco.datecalculator.ui.components.FireworksAnimation
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicCopyButton
@@ -167,561 +166,630 @@ fun LunarConverterScreen(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.SwapHoriz,
-                contentDescription = null,
-                tint = NeumorphicAccent
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.label_lunar_conv_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = NeumorphicTextPrimary
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        NeumorphicSegmentedRow(
-            items = listOf(stringResource(R.string.label_solar_to_lunar), stringResource(R.string.label_lunar_to_solar)),
-            selectedIndex = convertMode,
-            onIndexSelected = {
-                convertMode = it
-                showLunarResult = true
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (convertMode == 0) {
-            // ================= 阳历转农历 =================
-            Text(
-                text = stringResource(R.string.label_select_solar_date),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = NeumorphicTextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 显眼放大版新拟物 Hero Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        scaleX = cardScale.value
-                        scaleY = cardScale.value
-                        alpha = cardAlpha.value
-                    }
-                    .clickable { showSolarPicker = true },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.SwapHoriz,
+                    contentDescription = null,
+                    tint = NeumorphicAccent
                 )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 12.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "选择阳历 (公历) 日期",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(solarDate)
-                            Text(
-                                text = dateFormattedWithWeek,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.Default.EditCalendar,
-                        contentDescription = "选择日期",
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                    )
-                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.label_lunar_conv_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary
+                )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            QuickDateChips(
-                selectedDate = solarDate,
-                onSelectDate = { date ->
-                    solarDate = date
+            NeumorphicSegmentedRow(
+                items = listOf(stringResource(R.string.label_solar_to_lunar), stringResource(R.string.label_lunar_to_solar)),
+                selectedIndex = convertMode,
+                onIndexSelected = {
+                    convertMode = it
                     showLunarResult = true
-                    val lunarResult = LunarCalendarUtils.solarToLunar(date)
-                    val title = "阳转农: ${lunarResult.lunarMonthName}${lunarResult.lunarDayName}"
-                    val detail = "阳历 $date ➔ ${lunarResult.getFullDescription()}"
-                    viewModel.saveToHistory(title, detail, date)
                 }
             )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            val lunarResult = LunarCalendarUtils.solarToLunar(solarDate)
-
-            AnimatedVisibility(
-                visible = showLunarResult,
-                enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
-                exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .neumorphicExtruded(shape = RoundedCornerShape(24.dp), elevation = 6.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
-                        .padding(20.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = stringResource(R.string.label_lunar_result),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        val leapTag = if (lunarResult.isLeapMonth) "闰" else ""
-                        Text(
-                            text = "$leapTag${lunarResult.lunarMonthName}${lunarResult.lunarDayName}",
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = "${lunarResult.ganZhiYear} (${lunarResult.zodiac})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
-                        )
-
-                        if (lunarResult.festival.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            SuggestionChip(
-                                onClick = {},
-                                shape = CircleShape,
-                                label = { Text(stringResource(R.string.label_traditional_festival, lunarResult.festival), fontWeight = FontWeight.Bold) }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        NeumorphicCopyButton(
-                            text = stringResource(R.string.label_copy_lunar),
-                            onClick = {
-                                val clipText = "Solar ${solarDate} ➔ ${lunarResult.getFullDescription()}"
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("LunarDate", clipText))
-                                Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    }
-                }
-            }
-
-        } else {
-            // ================= 农历转阳历 (默认显示今天的公历日期 Hero Card，不提供快捷按钮) =================
-            Text(
-                text = "参考公历日期选择",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = NeumorphicTextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 保持与公历一致的公历日期选择 Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        scaleX = cardScale.value
-                        scaleY = cardScale.value
-                        alpha = cardAlpha.value
-                    }
-                    .clickable { showLunarRefPicker = true },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 12.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "快速对齐公历基准日",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(lunarRefSolarDate)
-                            Text(
-                                text = dateFormattedWithWeek,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.Default.EditCalendar,
-                        contentDescription = "选择日期",
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = stringResource(R.string.label_select_lunar_date),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = NeumorphicTextPrimary
-            )
+            if (convertMode == 0) {
+                // ================= 阳历转农历 =================
+                Text(
+                    text = stringResource(R.string.label_select_solar_date),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary
+                )
 
-            val parsedYear = lunarYearInput.toIntOrNull()
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(4.dp))
-            val hintText = if (parsedYear != null && parsedYear in 1900..2100) {
-                val ganZhiZodiacStr = LunarCalendarUtils.getYearGanZhiAndZodiac(parsedYear)
-                stringResource(R.string.label_gregorian_year_hint, ganZhiZodiacStr)
-            } else {
-                "请输入公历年份 (例如: 2026)"
-            }
-
-            Text(
-                text = hintText,
-                style = MaterialTheme.typography.bodySmall,
-                color = NeumorphicTextPrimary.copy(alpha = 0.7f)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 100% 相同结构与基线对齐的【公历年份】、【农历月份】、【农历日期】3个选项框
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // 显眼放大版新拟物 Hero Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            scaleX = cardScale.value
+                            scaleY = cardScale.value
+                            alpha = cardAlpha.value
+                        }
+                        .clickable { showSolarPicker = true },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                    )
                 ) {
-                    // 1. 公历年份输入框 (与农历月份/日期 100% 绝对垂直对齐)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "选择阳历 (公历) 日期",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(solarDate)
+                                Text(
+                                    text = dateFormattedWithWeek,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.EditCalendar,
+                            contentDescription = "选择日期",
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                QuickDateChips(
+                    selectedDate = solarDate,
+                    onSelectDate = { date ->
+                        solarDate = date
+                        showLunarResult = true
+                        val lunarResult = LunarCalendarUtils.solarToLunar(date)
+                        val title = "阳转农: ${lunarResult.lunarMonthName}${lunarResult.lunarDayName}"
+                        val detail = "阳历 $date ➔ ${lunarResult.getFullDescription()}"
+                        viewModel.saveToHistory(title, detail, date)
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                val lunarResult = LunarCalendarUtils.solarToLunar(solarDate)
+
+                AnimatedVisibility(
+                    visible = showLunarResult,
+                    enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
+                    exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
+                ) {
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(58.dp)
-                            .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
-                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(16.dp))
-                            .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
-                            .padding(horizontal = 10.dp),
-                        contentAlignment = Alignment.CenterStart
+                            .fillMaxWidth()
+                            .neumorphicExtruded(shape = RoundedCornerShape(24.dp), elevation = 6.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = RoundedCornerShape(24.dp))
+                            .clip(RoundedCornerShape(24.dp))
+                            .padding(20.dp)
                     ) {
-                        Column {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text(
-                                text = stringResource(R.string.label_gregorian_year),
-                                fontSize = 11.sp,
-                                color = NeumorphicAccent,
-                                fontWeight = FontWeight.Bold
+                                text = stringResource(R.string.label_lunar_result),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                             )
-                            BasicTextField(
-                                value = lunarYearInput,
-                                onValueChange = { newValue ->
-                                    if (newValue.isEmpty() || (newValue.length <= 4 && newValue.all { it.isDigit() })) {
-                                        lunarYearInput = newValue
-                                        showLunarResult = false
-                                    }
-                                },
-                                singleLine = true,
-                                textStyle = TextStyle(
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = NeumorphicTextPrimary
-                                ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
 
-                    // 2. 农历月份选择 (与公历年份 100% 绝对垂直对齐)
-                    var monthExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = monthExpanded,
-                        onExpandedChange = { monthExpanded = !monthExpanded },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(58.dp)
-                                .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
-                                .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(16.dp))
-                                .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
-                                .clip(RoundedCornerShape(16.dp))
-                                .menuAnchor()
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(text = stringResource(R.string.label_lunar_month), fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-                                    Text(text = LunarCalendarUtils.getLunarMonthName(lunarMonth), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                                }
-                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = NeumorphicAccent)
-                            }
-                        }
-                        ExposedDropdownMenu(
-                            expanded = monthExpanded,
-                            onDismissRequest = { monthExpanded = false }
-                        ) {
-                            (1..12).forEach { m ->
-                                DropdownMenuItem(
-                                    text = { Text(LunarCalendarUtils.getLunarMonthName(m)) },
-                                    onClick = {
-                                        lunarMonth = m
-                                        monthExpanded = false
-                                        showLunarResult = false
-                                    }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            val leapTag = if (lunarResult.isLeapMonth) "闰" else ""
+                            Text(
+                                text = "$leapTag${lunarResult.lunarMonthName}${lunarResult.lunarDayName}",
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "${lunarResult.ganZhiYear} (${lunarResult.zodiac})",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                            )
+
+                            // 传统节日提示 Chip：点击触发烟花动效
+                            if (lunarResult.festival.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                SuggestionChip(
+                                    onClick = { viewModel.triggerFireworks() },
+                                    shape = CircleShape,
+                                    label = { Text(stringResource(R.string.label_traditional_festival, lunarResult.festival), fontWeight = FontWeight.Bold) }
                                 )
                             }
-                        }
-                    }
 
-                    // 3. 农历日期选择 (与公历年份 100% 绝对垂直对齐)
-                    var dayExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = dayExpanded,
-                        onExpandedChange = { dayExpanded = !dayExpanded },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(58.dp)
-                                .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
-                                .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(16.dp))
-                                .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
-                                .clip(RoundedCornerShape(16.dp))
-                                .menuAnchor()
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(text = stringResource(R.string.label_lunar_day), fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-                                    Text(text = LunarCalendarUtils.getLunarDayName(lunarDay), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            NeumorphicCopyButton(
+                                text = stringResource(R.string.label_copy_lunar),
+                                onClick = {
+                                    val clipText = "Solar ${solarDate} ➔ ${lunarResult.getFullDescription()}"
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("LunarDate", clipText))
+                                    Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
                                 }
-                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = NeumorphicAccent)
-                            }
-                        }
-                        ExposedDropdownMenu(
-                            expanded = dayExpanded,
-                            onDismissRequest = { dayExpanded = false }
-                        ) {
-                            (1..30).forEach { d ->
-                                DropdownMenuItem(
-                                    text = { Text(LunarCalendarUtils.getLunarDayName(d)) },
-                                    onClick = {
-                                        lunarDay = d
-                                        dayExpanded = false
-                                        showLunarResult = false
-                                    }
-                                )
-                            }
+                            )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
+            } else {
+                // ================= 农历转阳历 (默认显示今天的公历日期 Hero Card，不提供快捷按钮) =================
+                Text(
+                    text = "参考公历日期选择",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 保持与公历一致的公历日期选择 Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            scaleX = cardScale.value
+                            scaleY = cardAlpha.value
+                        }
+                        .clickable { showLunarRefPicker = true },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "快速对齐公历基准日",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(lunarRefSolarDate)
+                                Text(
+                                    text = dateFormattedWithWeek,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.EditCalendar,
+                            contentDescription = "选择日期",
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.label_select_lunar_date),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary
+                )
+
+                val parsedYear = lunarYearInput.toIntOrNull()
+
+                Spacer(modifier = Modifier.height(4.dp))
+                val hintText = if (parsedYear != null && parsedYear in 1900..2100) {
+                    val ganZhiZodiacStr = LunarCalendarUtils.getYearGanZhiAndZodiac(parsedYear)
+                    stringResource(R.string.label_gregorian_year_hint, ganZhiZodiacStr)
+                } else {
+                    "请输入公历年份 (例如: 2026)"
+                }
+
+                Text(
+                    text = hintText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = NeumorphicTextPrimary.copy(alpha = 0.7f)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 公历年份、农历月份、农历日期 3 个输入框，彻底消除方角阴影圈
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 1. 公历年份输入框
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(58.dp)
+                                .neumorphicInset(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
+                                .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(18.dp))
+                                .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
+                                .padding(horizontal = 10.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.label_gregorian_year),
+                                    fontSize = 11.sp,
+                                    color = NeumorphicAccent,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                BasicTextField(
+                                    value = lunarYearInput,
+                                    onValueChange = { newValue ->
+                                        if (newValue.isEmpty() || (newValue.length <= 4 && newValue.all { it.isDigit() })) {
+                                            lunarYearInput = newValue
+                                            showLunarResult = false
+                                        }
+                                    },
+                                    singleLine = true,
+                                    textStyle = TextStyle(
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NeumorphicTextPrimary
+                                    ),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+
+                        // 2. 农历月份选择 (采用纯 Popup 布局，彻底消除 M3 外框方角灰色阴影)
+                        var monthExpanded by remember { mutableStateOf(false) }
+                        Box(modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(58.dp)
+                                    .neumorphicInset(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
+                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(18.dp))
+                                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .clickable { monthExpanded = true }
+                                    .padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(text = stringResource(R.string.label_lunar_month), fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                                        Text(text = LunarCalendarUtils.getLunarMonthName(lunarMonth), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                                    }
+                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = NeumorphicAccent)
+                                }
+                            }
+
+                            NeumorphicCustomPopup(
+                                expanded = monthExpanded,
+                                onDismissRequest = { monthExpanded = false }
+                            ) {
+                                (1..12).forEach { m ->
+                                    val isCurrent = (lunarMonth == m)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isCurrent) NeumorphicAccent.copy(alpha = 0.12f) else Color.Transparent,
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable {
+                                                lunarMonth = m
+                                                monthExpanded = false
+                                                showLunarResult = false
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                                    ) {
+                                        Text(
+                                            text = LunarCalendarUtils.getLunarMonthName(m),
+                                            fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold,
+                                            color = if (isCurrent) NeumorphicAccent else NeumorphicTextPrimary,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 3. 农历日期选择 (采用纯 Popup 布局，彻底消除 M3 外框方角灰色阴影)
+                        var dayExpanded by remember { mutableStateOf(false) }
+                        Box(modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(58.dp)
+                                    .neumorphicInset(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
+                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(18.dp))
+                                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .clickable { dayExpanded = true }
+                                    .padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(text = stringResource(R.string.label_lunar_day), fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                                        Text(text = LunarCalendarUtils.getLunarDayName(lunarDay), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                                    }
+                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = NeumorphicAccent)
+                                }
+                            }
+
+                            NeumorphicCustomPopup(
+                                expanded = dayExpanded,
+                                onDismissRequest = { dayExpanded = false }
+                            ) {
+                                (1..30).forEach { d ->
+                                    val isCurrent = (lunarDay == d)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isCurrent) NeumorphicAccent.copy(alpha = 0.12f) else Color.Transparent,
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable {
+                                                lunarDay = d
+                                                dayExpanded = false
+                                                showLunarResult = false
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                                    ) {
+                                        Text(
+                                            text = LunarCalendarUtils.getLunarDayName(d),
+                                            fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold,
+                                            color = if (isCurrent) NeumorphicAccent else NeumorphicTextPrimary,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    val convertedSolarDate = if (parsedYear != null) {
+                        LunarCalendarUtils.lunarToSolar(parsedYear, lunarMonth, lunarDay, isLeapMonth)
+                    } else null
+
+                    // 新拟物蓝色凸起等于号按键 (=)
+                    Box(
+                        modifier = Modifier
+                            .width(64.dp)
+                            .height(58.dp)
+                            .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 5.dp)
+                            .background(NeumorphicAccent, shape = RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                                if (parsedYear == null) {
+                                    Toast.makeText(context, "请先输入公历年份", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    showLunarResult = true
+                                    if (convertedSolarDate != null) {
+                                        val solarStr = DateCalculatorUtils.formatDate(convertedSolarDate)
+                                        val title = "农转阳: $solarStr"
+                                        val detail = "公历 $parsedYear 年农历 ${LunarCalendarUtils.getLunarMonthName(lunarMonth)}${LunarCalendarUtils.getLunarDayName(lunarDay)} ➔ 阳历 $solarStr"
+                                        viewModel.saveToHistory(title, detail, convertedSolarDate)
+                                    }
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("=", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    }
+                }
+
+                val currentLeapMonth = if (parsedYear != null) LunarCalendarUtils.getLeapMonth(parsedYear) else 0
+                if (currentLeapMonth == lunarMonth && currentLeapMonth > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = isLeapMonth,
+                            onCheckedChange = {
+                                isLeapMonth = it
+                                showLunarResult = false
+                            }
+                        )
+                        Text(stringResource(R.string.label_leap_month_check, LunarCalendarUtils.getLunarMonthName(lunarMonth)), color = NeumorphicTextPrimary)
+                    }
+                } else {
+                    isLeapMonth = false
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 val convertedSolarDate = if (parsedYear != null) {
                     LunarCalendarUtils.lunarToSolar(parsedYear, lunarMonth, lunarDay, isLeapMonth)
                 } else null
 
-                // 新拟物蓝色凸起等于号按键 (=)
-                Box(
-                    modifier = Modifier
-                        .width(64.dp)
-                        .height(58.dp)
-                        .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 5.dp)
-                        .background(NeumorphicAccent, shape = RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .clickable {
-                            keyboardController?.hide()
-                            focusManager.clearFocus()
-                            if (parsedYear == null) {
-                                Toast.makeText(context, "请先输入公历年份", Toast.LENGTH_SHORT).show()
-                            } else {
-                                showLunarResult = true
-                                if (convertedSolarDate != null) {
-                                    val solarStr = DateCalculatorUtils.formatDate(convertedSolarDate)
-                                    val title = "农转阳: $solarStr"
-                                    val detail = "公历 $parsedYear 年农历 ${LunarCalendarUtils.getLunarMonthName(lunarMonth)}${LunarCalendarUtils.getLunarDayName(lunarDay)} ➔ 阳历 $solarStr"
-                                    viewModel.saveToHistory(title, detail, convertedSolarDate)
-                                }
-                            }
-                        },
-                    contentAlignment = Alignment.Center
+                AnimatedVisibility(
+                    visible = showLunarResult && parsedYear != null,
+                    enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
+                    exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
                 ) {
-                    Text("=", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                }
-            }
-
-            val currentLeapMonth = if (parsedYear != null) LunarCalendarUtils.getLeapMonth(parsedYear) else 0
-            if (currentLeapMonth == lunarMonth && currentLeapMonth > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = isLeapMonth,
-                        onCheckedChange = {
-                            isLeapMonth = it
-                            showLunarResult = false
-                        }
-                    )
-                    Text(stringResource(R.string.label_leap_month_check, LunarCalendarUtils.getLunarMonthName(lunarMonth)), color = NeumorphicTextPrimary)
-                }
-            } else {
-                isLeapMonth = false
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            val convertedSolarDate = if (parsedYear != null) {
-                LunarCalendarUtils.lunarToSolar(parsedYear, lunarMonth, lunarDay, isLeapMonth)
-            } else null
-
-            AnimatedVisibility(
-                visible = showLunarResult && parsedYear != null,
-                enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
-                exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .neumorphicExtruded(shape = RoundedCornerShape(24.dp), elevation = 6.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
-                        .padding(20.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .neumorphicExtruded(shape = RoundedCornerShape(24.dp), elevation = 6.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = RoundedCornerShape(24.dp))
+                            .clip(RoundedCornerShape(24.dp))
+                            .padding(20.dp)
                     ) {
-                        Text(
-                            text = stringResource(R.string.label_solar_result),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        if (convertedSolarDate != null && parsedYear != null) {
-                            val solarStr = DateCalculatorUtils.formatDate(convertedSolarDate)
-                            val descStr = DateCalculatorUtils.getDateDescription(convertedSolarDate)
-                            val festivalStr = LunarCalendarUtils.solarToLunar(convertedSolarDate).festival
-
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text(
-                                text = solarStr,
-                                fontSize = 30.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                text = stringResource(R.string.label_solar_result),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                             )
 
-                            if (festivalStr.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                SuggestionChip(
-                                    onClick = {},
-                                    shape = CircleShape,
-                                    label = { Text(stringResource(R.string.label_traditional_festival, festivalStr), fontWeight = FontWeight.Bold) }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            if (convertedSolarDate != null && parsedYear != null) {
+                                val solarStr = DateCalculatorUtils.formatDate(convertedSolarDate)
+                                val descStr = DateCalculatorUtils.getDateDescription(convertedSolarDate)
+                                val festivalStr = LunarCalendarUtils.solarToLunar(convertedSolarDate).festival
+
+                                Text(
+                                    text = solarStr,
+                                    fontSize = 30.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
-                            }
 
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = descStr,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                            )
-
-                            Spacer(modifier = Modifier.height(18.dp))
-
-                            NeumorphicCopyButton(
-                                text = stringResource(R.string.label_copy_solar),
-                                onClick = {
-                                    val clipText = "Lunar ${parsedYear}/${lunarMonth}/${lunarDay} ➔ Solar: $solarStr"
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("SolarDate", clipText))
-                                    Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
+                                if (festivalStr.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    SuggestionChip(
+                                        onClick = { viewModel.triggerFireworks() },
+                                        shape = CircleShape,
+                                        label = { Text(stringResource(R.string.label_traditional_festival, festivalStr), fontWeight = FontWeight.Bold) }
+                                    )
                                 }
-                            )
-                        } else {
-                            Text("Invalid date range (1900-2100)", color = MaterialTheme.colorScheme.error)
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    text = descStr,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+
+                                Spacer(modifier = Modifier.height(18.dp))
+
+                                NeumorphicCopyButton(
+                                    text = stringResource(R.string.label_copy_solar),
+                                    onClick = {
+                                        val clipText = "Lunar ${parsedYear}/${lunarMonth}/${lunarDay} ➔ Solar: $solarStr"
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        clipboard.setPrimaryClip(ClipData.newPlainText("SolarDate", clipText))
+                                        Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            } else {
+                                Text("Invalid date range (1900-2100)", color = MaterialTheme.colorScheme.error)
+                            }
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // 传统节日烟花粒子图层
+        FireworksAnimation(trigger = uiState.fireworksTrigger)
+    }
+}
+
+/**
+ * 自定义纯物理 Popup 下拉菜单 (绝对零外框阴影，100% 呈现 18.dp 平滑 R 角与新拟物光影)
+ */
+@Composable
+fun NeumorphicCustomPopup(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    if (expanded) {
+        Popup(
+            onDismissRequest = onDismissRequest,
+            properties = PopupProperties(
+                focusable = true,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(110.dp)
+                    .height(260.dp)
+                    .padding(10.dp)
+                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 8.dp)
+                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 6.dp, horizontal = 4.dp)
+                ) {
+                    content()
+                }
+            }
+        }
     }
 }

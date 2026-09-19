@@ -88,6 +88,9 @@ object DateCalculatorUtils {
         return ChronoUnit.DAYS.between(startDate, endDate)
     }
 
+    /**
+     * 计算两日期间的工作日天数 (修复倒计时目标节日当天被扣除的问题)
+     */
     fun workdaysBetween(
         startDate: LocalDate,
         endDate: LocalDate,
@@ -105,7 +108,15 @@ object DateCalculatorUtils {
         var count = 0L
         var curr = start.plusDays(1)
         while (!curr.isAfter(end)) {
-            if (isWorkday(curr, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek)) {
+            val isTargetDate = (curr == end)
+            val isWork = if (isTargetDate && enableHolidays) {
+                // 如果是目标事件/节日当天，按常规周末规则判断，确保不因节日当天扣减工作日
+                !weekendRule.isWeekend(curr, isCurrentWeekBigWeek) || RegionalHolidays.isShiftWorkday(curr, holidayRegion)
+            } else {
+                isWorkday(curr, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek)
+            }
+
+            if (isWork) {
                 count++
             }
             curr = curr.plusDays(1)
