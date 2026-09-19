@@ -9,6 +9,7 @@ import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LocationUtils
+import me.paco.datecalculator.util.PreferenceUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,7 +67,7 @@ data class DateCalculatorUiState(
     val isCurrentWeekBigWeek: Boolean = true,
     val enableChineseHolidays: Boolean = true,
     val holidayRegion: HolidayRegion = HolidayRegion.CHINA,
-    val isGpsAutoDetectEnabled: Boolean = false, // GPS 自动识别开关 (默认关闭)
+    val isGpsAutoDetectEnabled: Boolean = false,
     val showResult: Boolean = false,
     val historyList: List<HistoryItem> = emptyList(),
     val customEvents: List<CustomEventItem> = emptyList(),
@@ -77,6 +78,25 @@ class DateCalculatorViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(DateCalculatorUiState())
     val uiState: StateFlow<DateCalculatorUiState> = _uiState.asStateFlow()
+
+    fun initPreferences(context: Context) {
+        val savedRegion = PreferenceUtils.getHolidayRegion(context)
+        val savedRule = PreferenceUtils.getWeekendRule(context)
+        val savedBigWeek = PreferenceUtils.getIsBigWeek(context)
+        val savedGpsAuto = PreferenceUtils.getIsGpsAuto(context)
+
+        _uiState.value = _uiState.value.copy(
+            holidayRegion = savedRegion,
+            weekendRule = savedRule,
+            isCurrentWeekBigWeek = savedBigWeek,
+            isGpsAutoDetectEnabled = savedGpsAuto
+        )
+
+        if (savedGpsAuto) {
+            val detected = LocationUtils.detectCurrentRegion(context)
+            updateHolidayRegion(detected, context)
+        }
+    }
 
     fun updateBaseDate(date: LocalDate) {
         _uiState.value = _uiState.value.copy(baseDate = date, showResult = false)
@@ -98,15 +118,17 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(dateMode = mode, showResult = false)
     }
 
-    fun updateWeekendRule(rule: WeekendRule) {
+    fun updateWeekendRule(rule: WeekendRule, context: Context? = null) {
         _uiState.value = _uiState.value.copy(weekendRule = rule, showResult = false)
+        context?.let { PreferenceUtils.saveWeekendRule(it, rule) }
     }
 
-    fun updateCurrentWeekBigWeek(isBigWeek: Boolean) {
+    fun updateCurrentWeekBigWeek(isBigWeek: Boolean, context: Context? = null) {
         _uiState.value = _uiState.value.copy(isCurrentWeekBigWeek = isBigWeek, showResult = false)
+        context?.let { PreferenceUtils.saveIsBigWeek(it, isBigWeek) }
     }
 
-    fun updateHolidayRegion(region: HolidayRegion) {
+    fun updateHolidayRegion(region: HolidayRegion, context: Context? = null) {
         val rule = if (region == HolidayRegion.CHINA || region == HolidayRegion.HONG_KONG || region == HolidayRegion.MACAO) {
             _uiState.value.weekendRule
         } else {
@@ -119,13 +141,17 @@ class DateCalculatorViewModel : ViewModel() {
             weekendRule = rule,
             showResult = false
         )
+        context?.let { PreferenceUtils.saveHolidayRegion(it, region) }
     }
 
     fun updateGpsAutoDetect(enabled: Boolean, context: Context? = null) {
         _uiState.value = _uiState.value.copy(isGpsAutoDetectEnabled = enabled)
-        if (enabled && context != null) {
-            val detected = LocationUtils.detectCurrentRegion(context)
-            updateHolidayRegion(detected)
+        context?.let {
+            PreferenceUtils.saveIsGpsAuto(it, enabled)
+            if (enabled) {
+                val detected = LocationUtils.detectCurrentRegion(it)
+                updateHolidayRegion(detected, it)
+            }
         }
     }
 

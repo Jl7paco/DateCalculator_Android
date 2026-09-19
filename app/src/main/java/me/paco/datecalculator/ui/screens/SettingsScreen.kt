@@ -91,7 +91,7 @@ fun SettingsScreen(
 
     val syncedToastText = stringResource(R.string.toast_holidays_synced)
 
-    // 定位运行时动态权限申请 Launcher (第一次开启时询问授权)
+    // 定位运行时动态权限申请 Launcher
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -103,7 +103,7 @@ fun SettingsScreen(
             val detected = LocationUtils.detectCurrentRegion(context)
             Toast.makeText(context, "已成功根据 GPS 识别所在地: ${detected.flagEmoji} ${detected.nativeName}", Toast.LENGTH_SHORT).show()
         } else {
-            viewModel.updateGpsAutoDetect(false)
+            viewModel.updateGpsAutoDetect(false, context)
             Toast.makeText(context, "需要定位权限以自动识别所在地节假日", Toast.LENGTH_SHORT).show()
         }
     }
@@ -173,7 +173,7 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // 🛰️ GPS 自动定位识别所在地开关行 (首次开启主动弹出权限询问)
+                        // 🛰️ GPS 自动定位识别所在地开关行
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -198,7 +198,6 @@ fun SettingsScreen(
                                         val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
                                         if (!hasFine && !hasCoarse) {
-                                            // 首次开启主动触发定位权限询问弹窗
                                             locationPermissionLauncher.launch(
                                                 arrayOf(
                                                     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -211,7 +210,7 @@ fun SettingsScreen(
                                             Toast.makeText(context, "已开启 GPS 自动识别，匹配所在地: ${detected.flagEmoji} ${detected.nativeName}", Toast.LENGTH_SHORT).show()
                                         }
                                     } else {
-                                        viewModel.updateGpsAutoDetect(false)
+                                        viewModel.updateGpsAutoDetect(false, context)
                                     }
                                 }
                             )
@@ -228,7 +227,7 @@ fun SettingsScreen(
 
                         val selected = uiState.holidayRegion
 
-                        // 新拟物 58dp 下拉菜单选择框 (弹窗宽度 280dp 100% 匹配整个下拉框宽度)
+                        // 新拟物 58dp 下拉菜单选择框
                         Box(modifier = Modifier.fillMaxWidth()) {
                             Box(
                                 modifier = Modifier
@@ -282,7 +281,7 @@ fun SettingsScreen(
                                                 contentDescription = "选择地区: ${region.nativeName}"
                                             }
                                             .clickable {
-                                                viewModel.updateHolidayRegion(region)
+                                                viewModel.updateHolidayRegion(region, context)
                                                 regionMenuExpanded = false
                                             }
                                             .padding(horizontal = 14.dp, vertical = 12.dp)
@@ -429,7 +428,7 @@ fun SettingsScreen(
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
-                                        ) { viewModel.updateWeekendRule(rule) }
+                                        ) { viewModel.updateWeekendRule(rule, context) }
                                         .padding(horizontal = 12.dp, vertical = 10.dp)
                                 ) {
                                     Row(
@@ -438,7 +437,7 @@ fun SettingsScreen(
                                     ) {
                                         NeumorphicRadioButton(
                                             selected = isSelected,
-                                            onClick = { viewModel.updateWeekendRule(rule) },
+                                            onClick = { viewModel.updateWeekendRule(rule, context) },
                                             modifier = Modifier.padding(top = 2.dp)
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
@@ -479,7 +478,7 @@ fun SettingsScreen(
                             NeumorphicSegmentedRow(
                                 items = listOf(stringResource(R.string.label_this_week_big), stringResource(R.string.label_this_week_small)),
                                 selectedIndex = if (uiState.isCurrentWeekBigWeek) 0 else 1,
-                                onIndexSelected = { viewModel.updateCurrentWeekBigWeek(it == 0) }
+                                onIndexSelected = { viewModel.updateCurrentWeekBigWeek(it == 0, context) }
                             )
                         }
                     }
