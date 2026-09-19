@@ -46,7 +46,7 @@ object DateCalculatorUtils {
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
         isCurrentWeekBigWeek: Boolean = true
     ): Boolean {
-        if (enableHolidays && holidayRegion != HolidayRegion.NONE) {
+        if (enableHolidays) {
             if (RegionalHolidays.isShiftWorkday(date, holidayRegion)) {
                 return true
             }
@@ -110,7 +110,6 @@ object DateCalculatorUtils {
         while (!curr.isAfter(end)) {
             val isTargetDate = (curr == end)
             val isWork = if (isTargetDate && enableHolidays) {
-                // 如果是目标事件/节日当天，按常规周末规则判断，确保不因节日当天扣减工作日
                 !weekendRule.isWeekend(curr, isCurrentWeekBigWeek) || RegionalHolidays.isShiftWorkday(curr, holidayRegion)
             } else {
                 isWorkday(curr, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek)

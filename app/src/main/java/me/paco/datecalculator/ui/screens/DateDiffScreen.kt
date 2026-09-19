@@ -122,6 +122,7 @@ fun DateDiffScreen(
     var eventToDelete by remember { mutableStateOf<CustomEventItem?>(null) }
 
     var customEventName by remember { mutableStateOf("") }
+    var customEventIcon by remember { mutableStateOf("📌") }
     var customEventDate by remember { mutableStateOf(LocalDate.now().plusDays(30)) }
     var showCustomDatePicker by remember { mutableStateOf(false) }
 
@@ -154,7 +155,7 @@ fun DateDiffScreen(
         }
     }
 
-    // Bug 1 修复：结果展开后自动平滑下滑至结果卡片完全可见区域
+    // 结果展开后自动平滑下滑至结果卡片完全可见区域
     LaunchedEffect(showDiffResult, uiState.endDate) {
         if (showDiffResult) {
             delay(220) // 等待 AnimatedVisibility 展开动画完成
@@ -200,15 +201,13 @@ fun DateDiffScreen(
             ?: uiState.endDate
     }
 
-    // Bug 3 修复：过滤特殊字符，自动带入纯净自定义事件名称
-    val cleanName = currentTargetEventName.replace("📌", "").trim()
-    val reminderMessage = if (cleanName.isNotBlank()) {
-        "$cleanName ($effectiveEndDate)"
+    val reminderMessage = if (currentTargetEventName.isNotBlank()) {
+        "$currentTargetEventName ($effectiveEndDate)"
     } else {
         "倒计时提醒 ($effectiveEndDate)"
     }
 
-    // Bug 2 修复：提醒方式选择弹窗，严格按需求显示：跳转系统闹铃 与 跳转系统日历
+    // 提醒方式选择弹窗 (跳转系统闹铃 与 跳转系统日历)
     if (showReminderDialog) {
         AlertDialog(
             onDismissRequest = { showReminderDialog = false },
@@ -222,7 +221,7 @@ fun DateDiffScreen(
                 ) {
                     Text("提醒名称: $reminderMessage", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
 
-                    // 选项 1: 跳转系统闹铃 (精确名字带入)
+                    // 选项 1: 跳转系统闹铃 (取消固定时间，透传名称，打开新建界面)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -232,7 +231,6 @@ fun DateDiffScreen(
                             .clip(RoundedCornerShape(16.dp))
                             .clickable {
                                 showReminderDialog = false
-                                // 复制纯净事件名称到剪贴板，双重保障名称带入
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("AlarmName", reminderMessage))
 
@@ -261,7 +259,7 @@ fun DateDiffScreen(
                         }
                     }
 
-                    // 选项 2: 跳转系统日历 (精确名字带入)
+                    // 选项 2: 跳转系统日历 (自动带入特定事件名称)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -334,7 +332,7 @@ fun DateDiffScreen(
         )
     }
 
-    // 自定义倒计时事件添加弹窗
+    // 自定义倒计时事件添加弹窗 (增加自选图标 Emoji Palettes)
     if (showAddCustomDialog) {
         AlertDialog(
             onDismissRequest = { showAddCustomDialog = false },
@@ -343,7 +341,43 @@ fun DateDiffScreen(
             title = { Text(stringResource(R.string.label_custom_event_dialog_title), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("选择分类图标:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+
+                    // 可选 Emoji 图标阵列
+                    val icons = listOf("📌", "🎂", "💍", "❤️", "🚀", "✈️", "🎓", "🏠", "💰", "🎁", "⚽", "🎮")
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        icons.forEach { icon ->
+                            val isSelected = (customEventIcon == icon)
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .then(
+                                        if (isSelected) {
+                                            Modifier
+                                                .neumorphicInset(shape = CircleShape)
+                                                .background(NeumorphicAccent.copy(alpha = 0.2f), shape = CircleShape)
+                                        } else {
+                                            Modifier
+                                                .neumorphicExtruded(shape = CircleShape)
+                                                .background(NeumorphicBg, shape = CircleShape)
+                                        }
+                                    )
+                                    .clip(CircleShape)
+                                    .clickable { customEventIcon = icon },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(icon, fontSize = 18.sp)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text("请输入自定义事件名称并选择目标日期:", fontSize = 13.sp, color = NeumorphicTextPrimary)
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -379,10 +413,10 @@ fun DateDiffScreen(
             confirmButton = {
                 TextButton(onClick = {
                     if (customEventName.isNotBlank()) {
-                        val fullName = "📌 $customEventName"
-                        viewModel.addCustomEvent(fullName, customEventDate)
+                        val fullName = "$customEventIcon $customEventName"
+                        viewModel.addCustomEvent(fullName, customEventDate, customEventIcon)
                         viewModel.updateEndDate(customEventDate)
-                        currentTargetEventName = customEventName
+                        currentTargetEventName = fullName
                         targetCalendarType = 0
                         showDiffResult = true
                         customEventName = ""
@@ -423,7 +457,7 @@ fun DateDiffScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Feature 1.6: 基准日期命名重构
+        // 基准日期 Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -477,7 +511,7 @@ fun DateDiffScreen(
                     )
                     Column {
                         Text(
-                            text = "基准起始日期",
+                            text = "选择起始日期",
                             style = MaterialTheme.typography.labelMedium,
                             color = NeumorphicAccent,
                             fontWeight = FontWeight.Bold
@@ -513,7 +547,7 @@ fun DateDiffScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Feature 1.0 & 1.1 & 1.3 & 1.4: 倒计时快捷选项 + 自定义特定日期
+        // 自动响应不同国家/地区所对应的热门倒计时节日快捷项
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -543,6 +577,7 @@ fun DateDiffScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         val base = uiState.baseDate
+        // 根据切换的地区，自动替换为对应国家的热门倒计时节日
         val presetCountdowns = when (uiState.holidayRegion) {
             HolidayRegion.CHINA -> listOf(
                 stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1),
@@ -553,15 +588,6 @@ fun DateDiffScreen(
                 stringResource(R.string.preset_gaokao) to calculateNextSolarDate(base, 6, 7),
                 "📚 中考" to calculateNextSolarDate(base, 6, 21)
             )
-            HolidayRegion.HONG_KONG -> listOf(
-                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
-                "🧧 农历新年" to calculateNextLunarDate(base, 1, 1),
-                "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
-                "🇭🇰 特区成立纪念日" to calculateNextSolarDate(base, 7, 1),
-                "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
-                "🇨🇳 国庆节" to calculateNextSolarDate(base, 10, 1),
-                "🎄 圣诞节" to calculateNextSolarDate(base, 12, 25)
-            )
             HolidayRegion.TAIWAN -> listOf(
                 "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
                 "🧧 春节" to calculateNextLunarDate(base, 1, 1),
@@ -571,6 +597,59 @@ fun DateDiffScreen(
                 "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
                 "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
                 "🇹🇼 国庆日" to calculateNextSolarDate(base, 10, 10)
+            )
+            HolidayRegion.HONG_KONG -> listOf(
+                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
+                "🧧 农历新年" to calculateNextLunarDate(base, 1, 1),
+                "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
+                "🇭🇰 特区成立纪念日" to calculateNextSolarDate(base, 7, 1),
+                "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
+                "🇨🇳 国庆节" to calculateNextSolarDate(base, 10, 1),
+                "🎄 圣诞节" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.MACAO -> listOf(
+                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
+                "🧧 农历新年" to calculateNextLunarDate(base, 1, 1),
+                "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
+                "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
+                "🇨🇳 国庆节" to calculateNextSolarDate(base, 10, 1),
+                "🇲🇴 特区成立纪念日" to calculateNextSolarDate(base, 12, 20),
+                "🎄 圣诞节" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.JAPAN -> listOf(
+                "🎆 元日" to calculateNextSolarDate(base, 1, 1),
+                "🌸 成人の日" to calculateNextSolarDate(base, 1, 13),
+                "🌸 建国記念の日" to calculateNextSolarDate(base, 2, 11),
+                "🌸 天皇誕生日" to calculateNextSolarDate(base, 2, 23),
+                "🎏 憲法記念日" to calculateNextSolarDate(base, 5, 3),
+                "🎏 こどもの日" to calculateNextSolarDate(base, 5, 5),
+                "🍁 敬老の日" to calculateNextSolarDate(base, 9, 15),
+                "🍂 勤労感謝の日" to calculateNextSolarDate(base, 11, 23)
+            )
+            HolidayRegion.SOUTH_KOREA -> listOf(
+                "🎆 신정 (元旦)" to calculateNextSolarDate(base, 1, 1),
+                "🧧 설날 (春节)" to calculateNextLunarDate(base, 1, 1),
+                "🇰🇷 삼일절 (三一节)" to calculateNextSolarDate(base, 3, 1),
+                "🧸 어린이날 (儿童节)" to calculateNextSolarDate(base, 5, 5),
+                "🌾 현충일 (显忠日)" to calculateNextSolarDate(base, 6, 6),
+                "🇰🇷 광복절 (光复节)" to calculateNextSolarDate(base, 8, 15),
+                "🥮 추석 (中秋/秋夕)" to calculateNextLunarDate(base, 8, 15),
+                "🇰🇷 개천절 (开天节)" to calculateNextSolarDate(base, 10, 3)
+            )
+            HolidayRegion.UNITED_STATES -> listOf(
+                "🎆 New Year's Day" to calculateNextSolarDate(base, 1, 1),
+                "🕊️ MLK Day" to calculateNextSolarDate(base, 1, 20),
+                "🇺🇸 Independence Day" to calculateNextSolarDate(base, 7, 4),
+                "🛠️ Labor Day" to calculateNextSolarDate(base, 9, 1),
+                "🎃 Thanksgiving" to calculateNextSolarDate(base, 11, 26),
+                "🎄 Christmas" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.THAILAND -> listOf(
+                "🎆 วันขึ้นปีใหม่ (元旦)" to calculateNextSolarDate(base, 1, 1),
+                "💦 วันสงกรานต์ (泼水节)" to calculateNextSolarDate(base, 4, 13),
+                "👑 วันเฉลิมพระชนมพรรษา" to calculateNextSolarDate(base, 7, 28),
+                "👑 วันแม่แห่งชาติ (母亲节)" to calculateNextSolarDate(base, 8, 12),
+                "👑 วันพ่อแห่งชาติ (父亲节)" to calculateNextSolarDate(base, 12, 5)
             )
             else -> listOf(
                 stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
@@ -583,7 +662,7 @@ fun DateDiffScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 系统内置节假日快捷项
+            // 系统内置按当前国家/地区自动转换的节假日快捷项
             presetCountdowns.forEach { (label, targetDate) ->
                 val isSelected = (targetCalendarType == 0 && uiState.endDate == targetDate)
                 NeumorphicChip(
@@ -599,7 +678,7 @@ fun DateDiffScreen(
                 )
             }
 
-            // 用户自定义特定日期 Chip (支持长按或点击右侧小关闭按键删除)
+            // 用户自定义特定日期 Chip (支持自选 Emoji 图标，长按或点击小 Close 键轻松删除)
             uiState.customEvents.forEach { customEvent ->
                 val isSelected = (targetCalendarType == 0 && uiState.endDate == customEvent.targetDate)
                 val interactionSource = remember { MutableInteractionSource() }
@@ -668,7 +747,6 @@ fun DateDiffScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Feature 1.8: 命名重构
         Text(stringResource(R.string.label_custom_target_date), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -746,7 +824,7 @@ fun DateDiffScreen(
                             }
                         }
 
-                        // 2. 农历月份选择 (100% 垂直等高对齐)
+                        // 2. 农历月份选择
                         var monthExpanded by remember { mutableStateOf(false) }
                         Box(modifier = Modifier.weight(1f)) {
                             Box(
@@ -805,7 +883,7 @@ fun DateDiffScreen(
                             }
                         }
 
-                        // 3. 农历日期选择 (100% 垂直等高对齐)
+                        // 3. 农历日期选择
                         var dayExpanded by remember { mutableStateOf(false) }
                         Box(modifier = Modifier.weight(1f)) {
                             Box(
@@ -891,7 +969,6 @@ fun DateDiffScreen(
             }
         }
 
-        // Bug 2 修复：目标快捷按钮点击后直接自动计算并输出结果
         if (targetCalendarType == 0) {
             Spacer(modifier = Modifier.height(6.dp))
             QuickDateChips(
@@ -988,7 +1065,7 @@ fun DateDiffScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Feature 1.7: 倒计时设置提醒闹钟/日历功能按键 (自动带入事件专属名称)
+                    // 倒计时设置提醒按键
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

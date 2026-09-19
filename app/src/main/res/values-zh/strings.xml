@@ -3,14 +3,14 @@
     <string name="app_name">日期计算器</string>
     <string name="tab_workday">日期计算</string>
     <string name="tab_natural_day">自然日</string>
-    <string name="tab_date_diff">间隔倒计时</string>
-    <string name="tab_lunar">农历转换</string>
-    <string name="tab_settings">历史与规则</string>
+    <string name="tab_date_diff">日期倒计时</string>
+    <string name="tab_lunar">农历公历</string>
+    <string name="tab_settings">历史与设置</string>
 
     <!-- Section Labels -->
     <string name="label_rule_prefix">规则：%1$s | 节假日：%2$s</string>
     <string name="label_no_holiday_active">未启用节假日规则</string>
-    <string name="label_start_date_section">选择起始日期</string>
+    <string name="label_start_date_section">起始日期</string>
     <string name="label_base_date_fmt">目标日期: %1$s</string>
     <string name="label_today">今天</string>
     <string name="label_tomorrow">明天</string>
@@ -20,7 +20,7 @@
     <string name="label_plus_1_month">+1个月</string>
 
     <!-- Direction & Calculation -->
-    <string name="label_calc_direction">选择加减与天数</string>
+    <string name="label_calc_direction">计算加减天数</string>
     <string name="label_add">+ 加天数</string>
     <string name="label_subtract">- 减天数</string>
     <string name="label_days">天数</string>
@@ -28,7 +28,7 @@
     <string name="label_days_natural">自然日</string>
 
     <!-- Result Card -->
-    <string name="label_result_title_workday">计算结果</string>
+    <string name="label_result_title_workday">计算结果日期</string>
     <string name="label_result_title_natural">自然日推算结果</string>
     <string name="label_copy_result">复制结果</string>
     <string name="label_save_history">存入历史</string>
@@ -37,19 +37,19 @@
     <string name="label_natural_mode_info">自然日模式：按连续日历推算，不扣除周末与节假日</string>
 
     <!-- Date Diff & Countdown -->
-    <string name="label_date_diff_title">到某天还有多少天</string>
-    <string name="label_base_date_default">基准日期</string>
+    <string name="label_date_diff_title">目标日期倒计时</string>
+    <string name="label_base_date_default">起始基准日</string>
     <string name="label_set_today">设为今天</string>
-    <string name="label_preset_countdown">热门倒计时节日</string>
-    <string name="label_add_custom_countdown">+ 添加倒计时</string>
+    <string name="label_preset_countdown">常用节日倒计时</string>
+    <string name="label_add_custom_countdown">+ 新增倒计时</string>
     <string name="label_custom_event_dialog_title">添加自定义倒计时</string>
     <string name="label_event_name">日期名称 (例: 妈妈生日)</string>
-    <string name="label_set_reminder">设置提醒</string>
+    <string name="label_set_reminder">添加系统提醒</string>
     <string name="label_target_date">目标日期:</string>
-    <string name="label_custom_target_date">目标日期</string>
+    <string name="label_custom_target_date">目标特定日期</string>
     <string name="label_solar">公历</string>
     <string name="label_lunar">农历</string>
-    <string name="label_result_diff_title">倒计时结果</string>
+    <string name="label_result_diff_title">间隔与倒计时结果</string>
     <string name="label_days_diff">相差自然日</string>
     <string name="label_workdays_diff">相差工作日</string>
     <string name="label_period_len">• 换算时长: %1$s</string>
@@ -57,9 +57,9 @@
     <string name="label_holiday_std">• 节假日标准: %1$s</string>
     <string name="label_rest_days_len">• 休息/非工作日天数: %1$s 天</string>
     <string name="label_copy_comparison">复制结果</string>
-    <string name="label_status_future">还有 %1$d 天</string>
+    <string name="label_status_future">距离目标还有 %1$d 天</string>
     <string name="label_status_past">已过去 %1$d 天</string>
-    <string name="label_status_same">目标日期与基准日期为同一天</string>
+    <string name="label_status_same">目标日期与起始日期为同一天</string>
 
     <!-- Preset Countdown Labels -->
     <string name="preset_national_day">🇨🇳 国庆节</string>
@@ -70,37 +70,37 @@
     <string name="preset_gaokao">📚 高考</string>
 
     <!-- Lunar Converter -->
-    <string name="label_lunar_conv_title">农历公历互换</string>
+    <string name="label_lunar_conv_title">农历与公历转换</string>
     <string name="label_solar_to_lunar">公历 ➔ 农历</string>
     <string name="label_lunar_to_solar">农历 ➔ 公历</string>
-    <string name="label_select_solar_date">选择公历日期</string>
-    <string name="label_lunar_result">对应农历</string>
+    <string name="label_select_solar_date">公历日期</string>
+    <string name="label_lunar_result">农历日期</string>
     <string name="label_solar_result">对应公历</string>
     <string name="label_copy_lunar">复制农历</string>
     <string name="label_copy_solar">复制公历</string>
-    <string name="label_select_lunar_date">选择农历年月日</string>
+    <string name="label_select_lunar_date">输入农历年月日</string>
     <string name="label_gregorian_year">公历年份</string>
     <string name="label_lunar_month">农历月份</string>
     <string name="label_lunar_day">农历日期</string>
     <string name="label_leap_month_check">该月为闰月 (闰%1$s)</string>
     <string name="label_corresponding_solar">对应公历: %1$s</string>
-    <string name="label_gregorian_year_hint">选择公历年份 (自动匹配生肖干支)：%1$s</string>
+    <string name="label_gregorian_year_hint">输入公历年份 (自动匹配干支属相)：%1$s</string>
     <string name="label_traditional_festival">🎉 传统节日: %1$s (点击放烟花)</string>
 
     <!-- Settings & History -->
-    <string name="label_rules_and_history">休假与工作日规则</string>
-    <string name="label_weekend_mode">周末休假模式</string>
-    <string name="label_region_selection">法定节假日地区</string>
+    <string name="label_rules_and_history">工作日与休假规则</string>
+    <string name="label_weekend_mode">周末休息模式</string>
+    <string name="label_region_selection">法定节假日与地区</string>
     <string name="label_region_sub_info">自动按所选国家/地区的法定安排扣除节假日及调休:</string>
     <string name="label_current_region">当前所选地区: %1$s %2$s</string>
     <string name="label_region_holiday_count">• 内置法定节日总量: %1$d 天%2$s</string>
     <string name="label_shift_count_fmt"> | 调休补班日: %1$d 天</string>
-    <string name="label_big_small_setting">大小周轮替设置:</string>
+    <string name="label_big_small_setting">大小周单双休设置:</string>
     <string name="label_this_week_big">本周是大周 (周六日休息)</string>
     <string name="label_this_week_small">本周是小周 (仅周日休息)</string>
 
     <string name="label_database_support">多地区节假日安排说明</string>
-    <string name="label_database_support_desc">• 支持中国大陆、臺灣、香港、澳門、日本、대한민국、United States、ประเทศไทย共 8 个主要国家/地区的法定节假日与调休安排。\n• 数据覆盖 2024-2026 年，精准支持不同地区项目推进、差旅排期与休假规划。</string>
+    <string name="label_database_support_desc">• 支持中国大陆、臺灣、香港、澳門、日本、대한민국、United States、ประเทศไทย共 8 个主要国家/地区的法定节假日与调休安排。\n• 精准支持不同地区项目推进、差旅排期与休假规划。</string>
 
     <string name="label_history">历史记录</string>
     <string name="label_rules">规则设置</string>
@@ -125,7 +125,7 @@
     <string name="rule_seven_days_desc">一周七天均为工作日，不计周末</string>
 
     <!-- Holiday Region Descriptions (Chinese) -->
-    <string name="region_desc_cn">含法定节假日及调休补班 (2024-2026)</string>
+    <string name="region_desc_cn">含法定节假日及调休补班</string>
     <string name="region_desc_tw">含法定节假日及补假/补班安排</string>
     <string name="region_desc_hk">含公众假期与补假安排</string>
     <string name="region_desc_mo">含强制性假日及公众假期</string>
@@ -139,6 +139,6 @@
     <string name="toast_copied">结果已复制到剪贴板</string>
     <string name="toast_saved">已保存到历史记录</string>
     <string name="toast_history_cleared">已清空历史记录</string>
-    <string name="toast_holidays_synced">已更新最新假期</string>
+    <string name="toast_holidays_synced">已同步最新节假日数据</string>
     <string name="toast_reminder_set">已成功跳转设置提醒</string>
 </resources>

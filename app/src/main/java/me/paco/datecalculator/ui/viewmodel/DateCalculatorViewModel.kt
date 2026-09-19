@@ -12,11 +12,50 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
 
+enum class EventRepeatMode(val label: String) {
+    NONE("不重复"),
+    WEEKLY("每周"),
+    MONTHLY("每月"),
+    YEARLY("每年")
+}
+
 data class CustomEventItem(
     val id: Long = System.nanoTime(),
+    val iconEmoji: String = "📌",
     val name: String,
-    val targetDate: LocalDate
-)
+    val targetDate: LocalDate,
+    val repeatMode: EventRepeatMode = EventRepeatMode.NONE
+) {
+    /**
+     * 根据当前基准日期自动滚动推算下一个周期的目标日期
+     */
+    fun getNextUpcomingDate(baseDate: LocalDate = LocalDate.now()): LocalDate {
+        if (repeatMode == EventRepeatMode.NONE || !targetDate.isBefore(baseDate)) {
+            return targetDate
+        }
+
+        var upcoming = targetDate
+        when (repeatMode) {
+            EventRepeatMode.WEEKLY -> {
+                while (upcoming.isBefore(baseDate)) {
+                    upcoming = upcoming.plusWeeks(1)
+                }
+            }
+            EventRepeatMode.MONTHLY -> {
+                while (upcoming.isBefore(baseDate)) {
+                    upcoming = upcoming.plusMonths(1)
+                }
+            }
+            EventRepeatMode.YEARLY -> {
+                while (upcoming.isBefore(baseDate)) {
+                    upcoming = upcoming.plusYears(1)
+                }
+            }
+            EventRepeatMode.NONE -> {}
+        }
+        return upcoming
+    }
+}
 
 data class DateCalculatorUiState(
     val baseDate: LocalDate = LocalDate.now(),
@@ -76,7 +115,7 @@ class DateCalculatorViewModel : ViewModel() {
 
         _uiState.value = _uiState.value.copy(
             holidayRegion = region,
-            enableChineseHolidays = (region != HolidayRegion.NONE),
+            enableChineseHolidays = true,
             weekendRule = rule,
             showResult = false
         )
@@ -96,8 +135,19 @@ class DateCalculatorViewModel : ViewModel() {
         }
     }
 
-    fun addCustomEvent(name: String, targetDate: LocalDate) {
-        val newEvent = CustomEventItem(name = name, targetDate = targetDate)
+    fun addCustomEvent(
+        name: String,
+        targetDate: LocalDate,
+        iconEmoji: String = "📌",
+        repeatMode: EventRepeatMode = EventRepeatMode.NONE
+    ) {
+        val fullName = if (name.startsWith(iconEmoji)) name else "$iconEmoji $name"
+        val newEvent = CustomEventItem(
+            name = fullName,
+            targetDate = targetDate,
+            iconEmoji = iconEmoji,
+            repeatMode = repeatMode
+        )
         val updatedEvents = _uiState.value.customEvents + newEvent
         _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
     }

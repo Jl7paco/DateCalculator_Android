@@ -12,15 +12,19 @@ enum class HolidayRegion(
     val flagEmoji: String,
     val description: String
 ) {
-    CHINA("CN", "中国大陆", "中国大陆", "🇨🇳", "含法定节假日及调休补班 (2024-2026)"),
-    TAIWAN("TW", "台湾", "臺灣", "🇹🇼", "含法定节假日及补假/补班安排"),
+    CHINA("CN", "中国大陆", "中国大陆", "🇨🇳", "含法定节假日及调休补班"),
+    TAIWAN("TW", "台湾（中国）", "台湾（中国）", "🇹🇼", "含法定节假日及补假/补班安排"),
     HONG_KONG("HK", "中国香港", "香港", "🇭🇰", "含公众假期与补假安排"),
     MACAO("MO", "中国澳门", "澳門", "🇲🇴", "含强制性假日及公众假期"),
+    SINGAPORE("SG", "新加坡", "Singapore", "🇸🇬", "含新加坡法定公众假期"),
+    MALAYSIA("MY", "马来西亚", "Malaysia", "🇲🇾", "含马来西亚全国法定公众假期"),
+    VIETNAM("VN", "越南", "Việt Nam", "🇻🇳", "含越南法定节假日及补假"),
     JAPAN("JP", "日本", "日本", "🇯🇵", "含国民之祝日与振替休日"),
     SOUTH_KOREA("KR", "韩国", "대한민국", "🇰🇷", "含公休日与替代公休日"),
+    AUSTRALIA("AU", "澳大利亚", "Australia", "🇦🇺", "含澳大利亚全国及州法定公众假期"),
+    NEW_ZEALAND("NZ", "新西兰", "New Zealand", "🇳🇿", "含新西兰全国法定公众假期"),
     UNITED_STATES("US", "美国", "United States", "🇺🇸", "含联邦法定节假日 (Federal Holidays)"),
-    THAILAND("TH", "泰国", "ประเทศไทย", "🇹🇭", "含泰国法定公众假期及补假"),
-    NONE("NONE", "无 (不区分节假日)", "No Holidays", "🌐", "仅按周末规则计算，不排除节假日")
+    THAILAND("TH", "泰国", "ประเทศไทย", "🇹🇭", "含泰国法定公众假期及补假")
 }
 
 enum class WeekendRule(val label: String, val description: String) {

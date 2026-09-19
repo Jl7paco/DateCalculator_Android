@@ -77,6 +77,7 @@ import me.paco.datecalculator.ui.components.FireworksAnimation
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicCopyButton
+import me.paco.datecalculator.ui.components.NeumorphicCustomPopup
 import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.QuickDateChips
@@ -120,18 +121,21 @@ fun LunarConverterScreen(
     // 默认打开时即显示【今天】的农历计算结果
     var showLunarResult by remember { mutableStateOf(true) }
 
-    // 阳历基准日期切换时的动效提醒
+    // Bounce 动效触发器：只在主动点击下方四个快捷按键时触发
     val cardScale = remember { Animatable(1.0f) }
     val cardAlpha = remember { Animatable(1.0f) }
+    var triggerBounce by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(solarDate, lunarRefSolarDate) {
-        launch {
-            cardScale.animateTo(1.04f, animationSpec = tween(100))
-            cardScale.animateTo(1.00f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-        }
-        launch {
-            cardAlpha.snapTo(0.4f)
-            cardAlpha.animateTo(1.0f, animationSpec = tween(250))
+    LaunchedEffect(triggerBounce) {
+        if (triggerBounce > 0) {
+            launch {
+                cardScale.animateTo(1.04f, animationSpec = tween(100))
+                cardScale.animateTo(1.00f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+            }
+            launch {
+                cardAlpha.snapTo(0.4f)
+                cardAlpha.animateTo(1.0f, animationSpec = tween(250))
+            }
         }
     }
 
@@ -142,8 +146,8 @@ fun LunarConverterScreen(
                 solarDate = date
                 showLunarResult = true
                 val lunarResult = LunarCalendarUtils.solarToLunar(date)
-                val title = "阳转农: ${lunarResult.lunarMonthName}${lunarResult.lunarDayName}"
-                val detail = "阳历 $date ➔ ${lunarResult.getFullDescription()}"
+                val title = "公转农: ${lunarResult.lunarMonthName}${lunarResult.lunarDayName}"
+                val detail = "公历 $date ➔ ${lunarResult.getFullDescription()}"
                 viewModel.saveToHistory(title, detail, date)
             },
             onDismiss = { showSolarPicker = false }
@@ -202,7 +206,7 @@ fun LunarConverterScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (convertMode == 0) {
-                // ================= 阳历转农历 =================
+                // ================= 公历转农历 =================
                 Text(
                     text = stringResource(R.string.label_select_solar_date),
                     style = MaterialTheme.typography.bodyMedium,
@@ -243,7 +247,7 @@ fun LunarConverterScreen(
                             )
                             Column {
                                 Text(
-                                    text = "选择阳历 (公历) 日期",
+                                    text = "选择公历日期",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold
@@ -269,14 +273,16 @@ fun LunarConverterScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // 点击四个快捷选项后，精确触发 Hero Card 的 Bounce 缩放动效
                 QuickDateChips(
                     selectedDate = solarDate,
                     onSelectDate = { date ->
                         solarDate = date
                         showLunarResult = true
+                        triggerBounce++ // 仅在点击下方快捷选项后弹 Bounce 动效
                         val lunarResult = LunarCalendarUtils.solarToLunar(date)
-                        val title = "阳转农: ${lunarResult.lunarMonthName}${lunarResult.lunarDayName}"
-                        val detail = "阳历 $date ➔ ${lunarResult.getFullDescription()}"
+                        val title = "公转农: ${lunarResult.lunarMonthName}${lunarResult.lunarDayName}"
+                        val detail = "公历 $date ➔ ${lunarResult.getFullDescription()}"
                         viewModel.saveToHistory(title, detail, date)
                     }
                 )
@@ -354,7 +360,7 @@ fun LunarConverterScreen(
                 }
 
             } else {
-                // ================= 农历转阳历 (默认显示今天的公历日期 Hero Card，不提供快捷按钮) =================
+                // ================= 农历转公历 (默认显示今天的公历日期 Hero Card，不提供快捷按钮) =================
                 Text(
                     text = "参考公历日期选择",
                     style = MaterialTheme.typography.bodyMedium,
@@ -445,7 +451,7 @@ fun LunarConverterScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // 公历年份、农历月份、农历日期 3 个输入框，彻底消除方角阴影圈
+                // 公历年份、农历月份、农历日期 3 个输入框，配合纯全圆角 18.dp R角 3D 新拟物下拉卡片
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -493,7 +499,7 @@ fun LunarConverterScreen(
                             }
                         }
 
-                        // 2. 农历月份选择 (采用纯 Popup 布局，彻底消除 M3 外框方角灰色阴影)
+                        // 2. 农历月份选择 (100% 对齐 18.dp R角 3D 新拟物下拉卡片)
                         var monthExpanded by remember { mutableStateOf(false) }
                         Box(modifier = Modifier.weight(1f)) {
                             Box(
@@ -553,7 +559,7 @@ fun LunarConverterScreen(
                             }
                         }
 
-                        // 3. 农历日期选择 (采用纯 Popup 布局，彻底消除 M3 外框方角灰色阴影)
+                        // 3. 农历日期选择 (100% 对齐 18.dp R角 3D 新拟物下拉卡片)
                         var dayExpanded by remember { mutableStateOf(false) }
                         Box(modifier = Modifier.weight(1f)) {
                             Box(
@@ -637,8 +643,8 @@ fun LunarConverterScreen(
                                     showLunarResult = true
                                     if (convertedSolarDate != null) {
                                         val solarStr = DateCalculatorUtils.formatDate(convertedSolarDate)
-                                        val title = "农转阳: $solarStr"
-                                        val detail = "公历 $parsedYear 年农历 ${LunarCalendarUtils.getLunarMonthName(lunarMonth)}${LunarCalendarUtils.getLunarDayName(lunarDay)} ➔ 阳历 $solarStr"
+                                        val title = "农转公: $solarStr"
+                                        val detail = "公历 $parsedYear 年农历 ${LunarCalendarUtils.getLunarMonthName(lunarMonth)}${LunarCalendarUtils.getLunarDayName(lunarDay)} ➔ 公历 $solarStr"
                                         viewModel.saveToHistory(title, detail, convertedSolarDate)
                                     }
                                 }
@@ -750,46 +756,9 @@ fun LunarConverterScreen(
         }
 
         // 传统节日烟花粒子图层
-        FireworksAnimation(trigger = uiState.fireworksTrigger)
-    }
-}
-
-/**
- * 自定义纯物理 Popup 下拉菜单 (绝对零外框阴影，100% 呈现 18.dp 平滑 R 角与新拟物光影)
- */
-@Composable
-fun NeumorphicCustomPopup(
-    expanded: Boolean,
-    onDismissRequest: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    if (expanded) {
-        Popup(
-            onDismissRequest = onDismissRequest,
-            properties = PopupProperties(
-                focusable = true,
-                dismissOnBackPress = true,
-                dismissOnClickOutside = true
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(110.dp)
-                    .height(260.dp)
-                    .padding(10.dp)
-                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 8.dp)
-                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
-                    .clip(RoundedCornerShape(18.dp))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(vertical = 6.dp, horizontal = 4.dp)
-                ) {
-                    content()
-                }
-            }
-        }
+        FireworksAnimation(
+            trigger = uiState.fireworksTrigger,
+            onAnimationFinished = { viewModel.resetFireworks() }
+        )
     }
 }

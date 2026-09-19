@@ -138,11 +138,7 @@ fun DateCalculationScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 val infoText = if (uiState.dateMode == DateMode.WORKDAY) {
-                    val regionText = if (uiState.enableChineseHolidays && uiState.holidayRegion != HolidayRegion.NONE) {
-                        "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
-                    } else {
-                        stringResource(R.string.label_no_holiday_active)
-                    }
+                    val regionText = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
                     val ruleLabel = when (uiState.weekendRule) {
                         WeekendRule.STANDARD_FIVE_DAYS -> stringResource(R.string.rule_five_days)
                         WeekendRule.ALTERNATE_BIG_SMALL_WEEKS -> stringResource(R.string.rule_big_small_weeks)

@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +57,7 @@ import me.paco.datecalculator.ui.screens.DateDiffScreen
 import me.paco.datecalculator.ui.screens.LunarConverterScreen
 import me.paco.datecalculator.ui.screens.SettingsScreen
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
+import kotlin.math.abs
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +78,6 @@ fun MainScreen(
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { navItems.size })
 
     Scaffold(
-        // 底栏拖拽滑动：修正拖拽方向为 1:1 绝对自然跟手
         bottomBar = {
             BoxWithConstraints(
                 modifier = Modifier
@@ -119,7 +120,6 @@ fun MainScreen(
                             onHorizontalDrag = { change, dragAmount ->
                                 change.consume()
                                 coroutineScope.launch {
-                                    // 正向传参使底栏手势方向与页面跟手方向完全一致
                                     val scaleFactor = navItems.size.toFloat()
                                     pagerState.dispatchRawDelta(dragAmount * scaleFactor)
                                 }
@@ -146,16 +146,20 @@ fun MainScreen(
                         .background(MaterialTheme.colorScheme.primary)
                 )
 
-                // 底部标签按钮
+                // 底部标签按钮 (颜色与 Icon 采用连续线性插值，彻底解决滑动时的跳变闪烁感)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(80.dp)
                 ) {
                     navItems.forEachIndexed { index, (label, icon) ->
-                        val isSelected = pagerState.currentPage == index
-                        val textColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                        val fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
+                        val distance = abs(pageFraction - index)
+                        val selectedProgress = (1f - distance).coerceIn(0f, 1f)
+                        val textColor = lerp(
+                            start = MaterialTheme.colorScheme.onSurfaceVariant,
+                            stop = Color.White,
+                            fraction = selectedProgress
+                        )
 
                         Column(
                             modifier = Modifier
@@ -184,7 +188,7 @@ fun MainScreen(
                             Text(
                                 text = label,
                                 color = textColor,
-                                fontWeight = fontWeight,
+                                fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp
                             )
                         }
