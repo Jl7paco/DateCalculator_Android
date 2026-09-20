@@ -15,9 +15,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -146,7 +150,7 @@ fun RangeBreakdownCard(
             HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 底部地区描述与右侧 11sp 精致复制按键 (防止重叠)
+            // 底部地区描述与右侧 32dp 纯复制图标按键 (无任何文字重叠)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -161,22 +165,27 @@ fun RangeBreakdownCard(
                         .padding(end = 8.dp)
                 )
 
+                val buttonShape = RoundedCornerShape(10.dp)
                 Box(
                     modifier = Modifier
-                        .height(32.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
-                        .clip(CircleShape)
+                        .size(32.dp)
+                        .neumorphicExtruded(shape = buttonShape, elevation = 3.dp)
+                        .background(NeumorphicBg, shape = buttonShape)
+                        .clip(buttonShape)
                         .clickable {
                             val clipText = "区间拆算 [${result.startDate} ➔ ${result.endDate}]: 总自然日 ${result.totalNaturalDays}天 | 工作日 ${result.workdaysCount}天 | 周末双休 ${result.regularWeekendDaysCount}天 | 节假日 ${result.statutoryHolidaysCount}天"
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText("RangeBreakdown", clipText))
                             Toast.makeText(context, "拆算结果已复制到剪贴板", Toast.LENGTH_SHORT).show()
-                        }
-                        .padding(horizontal = 10.dp),
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("复制结果", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "复制拆算结果",
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }

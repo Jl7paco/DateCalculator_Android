@@ -1,5 +1,6 @@
 package me.paco.datecalculator.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -52,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -89,6 +91,7 @@ fun DateCalculationScreen(
     uiState: DateCalculatorUiState,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     var showDatePicker by remember { mutableStateOf(false) }
     var showReverseEndDatePicker by remember { mutableStateOf(false) }
@@ -291,44 +294,53 @@ fun DateCalculationScreen(
                 modifier = Modifier.weight(1f)
             )
 
-            // 区间拆算模式下自动屏蔽多段模式按键
-            if (uiState.calcSubMode == CalcSubMode.FORWARD_DAYS) {
-                Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
-                // 右侧“多段模式”切换按键
-                Box(
-                    modifier = Modifier
-                        .height(30.dp)
-                        .neumorphicExtruded(
-                            shape = CircleShape,
-                            elevation = if (uiState.isMultiStageExtensionEnabled) 2.dp else 4.dp
-                        )
-                        .background(
-                            if (uiState.isMultiStageExtensionEnabled) NeumorphicAccent else NeumorphicBg,
-                            shape = CircleShape
-                        )
-                        .clip(CircleShape)
-                        .clickable {
+            // 右侧“多段模式”切换按键 (区间拆算下置灰不可用)
+            val isMultiStageDisabled = (uiState.calcSubMode == CalcSubMode.REVERSE_RANGE)
+
+            Box(
+                modifier = Modifier
+                    .height(30.dp)
+                    .neumorphicExtruded(
+                        shape = CircleShape,
+                        elevation = if (isMultiStageDisabled) 1.dp else if (uiState.isMultiStageExtensionEnabled) 2.dp else 4.dp
+                    )
+                    .background(
+                        if (isMultiStageDisabled) NeumorphicBg.copy(alpha = 0.6f)
+                        else if (uiState.isMultiStageExtensionEnabled) NeumorphicAccent
+                        else NeumorphicBg,
+                        shape = CircleShape
+                    )
+                    .clip(CircleShape)
+                    .clickable {
+                        if (isMultiStageDisabled) {
+                            Toast.makeText(context, "区间拆算模式下不支持开启多段排期", Toast.LENGTH_SHORT).show()
+                        } else {
                             viewModel.toggleMultiStageExtension(!uiState.isMultiStageExtensionEnabled)
                         }
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Calculate,
-                            contentDescription = "切换多段模式",
-                            tint = if (uiState.isMultiStageExtensionEnabled) Color.White else NeumorphicAccent,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "多段模式",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (uiState.isMultiStageExtensionEnabled) Color.White else NeumorphicAccent
-                        )
                     }
+                    .padding(horizontal = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Calculate,
+                        contentDescription = "切换多段模式",
+                        tint = if (isMultiStageDisabled) NeumorphicTextPrimary.copy(alpha = 0.35f)
+                               else if (uiState.isMultiStageExtensionEnabled) Color.White
+                               else NeumorphicAccent,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "多段模式",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isMultiStageDisabled) NeumorphicTextPrimary.copy(alpha = 0.35f)
+                               else if (uiState.isMultiStageExtensionEnabled) Color.White
+                               else NeumorphicAccent
+                    )
                 }
             }
         }
