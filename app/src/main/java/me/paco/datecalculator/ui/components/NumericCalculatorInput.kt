@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -35,14 +34,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import me.paco.datecalculator.R
 import me.paco.datecalculator.data.CalculationType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,15 +58,6 @@ fun NumericCalculatorInput(
     val focusManager = LocalFocusManager.current
 
     Column(modifier = modifier.fillMaxWidth()) {
-
-        Text(
-            text = stringResource(R.string.label_calc_direction),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = NeumorphicTextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
 
         // 新拟物风格 + / - 切换按钮 (无论加号还是减号，图框均 100% 完整清晰显示)
         Row(

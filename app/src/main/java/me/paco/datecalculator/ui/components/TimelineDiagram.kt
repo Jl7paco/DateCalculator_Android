@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -33,8 +35,11 @@ import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.util.CsvExporter
+import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.TimelineBlockType
 import java.time.LocalDate
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TimelineDiagram(
     baseDate: LocalDate,
@@ -46,9 +51,18 @@ fun TimelineDiagram(
 ) {
     val context = LocalContext.current
 
-    val totalWorkdays = segments.sumOf { it.daysCount }
-    val totalRestDays = segments.sumOf { it.restDaysCount }
-    val grandTotalDays = (totalWorkdays + totalRestDays).coerceAtLeast(1L)
+    // 精准拆解全量阶段的时间轴 Block 序列 (按时间先后顺序)
+    val allChronologicalBlocks = segments.flatMap { seg ->
+        DateCalculatorUtils.decomposeChronologicalBlocks(
+            startDate = seg.startDate,
+            endDate = seg.endDate
+        )
+    }
+
+    val totalWorkdaysCount = allChronologicalBlocks.filter { it.type == TimelineBlockType.WORKDAY }.sumOf { it.daysCount }
+    val totalWeekendDaysCount = allChronologicalBlocks.filter { it.type == TimelineBlockType.WEEKEND_REST }.sumOf { it.daysCount }
+    val totalStatutoryDaysCount = allChronologicalBlocks.filter { it.type == TimelineBlockType.STATUTORY_HOLIDAY }.sumOf { it.daysCount }
+    val grandTotalCalendarDays = allChronologicalBlocks.sumOf { it.daysCount }.coerceAtLeast(1L)
 
     Box(
         modifier = modifier
@@ -67,7 +81,7 @@ fun TimelineDiagram(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Timeline, contentDescription = null, tint = NeumorphicAccent)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("多段加减工期排期示意图", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text("总时间安排示意", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
 
                 // 📊 导出 CSV 表格按键
@@ -100,55 +114,61 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 整体天数比例全景条 (Proportional Overview Bar)
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "推算天数: $totalWorkdays 天",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NeumorphicAccent
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "☕ 双休休市: $totalRestDays 天",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF59E0B)
-                        )
+            // 1. 统一标注汇总行 (按对应颜色与文字统一说明)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(NeumorphicAccent))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("工作日: $totalWorkdaysCount 天", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                }
+
+                if (totalWeekendDaysCount > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("周末双休: $totalWeekendDaysCount 天", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                if (totalStatutoryDaysCount > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFEF4444)))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("🎉 法定节假日: $totalStatutoryDaysCount 天", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
+                    }
+                }
 
-                // 比例双色进度条
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(CircleShape)
-                        .background(NeumorphicSunkenBg)
-                ) {
-                    val workWeight = (totalWorkdays.toFloat() / grandTotalDays).coerceAtLeast(0.05f)
-                    val restWeight = (totalRestDays.toFloat() / grandTotalDays).coerceAtLeast(0.01f)
+                Text("总历时: $grandTotalCalendarDays 自然日", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 2. 总时间轴：按实际时间先后顺序与真实比例交替显示 (----工作日----  休息日----工作日---休息日)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .clip(CircleShape)
+                    .background(NeumorphicSunkenBg)
+            ) {
+                allChronologicalBlocks.forEach { block ->
+                    val blockColor = when (block.type) {
+                        TimelineBlockType.WORKDAY -> NeumorphicAccent
+                        TimelineBlockType.WEEKEND_REST -> Color(0xFFF59E0B)
+                        TimelineBlockType.STATUTORY_HOLIDAY -> Color(0xFFEF4444)
+                    }
+                    val blockWeight = (block.daysCount.toFloat() / grandTotalCalendarDays).coerceAtLeast(0.01f)
 
                     Box(
                         modifier = Modifier
-                            .weight(workWeight)
+                            .weight(blockWeight)
                             .fillMaxHeight()
-                            .background(NeumorphicAccent)
+                            .background(blockColor)
                     )
-                    if (totalRestDays > 0) {
-                        Box(
-                            modifier = Modifier
-                                .weight(restWeight)
-                                .fillMaxHeight()
-                                .background(Color(0xFFF59E0B))
-                        )
-                    }
                 }
             }
 
@@ -156,7 +176,7 @@ fun TimelineDiagram(
             HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.12f))
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 竖条轴向比例节点树 (按时间先后顺序严格排列)
+            // 3. 竖条分段时间轴 (按时间先后顺序严格排列在每个阶段旁边)
             segments.forEachIndexed { index, seg ->
                 val numZh = when (index + 1) {
                     1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${index + 1}"
@@ -166,7 +186,10 @@ fun TimelineDiagram(
                 val isAdd = (seg.type == CalculationType.ADD)
                 val stageActionLabel = if (isAdd) "多段加" else "多段减"
                 val symbol = if (isAdd) "+" else "-"
-                val stageRatio = (seg.daysCount.toFloat() / grandTotalDays).coerceIn(0.1f, 1f)
+
+                // 该阶段内部精准拆解的 Blocks 序列
+                val stageBlocks = DateCalculatorUtils.decomposeChronologicalBlocks(seg.startDate, seg.endDate)
+                val stageTotalCalDays = stageBlocks.sumOf { it.daysCount }.coerceAtLeast(1L)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -198,7 +221,7 @@ fun TimelineDiagram(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // 右侧竖条比例阶段卡片
+                    // 右侧分段时间轴 (按实际先后顺序排列)
                     Column(modifier = Modifier.weight(1f)) {
                         Box(
                             modifier = Modifier
@@ -229,22 +252,31 @@ fun TimelineDiagram(
                                     Text("$symbol${seg.daysCount} $modeLabel", fontWeight = FontWeight.ExtraBold, color = if (isAdd) NeumorphicAccent else Color(0xFFEF4444), fontSize = 13.sp)
                                 }
 
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
 
-                                // 阶段天数占比比例条 (Ratio Segment)
+                                // 分段时间轴：按时间先后顺序交替展示工作日、双休与法定节日
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(6.dp)
+                                        .height(8.dp)
                                         .clip(CircleShape)
                                         .background(NeumorphicSunkenBg)
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxHeight()
-                                            .fillMaxWidth(fraction = stageRatio)
-                                            .background(if (isAdd) NeumorphicAccent else Color(0xFFEF4444), shape = CircleShape)
-                                    )
+                                    stageBlocks.forEach { b ->
+                                        val c = when (b.type) {
+                                            TimelineBlockType.WORKDAY -> if (isAdd) NeumorphicAccent else Color(0xFFEF4444)
+                                            TimelineBlockType.WEEKEND_REST -> Color(0xFFF59E0B)
+                                            TimelineBlockType.STATUTORY_HOLIDAY -> Color(0xFFEF4444)
+                                        }
+                                        val w = (b.daysCount.toFloat() / stageTotalCalDays).coerceAtLeast(0.01f)
+
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(w)
+                                                .fillMaxHeight()
+                                                .background(c)
+                                        )
+                                    }
                                 }
 
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -252,7 +284,7 @@ fun TimelineDiagram(
                             }
                         }
 
-                        // 按先后顺序排列：中途休假/周末比例条段 (双休与法定节日区分色彩)
+                        // 分段休息/周末明细说明
                         if (seg.restDaysCount > 0) {
                             Spacer(modifier = Modifier.height(6.dp))
                             Box(
@@ -269,7 +301,7 @@ fun TimelineDiagram(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            text = "☕ 经过 ${seg.restDaysCount} 天周末双休/假期",
+                                            text = "☕ 经过 ${seg.restDaysCount} 天周末双休/节假日",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFFD97706)

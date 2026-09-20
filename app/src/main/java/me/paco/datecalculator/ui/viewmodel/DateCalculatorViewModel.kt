@@ -76,8 +76,8 @@ data class DateCalculatorUiState(
     val disabledPresetHolidays: Set<String> = emptySet(),
     val isMultiStageExtensionEnabled: Boolean = false,
     val stages: List<CalculationStage> = listOf(
-        CalculationStage(days = 15L, remark = "第一段时间"),
-        CalculationStage(days = 15L, remark = "第二段时间")
+        CalculationStage(type = CalculationType.ADD, days = 15L, remark = "第一段时间"),
+        CalculationStage(type = CalculationType.ADD, days = 15L, remark = "第二段时间")
     ),
     val showResult: Boolean = false,
     val historyList: List<HistoryItem> = emptyList(),
@@ -124,7 +124,12 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun updateCalculationType(type: CalculationType) {
-        _uiState.value = _uiState.value.copy(calculationType = type, showResult = false)
+        val updatedStages = _uiState.value.stages.map { it.copy(type = type) }
+        _uiState.value = _uiState.value.copy(
+            calculationType = type,
+            stages = updatedStages,
+            showResult = false
+        )
     }
 
     fun updateDateMode(mode: DateMode) {
@@ -174,7 +179,20 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun toggleMultiStageExtension(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(isMultiStageExtensionEnabled = enabled, showResult = false)
+        if (enabled && _uiState.value.stages.isNotEmpty()) {
+            val mainType = _uiState.value.calculationType
+            val current = _uiState.value.stages.map { it.copy(type = mainType) }
+            _uiState.value = _uiState.value.copy(
+                stages = current,
+                isMultiStageExtensionEnabled = true,
+                showResult = false
+            )
+        } else {
+            _uiState.value = _uiState.value.copy(
+                isMultiStageExtensionEnabled = enabled,
+                showResult = false
+            )
+        }
     }
 
     fun addCalculationStage() {
@@ -183,7 +201,8 @@ class DateCalculatorViewModel : ViewModel() {
         val numZh = when (nextIdx) {
             1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "$nextIdx"
         }
-        current.add(CalculationStage(days = 15L, remark = "第${numZh}段时间"))
+        val mainType = _uiState.value.calculationType
+        current.add(CalculationStage(type = mainType, days = 15L, remark = "第${numZh}段时间"))
         _uiState.value = _uiState.value.copy(stages = current, showResult = false)
     }
 
@@ -202,10 +221,13 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun updateStageType(stageId: Long, type: CalculationType) {
-        val current = _uiState.value.stages.map {
-            if (it.id == stageId) it.copy(type = type) else it
-        }
-        _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+        // 强制所有阶段同步为相同的计算类型 (全部是加 或 全部是减)
+        val updatedStages = _uiState.value.stages.map { it.copy(type = type) }
+        _uiState.value = _uiState.value.copy(
+            calculationType = type,
+            stages = updatedStages,
+            showResult = false
+        )
     }
 
     fun updateStageRemark(stageId: Long, remark: String) {
@@ -343,10 +365,11 @@ class DateCalculatorViewModel : ViewModel() {
             val (finalDate, segments) = calculateMultiStageTimeline()
             val totalDays = segments.sumOf { it.daysCount }
             val title = DateCalculatorUtils.formatDate(finalDate)
-            val detail = "多段加减 (${segments.size} 段时间): 共推算 ${totalDays} ${modeLabel}"
+            val actionTypeLabel = if (state.calculationType == CalculationType.ADD) "多段加" else "多段减"
+            val detail = "$actionTypeLabel (${segments.size} 段时间): 共推算 ${totalDays} ${modeLabel}"
             val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
 
-            saveToHistory(category = "多段加减", title = title, detail = detail, regionTag = regionTag, resultDate = finalDate, resultDays = totalDays)
+            saveToHistory(category = actionTypeLabel, title = title, detail = detail, regionTag = regionTag, resultDate = finalDate, resultDays = totalDays)
             finalDate
         } else {
             val res = calculateTargetDate()

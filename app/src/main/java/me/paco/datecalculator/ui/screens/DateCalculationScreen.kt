@@ -30,12 +30,11 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -260,13 +259,65 @@ fun DateCalculationScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        // 计算加减天数 Header Row (右上角包含模式切换“多段模式”胶囊按键)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.label_calc_direction),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicTextPrimary
+            )
+
+            // 右侧模式切换按键 (名字统一叫: 多段模式)
+            Box(
+                modifier = Modifier
+                    .height(30.dp)
+                    .neumorphicExtruded(
+                        shape = CircleShape,
+                        elevation = if (uiState.isMultiStageExtensionEnabled) 2.dp else 4.dp
+                    )
+                    .background(
+                        if (uiState.isMultiStageExtensionEnabled) NeumorphicAccent else NeumorphicBg,
+                        shape = CircleShape
+                    )
+                    .clip(CircleShape)
+                    .clickable {
+                        viewModel.toggleMultiStageExtension(!uiState.isMultiStageExtensionEnabled)
+                    }
+                    .padding(horizontal = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Calculate,
+                        contentDescription = "切换多段模式",
+                        tint = if (uiState.isMultiStageExtensionEnabled) Color.White else NeumorphicAccent,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "多段模式",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (uiState.isMultiStageExtensionEnabled) Color.White else NeumorphicAccent
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         val unitLabel = if (uiState.dateMode == DateMode.WORKDAY) {
             stringResource(R.string.label_days_workday)
         } else {
             stringResource(R.string.label_days_natural)
         }
 
-        // 轻量级单阶段输入（默认模式）
+        // 轻量级单阶段输入（常规计算器模式）
         if (!uiState.isMultiStageExtensionEnabled) {
             NumericCalculatorInput(
                 daysInput = uiState.daysInput,
@@ -278,54 +329,13 @@ fun DateCalculationScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // 拓展功能切换开关 (改名为: 多段加减)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(42.dp)
-                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                .background(NeumorphicBg, shape = CircleShape)
-                .clip(CircleShape)
-                .clickable {
-                    viewModel.toggleMultiStageExtension(!uiState.isMultiStageExtensionEnabled)
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Timeline,
-                    contentDescription = null,
-                    tint = NeumorphicAccent,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                val extBtnText = if (uiState.isMultiStageExtensionEnabled) {
-                    "➖ 折叠多段加减"
-                } else {
-                    "➕ 展开多段加减 (拓展功能)"
-                }
-                Text(
-                    text = extBtnText,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = NeumorphicAccent
-                )
-            }
-        }
-
-        // 高级拓展功能区：多段加减工期排期与编辑（动画展开）
+        // 高级多段计算模式（像科学计算器展开）
         AnimatedVisibility(
             visible = uiState.isMultiStageExtensionEnabled,
             enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
             exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -336,7 +346,7 @@ fun DateCalculationScreen(
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "多段加减",
+                            text = "多段模式",
                             fontWeight = FontWeight.ExtraBold,
                             color = NeumorphicAccent,
                             fontSize = 15.sp
@@ -350,7 +360,7 @@ fun DateCalculationScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // 各阶段配置项列表 (明显突出的加粗蓝色边框与陷落输入框)
+                        // 各阶段配置项列表 (运算符仅显示 "+" 或 "-")
                         uiState.stages.forEachIndexed { index, stage ->
                             val numZh = when (index + 1) {
                                 1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${index + 1}"
@@ -391,10 +401,10 @@ fun DateCalculationScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // 1. 多段加 / 多段减 按键选择
+                                    // 1. 运算符按钮：仅显示 "+" 或 "-"
                                     Box(
                                         modifier = Modifier
-                                            .width(72.dp)
+                                            .width(52.dp)
                                             .height(42.dp)
                                             .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = 3.dp)
                                             .background(
@@ -409,8 +419,8 @@ fun DateCalculationScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = if (stage.type == CalculationType.ADD) "+ 加" else "- 减",
-                                            fontSize = 13.sp,
+                                            text = if (stage.type == CalculationType.ADD) "+" else "-",
+                                            fontSize = 22.sp,
                                             fontWeight = FontWeight.ExtraBold,
                                             color = Color.White
                                         )
@@ -477,7 +487,7 @@ fun DateCalculationScreen(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // + 添加下一段时间按钮 与纯粹 "=" 按键
+                        // 添加下一段时间按钮 与纯粹 "=" 按键
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -492,11 +502,7 @@ fun DateCalculationScreen(
                                     .clickable { viewModel.addCalculationStage() },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("+ 添加下一段时间", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-                                }
+                                Text("添加下一段时间", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                             }
 
                             Box(

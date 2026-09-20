@@ -12,6 +12,19 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 import kotlin.math.abs
 
+enum class TimelineBlockType {
+    WORKDAY,
+    WEEKEND_REST,
+    STATUTORY_HOLIDAY
+}
+
+data class TimelineBlock(
+    val type: TimelineBlockType,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val daysCount: Long
+)
+
 object DateCalculatorUtils {
 
     val CHINESE_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日")
@@ -25,9 +38,6 @@ object DateCalculatorUtils {
         }
     }
 
-    /**
-     * 格式化日期并带上当天的年周数
-     */
     fun formatDateWithWeek(date: LocalDate, isChineseLocale: Boolean = Locale.getDefault().language == "zh"): String {
         val dateStr = formatDate(date, isChineseLocale)
         val weekFields = WeekFields.of(if (isChineseLocale) Locale.CHINA else Locale.US)
@@ -48,7 +58,6 @@ object DateCalculatorUtils {
         disableChinaShiftWorkdays: Boolean = false
     ): Boolean {
         if (enableHolidays) {
-            // 金融/股市模式：如果关闭调休补班，原本要调休的周末日不强行作为工作日，按正常周末休市/休息
             if (!disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(date, holidayRegion)) {
                 return true
             }
@@ -57,6 +66,66 @@ object DateCalculatorUtils {
             }
         }
         return !weekendRule.isWeekend(date, isCurrentWeekBigWeek)
+    }
+
+    /**
+     * 将某个时间段按真实日历按天精准拆解为：工作日段、周末双休段、法定节假日段 (严格按时间先后顺序)
+     */
+    fun decomposeChronologicalBlocks(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
+        enableHolidays: Boolean = true,
+        holidayRegion: HolidayRegion = HolidayRegion.CHINA,
+        isCurrentWeekBigWeek: Boolean = true,
+        disableChinaShiftWorkdays: Boolean = false
+    ): List<TimelineBlock> {
+        if (startDate == endDate) return emptyList()
+
+        val isReverse = startDate.isAfter(endDate)
+        val start = if (isReverse) endDate else startDate
+        val end = if (isReverse) startDate else endDate
+
+        val blocks = mutableListOf<TimelineBlock>()
+        var curr = start.plusDays(1)
+
+        var currentBlockType: TimelineBlockType? = null
+        var blockStart: LocalDate? = null
+        var blockDays = 0L
+
+        while (!curr.isAfter(end)) {
+            val isShift = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion)
+            val isStatutory = enableHolidays && RegionalHolidays.isStatutoryHoliday(curr, holidayRegion)
+            val isWeekend = weekendRule.isWeekend(curr, isCurrentWeekBigWeek)
+
+            val type = when {
+                isShift -> TimelineBlockType.WORKDAY
+                isStatutory -> TimelineBlockType.STATUTORY_HOLIDAY
+                isWeekend -> TimelineBlockType.WEEKEND_REST
+                else -> TimelineBlockType.WORKDAY
+            }
+
+            if (currentBlockType == null) {
+                currentBlockType = type
+                blockStart = curr
+                blockDays = 1L
+            } else if (currentBlockType == type) {
+                blockDays++
+            } else {
+                blocks.add(TimelineBlock(currentBlockType, blockStart!!, curr.minusDays(1), blockDays))
+                currentBlockType = type
+                blockStart = curr
+                blockDays = 1L
+            }
+
+            curr = curr.plusDays(1)
+        }
+
+        if (currentBlockType != null && blockStart != null) {
+            blocks.add(TimelineBlock(currentBlockType, blockStart, end, blockDays))
+        }
+
+        return blocks
     }
 
     fun addWorkdays(
