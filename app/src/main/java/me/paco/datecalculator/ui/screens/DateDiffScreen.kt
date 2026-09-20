@@ -13,7 +13,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -54,7 +53,6 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
@@ -87,7 +85,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.ui.components.DatePickerModal
@@ -174,21 +171,6 @@ fun DateDiffScreen(
             Toast.makeText(context, "已成功发送系统通知提醒！", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(context, "需要通知权限以发送应用倒计时弹出提醒", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // 基准日期切换时的 Pop Bounce 缩放与渐变高亮动效
-    val cardScale = remember { Animatable(1.0f) }
-    val cardAlpha = remember { Animatable(1.0f) }
-
-    LaunchedEffect(uiState.baseDate) {
-        launch {
-            cardScale.animateTo(1.04f, animationSpec = tween(100))
-            cardScale.animateTo(1.00f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-        }
-        launch {
-            cardAlpha.snapTo(0.4f)
-            cardAlpha.animateTo(1.0f, animationSpec = tween(250))
         }
     }
 
@@ -443,7 +425,7 @@ fun DateDiffScreen(
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("请输入自定义事件名称并选择目标日期:", fontSize = 13.sp, color = NeumorphicTextPrimary)
+                    Text("给重要的日子起个名字，记录期待的时刻:", fontSize = 13.sp, color = NeumorphicTextPrimary)
 
                     Box(
                         modifier = Modifier
@@ -558,13 +540,10 @@ fun DateDiffScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // 纯净无弹跳/绝对全精简的起始日期 Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer {
-                    scaleX = cardScale.value
-                    scaleY = cardAlpha.value
-                }
                 .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 5.dp)
                 .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f), shape = RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))
@@ -967,7 +946,7 @@ fun DateDiffScreen(
                 "⛰️ 山の日" to calculateNextSolarDate(base, 8, 11),
                 "🍁 敬老の日" to calculateNextSolarDate(base, 9, 21),
                 "🍁 秋分の日" to calculateNextSolarDate(base, 9, 23),
-                "🏃 スポーツの日" to calculateNextSolarDate(base, 10, 12),
+                "🏃 스포츠の日" to calculateNextSolarDate(base, 10, 12),
                 "🎨 文化の日" to calculateNextSolarDate(base, 11, 3),
                 "🍂 勤労感謝の日" to calculateNextSolarDate(base, 11, 23)
             )

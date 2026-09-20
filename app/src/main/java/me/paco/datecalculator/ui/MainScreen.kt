@@ -100,7 +100,7 @@ fun MainScreen(
                                     coroutineScope.launch {
                                         pagerState.animateScrollToPage(
                                             page = targetIndex,
-                                            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                                            animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing)
                                         )
                                     }
                                 }
@@ -113,7 +113,7 @@ fun MainScreen(
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(
                                         page = pagerState.targetPage,
-                                        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                                        animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing)
                                     )
                                 }
                             },
@@ -121,7 +121,7 @@ fun MainScreen(
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(
                                         page = pagerState.targetPage,
-                                        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                                        animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing)
                                     )
                                 }
                             },
@@ -154,7 +154,7 @@ fun MainScreen(
                         .background(MaterialTheme.colorScheme.primary)
                 )
 
-                // 底部标签按钮 (颜色与 Icon 采用连续线性插值，彻底解决滑动时的跳变闪烁感)
+                // 底部标签按钮 (颜色与 Icon 采用连续线性插值)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -180,7 +180,7 @@ fun MainScreen(
                                     coroutineScope.launch {
                                         pagerState.animateScrollToPage(
                                             page = index,
-                                            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                                            animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing)
                                         )
                                     }
                                 },

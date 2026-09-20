@@ -3,7 +3,11 @@ package me.paco.datecalculator.ui.screens
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -55,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -278,8 +283,7 @@ fun DateCalculationScreen(
                 .fillMaxWidth()
                 .graphicsLayer {
                     scaleX = cardScale.value
-                    scaleY = cardScale.value
-                    alpha = cardAlpha.value
+                    scaleY = cardAlpha.value
                 }
                 .clickable { showDatePicker = true },
             shape = RoundedCornerShape(16.dp),
@@ -484,25 +488,44 @@ fun DateCalculationScreen(
             }
         }
 
-        // 3. 模式 C: 高级多段计算模式（平滑物理弹簧展开/折叠，无突兀闪烁）
+        // 3. 模式 C: 高级多段计算模式（GPU CompositingStrategy.Offscreen 离屏缓存层，100% 消除重测掉帧卡顿）
+        val multiStageAlpha by animateFloatAsState(
+            targetValue = if (uiState.isMultiStageExtensionEnabled) 1f else 0f,
+            animationSpec = tween(
+                durationMillis = if (uiState.isMultiStageExtensionEnabled) 160 else 120,
+                easing = if (uiState.isMultiStageExtensionEnabled) FastOutSlowInEasing else FastOutLinearInEasing
+            ),
+            label = "MultiStageAlphaGpuAnim"
+        )
+
         AnimatedVisibility(
             visible = uiState.isMultiStageExtensionEnabled,
-            enter = fadeIn(animationSpec = tween(280)) +
+            enter = fadeIn(animationSpec = tween(durationMillis = 140, easing = LinearOutSlowInEasing)) +
                     expandVertically(
-                        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy),
+                        animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing),
                         expandFrom = Alignment.Top
                     ),
-            exit = fadeOut(animationSpec = tween(200)) +
+            exit = fadeOut(animationSpec = tween(durationMillis = 100, easing = FastOutLinearInEasing)) +
                    shrinkVertically(
-                       animationSpec = spring(stiffness = Spring.StiffnessMedium, dampingRatio = Spring.DampingRatioNoBouncy),
+                       animationSpec = tween(durationMillis = 120, easing = FastOutLinearInEasing),
                        shrinkTowards = Alignment.Top
                    ),
-            modifier = Modifier.clipToBounds()
+            modifier = Modifier
+                .graphicsLayer {
+                    alpha = multiStageAlpha
+                    compositingStrategy = CompositingStrategy.Offscreen
+                }
+                .clipToBounds()
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clipToBounds()
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clipToBounds()
                         .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
                         .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
@@ -618,7 +641,7 @@ fun DateCalculationScreen(
 
                                     Spacer(modifier = Modifier.width(8.dp))
 
-                                    // 2. 明显突出的天数数字输入框 (点击聚焦时全选高亮 15，未点击时不带蓝色高光条带)
+                                    // 2. 明显突出的天数数字输入框 (点击聚焦全选 15，打字自动替代)
                                     Box(
                                         modifier = Modifier
                                             .width(100.dp)
