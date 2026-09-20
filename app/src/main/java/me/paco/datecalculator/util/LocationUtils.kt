@@ -66,6 +66,12 @@ object LocationUtils {
             "VN" -> HolidayRegion.VIETNAM
             "JP" -> HolidayRegion.JAPAN
             "KR" -> HolidayRegion.SOUTH_KOREA
+            "GB", "UK" -> HolidayRegion.UNITED_KINGDOM
+            "DE" -> HolidayRegion.GERMANY
+            "FR" -> HolidayRegion.FRANCE
+            "IT" -> HolidayRegion.ITALY
+            "IN" -> HolidayRegion.INDIA
+            "ID" -> HolidayRegion.INDONESIA
             "AU" -> HolidayRegion.AUSTRALIA
             "NZ" -> HolidayRegion.NEW_ZEALAND
             "US" -> HolidayRegion.UNITED_STATES

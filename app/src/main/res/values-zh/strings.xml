@@ -38,15 +38,15 @@
 
     <!-- Date Diff & Countdown -->
     <string name="label_date_diff_title">目标日期倒计时</string>
-    <string name="label_base_date_default">起始基准日</string>
+    <string name="label_base_date_default">起始日期</string>
     <string name="label_set_today">设为今天</string>
-    <string name="label_preset_countdown">常用节日倒计时</string>
-    <string name="label_add_custom_countdown">+ 新增倒计时</string>
+    <string name="label_preset_countdown">常用目标日期</string>
+    <string name="label_add_custom_countdown">+ 自定义</string>
     <string name="label_custom_event_dialog_title">添加自定义倒计时</string>
     <string name="label_event_name">日期名称 (例: 妈妈生日)</string>
     <string name="label_set_reminder">添加系统提醒</string>
     <string name="label_target_date">目标日期:</string>
-    <string name="label_custom_target_date">目标特定日期</string>
+    <string name="label_custom_target_date">目标日期</string>
     <string name="label_solar">公历</string>
     <string name="label_lunar">农历</string>
     <string name="label_result_diff_title">间隔与倒计时结果</string>
@@ -90,7 +90,7 @@
     <!-- Settings & History -->
     <string name="label_rules_and_history">工作日与休假规则</string>
     <string name="label_weekend_mode">周末休息模式</string>
-    <string name="label_region_selection">法定节假日与地区</string>
+    <string name="label_region_selection">选择国家/地区</string>
     <string name="label_region_sub_info">自动按所选国家/地区的法定安排扣除节假日及调休:</string>
     <string name="label_current_region">当前所选地区: %1$s %2$s</string>
     <string name="label_region_holiday_count">• 内置法定节日总量: %1$d 天%2$s</string>
@@ -99,8 +99,8 @@
     <string name="label_this_week_big">本周是大周 (周六日休息)</string>
     <string name="label_this_week_small">本周是小周 (仅周日休息)</string>
 
-    <string name="label_database_support">多地区节假日安排说明</string>
-    <string name="label_database_support_desc">• 支持中国大陆、臺灣、香港、澳門、新加坡、马来西亚、越南、日本、대한민국、Australia、New Zealand、United States、ประเทศไทย共 13 个主要国家/地区的法定节假日与调休安排。\n• 精准支持不同地区项目推进、差旅排期与休假规划。</string>
+    <string name="label_database_support">支持国家/地区语言与上架标注</string>
+    <string name="label_database_support_desc">• 本应用仅提供支持列表内 19 个国家/地区（中国大陆、臺灣、香港、澳門、新加坡、马来西亚、越南、日本、대한민국、United Kingdom、Deutschland、France、Italia、India、Indonesia、Australia、New Zealand、United States、ประเทศไทย）的官方语言支持与法定节假日/调休数据库。\n• 已按各支持地区合规及商店上架标准完成语言与数据校对标注。</string>
 
     <string name="label_history">历史记录</string>
     <string name="label_rules">规则设置</string>

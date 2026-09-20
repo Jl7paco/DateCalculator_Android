@@ -26,7 +26,7 @@ object DateCalculatorUtils {
     }
 
     /**
-     * 格式化日期并带上当天的年周数 (例如: 2026年09月17日 (第38周) / Sep 17, 2026 (Week 38))
+     * 格式化日期并带上当天的年周数
      */
     fun formatDateWithWeek(date: LocalDate, isChineseLocale: Boolean = Locale.getDefault().language == "zh"): String {
         val dateStr = formatDate(date, isChineseLocale)
@@ -44,10 +44,12 @@ object DateCalculatorUtils {
         weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
-        isCurrentWeekBigWeek: Boolean = true
+        isCurrentWeekBigWeek: Boolean = true,
+        disableChinaShiftWorkdays: Boolean = false
     ): Boolean {
         if (enableHolidays) {
-            if (RegionalHolidays.isShiftWorkday(date, holidayRegion)) {
+            // 金融/股市模式：如果关闭调休补班，原本要调休的周末日不强行作为工作日，按正常周末休市/休息
+            if (!disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(date, holidayRegion)) {
                 return true
             }
             if (RegionalHolidays.isStatutoryHoliday(date, holidayRegion)) {
@@ -63,7 +65,8 @@ object DateCalculatorUtils {
         weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
-        isCurrentWeekBigWeek: Boolean = true
+        isCurrentWeekBigWeek: Boolean = true,
+        disableChinaShiftWorkdays: Boolean = false
     ): LocalDate {
         if (workdays == 0L) return baseDate
 
@@ -73,7 +76,7 @@ object DateCalculatorUtils {
 
         while (remaining > 0) {
             currentDate = currentDate.plusDays(step)
-            if (isWorkday(currentDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek)) {
+            if (isWorkday(currentDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek, disableChinaShiftWorkdays)) {
                 remaining--
             }
         }
@@ -88,16 +91,14 @@ object DateCalculatorUtils {
         return ChronoUnit.DAYS.between(startDate, endDate)
     }
 
-    /**
-     * 计算两日期间的工作日天数 (修复倒计时目标节日当天被扣除的问题)
-     */
     fun workdaysBetween(
         startDate: LocalDate,
         endDate: LocalDate,
         weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
-        isCurrentWeekBigWeek: Boolean = true
+        isCurrentWeekBigWeek: Boolean = true,
+        disableChinaShiftWorkdays: Boolean = false
     ): Long {
         if (startDate == endDate) return 0L
 
@@ -110,9 +111,9 @@ object DateCalculatorUtils {
         while (!curr.isAfter(end)) {
             val isTargetDate = (curr == end)
             val isWork = if (isTargetDate && enableHolidays) {
-                !weekendRule.isWeekend(curr, isCurrentWeekBigWeek) || RegionalHolidays.isShiftWorkday(curr, holidayRegion)
+                !weekendRule.isWeekend(curr, isCurrentWeekBigWeek) || (!disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion))
             } else {
-                isWorkday(curr, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek)
+                isWorkday(curr, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek, disableChinaShiftWorkdays)
             }
 
             if (isWork) {

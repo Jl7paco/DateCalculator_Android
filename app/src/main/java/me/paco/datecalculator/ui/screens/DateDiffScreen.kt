@@ -171,7 +171,7 @@ fun DateDiffScreen(
                 title = "🎉 倒计时提醒已设置",
                 message = reminderMessage
             )
-            Toast.makeText(context, "已成功弹出本地通知提醒！", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "已成功发送系统通知提醒！", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(context, "需要通知权限以发送应用倒计时弹出提醒", Toast.LENGTH_SHORT).show()
         }
@@ -230,7 +230,7 @@ fun DateDiffScreen(
         )
     }
 
-    // 提醒方式选择弹窗 (支持 App 弹出通知提醒 + 运行时权限检查)
+    // 提醒方式选择弹窗
     if (showReminderDialog) {
         AlertDialog(
             onDismissRequest = { showReminderDialog = false },
@@ -244,7 +244,7 @@ fun DateDiffScreen(
                 ) {
                     Text("提醒名称: $reminderMessage", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
 
-                    // 选项 1: App 弹出通知提醒 (若未授权则触发主动询问)
+                    // 选项 1: App 弹出通知提醒
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -261,7 +261,6 @@ fun DateDiffScreen(
                                     ) == PackageManager.PERMISSION_GRANTED
 
                                     if (!hasPermission) {
-                                        // 首次/未授权时，自动询问是否授权通知权限
                                         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     } else {
                                         NotificationUtils.showCountdownNotification(
@@ -412,7 +411,6 @@ fun DateDiffScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("选择分类图标:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
 
-                    // 可选 Emoji 图标阵列
                     val icons = listOf("📌", "🎂", "💍", "❤️", "🚀", "✈️", "🎓", "🏠", "💰", "🎁", "⚽", "🎮")
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -488,6 +486,25 @@ fun DateDiffScreen(
                         currentTargetEventName = fullName
                         targetCalendarType = 0
                         showDiffResult = true
+
+                        // 添加自定义倒计时事件并自动生成历史记录
+                        val natDays = DateCalculatorUtils.naturalDaysBetween(uiState.baseDate, customEventDate)
+                        val workDays = DateCalculatorUtils.workdaysBetween(
+                            uiState.baseDate, customEventDate, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays
+                        )
+                        val title = "$fullName: 相差 ${abs(natDays)} 天 (${abs(workDays)} 工作日)"
+                        val detail = "${uiState.baseDate}  ➔  ${customEventDate}"
+                        val regionTag = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+
+                        viewModel.saveToHistory(
+                            category = "日期倒计时",
+                            title = title,
+                            detail = detail,
+                            regionTag = regionTag,
+                            resultDate = customEventDate,
+                            resultDays = natDays
+                        )
+
                         customEventName = ""
                     }
                     showAddCustomDialog = false
@@ -505,7 +522,7 @@ fun DateDiffScreen(
 
     val totalNaturalDays = DateCalculatorUtils.naturalDaysBetween(uiState.baseDate, effectiveEndDate)
     val totalWorkdays = DateCalculatorUtils.workdaysBetween(
-        uiState.baseDate, effectiveEndDate, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek
+        uiState.baseDate, effectiveEndDate, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays
     )
     val weekendDays = totalNaturalDays - totalWorkdays
     val periodStr = DateCalculatorUtils.formatPeriod(uiState.baseDate, effectiveEndDate)
@@ -515,44 +532,32 @@ fun DateDiffScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(16.dp)
+            .padding(14.dp)
     ) {
-        Text(
-            text = stringResource(R.string.label_date_diff_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = NeumorphicTextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 基准日期 Header
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.label_date_diff_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicTextPrimary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 1. 起始日期 Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(stringResource(R.string.label_base_date_default), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-            Box(
-                modifier = Modifier
-                    .height(36.dp)
-                    .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
-                    .background(NeumorphicBg, shape = CircleShape)
-                    .clip(CircleShape)
-                    .clickable {
-                        viewModel.setToday()
-                        showDiffResult = false
-                    }
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(R.string.label_set_today), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 显眼放大版新拟物基准起始日期 Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -560,11 +565,11 @@ fun DateDiffScreen(
                     scaleX = cardScale.value
                     scaleY = cardAlpha.value
                 }
-                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f), shape = RoundedCornerShape(20.dp))
-                .clip(RoundedCornerShape(20.dp))
+                .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 5.dp)
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f), shape = RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .clickable { showPickerForStart = true }
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -576,20 +581,21 @@ fun DateDiffScreen(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
                         tint = NeumorphicAccent,
-                        modifier = Modifier.padding(end = 12.dp)
+                        modifier = Modifier.padding(end = 10.dp)
                     )
                     Column {
                         Text(
                             text = "选择起始日期",
                             style = MaterialTheme.typography.labelMedium,
                             color = NeumorphicAccent,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(uiState.baseDate)
                         Text(
                             text = dateFormattedWithWeek,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = NeumorphicTextPrimary
                         )
@@ -614,209 +620,9 @@ fun DateDiffScreen(
             }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // 自动响应不同国家/地区所对应的热门倒计时节日快捷项
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.label_preset_countdown),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = NeumorphicTextPrimary
-            )
-
-            Box(
-                modifier = Modifier
-                    .height(32.dp)
-                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                    .background(NeumorphicBg, shape = CircleShape)
-                    .clip(CircleShape)
-                    .clickable { showAddCustomDialog = true }
-                    .padding(horizontal = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(R.string.label_add_custom_countdown), fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        val base = uiState.baseDate
-        // 根据切换的地区，自动替换为对应国家的热门倒计时节日
-        val presetCountdowns = when (uiState.holidayRegion) {
-            HolidayRegion.CHINA -> listOf(
-                stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1),
-                stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
-                stringResource(R.string.preset_spring_festival) to calculateNextLunarDate(base, 1, 1),
-                stringResource(R.string.preset_mid_autumn) to calculateNextLunarDate(base, 8, 15),
-                stringResource(R.string.preset_dragon_boat) to calculateNextLunarDate(base, 5, 5),
-                stringResource(R.string.preset_gaokao) to calculateNextSolarDate(base, 6, 7),
-                "📚 中考" to calculateNextSolarDate(base, 6, 21)
-            )
-            HolidayRegion.TAIWAN -> listOf(
-                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
-                "🧧 春节" to calculateNextLunarDate(base, 1, 1),
-                "🕊️ 228和平纪念日" to calculateNextSolarDate(base, 2, 28),
-                "🧸 儿童节" to calculateNextSolarDate(base, 4, 4),
-                "🌿 清明节" to calculateNextSolarDate(base, 4, 5),
-                "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
-                "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
-                "🇹🇼 国庆日" to calculateNextSolarDate(base, 10, 10)
-            )
-            HolidayRegion.HONG_KONG -> listOf(
-                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
-                "🧧 农历新年" to calculateNextLunarDate(base, 1, 1),
-                "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
-                "🇭🇰 特区成立纪念日" to calculateNextSolarDate(base, 7, 1),
-                "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
-                "🇨🇳 国庆节" to calculateNextSolarDate(base, 10, 1),
-                "🎄 圣诞节" to calculateNextSolarDate(base, 12, 25)
-            )
-            HolidayRegion.MACAO -> listOf(
-                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
-                "🧧 农历新年" to calculateNextLunarDate(base, 1, 1),
-                "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
-                "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
-                "🇨🇳 国庆节" to calculateNextSolarDate(base, 10, 1),
-                "🇲🇴 特区成立纪念日" to calculateNextSolarDate(base, 12, 20),
-                "🎄 圣诞节" to calculateNextSolarDate(base, 12, 25)
-            )
-            HolidayRegion.JAPAN -> listOf(
-                "🎆 元日" to calculateNextSolarDate(base, 1, 1),
-                "🌸 成人の日" to calculateNextSolarDate(base, 1, 13),
-                "🌸 建国記念の日" to calculateNextSolarDate(base, 2, 11),
-                "🌸 天皇誕生日" to calculateNextSolarDate(base, 2, 23),
-                "🎏 憲法記念日" to calculateNextSolarDate(base, 5, 3),
-                "🎏 こどもの日" to calculateNextSolarDate(base, 5, 5),
-                "🍁 敬老の日" to calculateNextSolarDate(base, 9, 15),
-                "🍂 勤労感謝の日" to calculateNextSolarDate(base, 11, 23)
-            )
-            HolidayRegion.SOUTH_KOREA -> listOf(
-                "🎆 신정 (元旦)" to calculateNextSolarDate(base, 1, 1),
-                "🧧 설날 (春节)" to calculateNextLunarDate(base, 1, 1),
-                "🇰🇷 삼일절 (三一节)" to calculateNextSolarDate(base, 3, 1),
-                "🧸 어린이날 (儿童节)" to calculateNextSolarDate(base, 5, 5),
-                "🌾 현충일 (显忠日)" to calculateNextSolarDate(base, 6, 6),
-                "🇰🇷 광복절 (光复节)" to calculateNextSolarDate(base, 8, 15),
-                "🥮 추석 (中秋/秋夕)" to calculateNextLunarDate(base, 8, 15),
-                "🇰🇷 개천절 (开天节)" to calculateNextSolarDate(base, 10, 3)
-            )
-            HolidayRegion.UNITED_STATES -> listOf(
-                "🎆 New Year's Day" to calculateNextSolarDate(base, 1, 1),
-                "🕊️ MLK Day" to calculateNextSolarDate(base, 1, 20),
-                "🇺🇸 Independence Day" to calculateNextSolarDate(base, 7, 4),
-                "🛠️ Labor Day" to calculateNextSolarDate(base, 9, 1),
-                "🎃 Thanksgiving" to calculateNextSolarDate(base, 11, 26),
-                "🎄 Christmas" to calculateNextSolarDate(base, 12, 25)
-            )
-            HolidayRegion.THAILAND -> listOf(
-                "🎆 วันขึ้นปีใหม่ (元旦)" to calculateNextSolarDate(base, 1, 1),
-                "💦 วันสงกรานต์ (泼水节)" to calculateNextSolarDate(base, 4, 13),
-                "👑 วันเฉลิมพระชนมพรรษา" to calculateNextSolarDate(base, 7, 28),
-                "👑 วันแม่แห่งชาติ (母亲节)" to calculateNextSolarDate(base, 8, 12),
-                "👑 วันพ่อแห่งชาติ (父亲节)" to calculateNextSolarDate(base, 12, 5)
-            )
-            else -> listOf(
-                stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
-                stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1)
-            )
-        }
-
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 系统内置按当前国家/地区自动转换的节假日快捷项
-            presetCountdowns.forEach { (label, targetDate) ->
-                val isSelected = (targetCalendarType == 0 && uiState.endDate == targetDate)
-                NeumorphicChip(
-                    text = label,
-                    selected = isSelected,
-                    onClick = {
-                        targetCalendarType = 0
-                        viewModel.updateEndDate(targetDate)
-                        currentTargetEventName = label
-                        showDiffResult = true
-                    },
-                    modifier = Modifier.padding(vertical = 2.dp)
-                )
-            }
-
-            // 用户自定义特定日期 Chip (支持自选 Emoji 图标与周期推算)
-            uiState.customEvents.forEach { customEvent ->
-                val effectiveTargetDate = customEvent.getNextUpcomingDate(uiState.baseDate)
-                val isSelected = (targetCalendarType == 0 && uiState.endDate == effectiveTargetDate)
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val scale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.92f else 1.0f,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "ChipPressScale"
-                )
-
-                val chipModifier = if (isSelected) {
-                    Modifier
-                        .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
-                        .background(NeumorphicAccent, shape = CircleShape)
-                } else {
-                    Modifier
-                        .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
-                }
-
-                Box(
-                    modifier = Modifier
-                        .height(40.dp)
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .then(chipModifier)
-                        .clip(CircleShape)
-                        .combinedClickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = {
-                                targetCalendarType = 0
-                                viewModel.updateEndDate(effectiveTargetDate)
-                                currentTargetEventName = customEvent.name
-                                showDiffResult = true
-                            },
-                            onLongClick = {
-                                eventToDelete = customEvent
-                            }
-                        )
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = customEvent.name,
-                            color = if (isSelected) Color.White else NeumorphicTextPrimary,
-                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "删除",
-                            tint = if (isSelected) Color.White.copy(alpha = 0.8f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clickable { eventToDelete = customEvent }
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
+        // 2. 目标日期功能区
         Text(stringResource(R.string.label_custom_target_date), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -829,9 +635,8 @@ fun DateDiffScreen(
             }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // 目标特定日期选框与等于号按键
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -1017,7 +822,7 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.width(10.dp))
 
-            // 新拟物蓝色凸起等于号按键 (=)
+            // 蓝色凸起等于号按键
             Box(
                 modifier = Modifier
                     .width(64.dp)
@@ -1029,9 +834,17 @@ fun DateDiffScreen(
                         keyboardController?.hide()
                         focusManager.clearFocus()
                         showDiffResult = true
-                        val title = "倒计时: ${abs(totalNaturalDays)}天 (${abs(totalWorkdays)}工作日)"
-                        val detail = "${uiState.baseDate} ➔ $effectiveEndDate [${uiState.holidayRegion.label}]"
-                        viewModel.saveToHistory(title, detail, effectiveEndDate, totalNaturalDays)
+                        val title = "相差 ${abs(totalNaturalDays)} 天 (${abs(totalWorkdays)} 工作日)"
+                        val detail = "${uiState.baseDate}  ➔  ${effectiveEndDate}"
+                        val regionTag = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+                        viewModel.saveToHistory(
+                            category = "日期倒计时",
+                            title = title,
+                            detail = detail,
+                            regionTag = regionTag,
+                            resultDate = effectiveEndDate,
+                            resultDays = totalNaturalDays
+                        )
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -1039,23 +852,380 @@ fun DateDiffScreen(
             }
         }
 
-        if (targetCalendarType == 0) {
-            Spacer(modifier = Modifier.height(6.dp))
-            QuickDateChips(
-                selectedDate = uiState.endDate,
-                onSelectDate = { date ->
-                    viewModel.updateEndDate(date)
-                    showDiffResult = true // 点击直接输出结果
-                    val title = "倒计时: ${abs(DateCalculatorUtils.naturalDaysBetween(uiState.baseDate, date))}天"
-                    val detail = "${uiState.baseDate} ➔ $date"
-                    viewModel.saveToHistory(title, detail, date)
-                }
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // 3. 常用倒计时功能区
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.label_preset_countdown),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicTextPrimary
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // 未按等于号时结果整个UI不显示，按下后以 150ms 动画渐进展开
+        val base = uiState.baseDate
+        val rawPresets = when (uiState.holidayRegion) {
+            HolidayRegion.CHINA -> listOf(
+                stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1),
+                stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
+                stringResource(R.string.preset_spring_festival) to calculateNextLunarDate(base, 1, 1),
+                "🌿 清明节" to calculateNextSolarDate(base, 4, 4),
+                "🛠️ 五一劳动节" to calculateNextSolarDate(base, 5, 1),
+                stringResource(R.string.preset_dragon_boat) to calculateNextLunarDate(base, 5, 5),
+                stringResource(R.string.preset_gaokao) to calculateNextSolarDate(base, 6, 7),
+                "📚 中考" to calculateNextSolarDate(base, 6, 21),
+                stringResource(R.string.preset_mid_autumn) to calculateNextLunarDate(base, 8, 15)
+            )
+            HolidayRegion.TAIWAN -> listOf(
+                "🎆 开国纪念日" to calculateNextSolarDate(base, 1, 1),
+                "🧧 春节" to calculateNextLunarDate(base, 1, 1),
+                "🕊️ 228和平纪念日" to calculateNextSolarDate(base, 2, 28),
+                "🧸 儿童节" to calculateNextSolarDate(base, 4, 4),
+                "🌿 清明节" to calculateNextSolarDate(base, 4, 5),
+                "🛠️ 劳动节" to calculateNextSolarDate(base, 5, 1),
+                "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
+                "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
+                "🇹🇼 国庆日" to calculateNextSolarDate(base, 10, 10)
+            )
+            HolidayRegion.HONG_KONG -> listOf(
+                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
+                "🧧 农历新年" to calculateNextLunarDate(base, 1, 1),
+                "✝️ 耶稣受难节" to calculateNextSolarDate(base, 4, 3),
+                "🌿 清明节" to calculateNextSolarDate(base, 4, 4),
+                "🛠️ 劳动节" to calculateNextSolarDate(base, 5, 1),
+                "☸️ 佛诞" to calculateNextLunarDate(base, 4, 8),
+                "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
+                "🇭🇰 特区成立纪念日" to calculateNextSolarDate(base, 7, 1),
+                "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
+                "🇨🇳 国庆节" to calculateNextSolarDate(base, 10, 1),
+                "🏔️ 重阳节" to calculateNextLunarDate(base, 9, 9),
+                "🎄 圣诞节" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.MACAO -> listOf(
+                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
+                "🧧 农历新年" to calculateNextLunarDate(base, 1, 1),
+                "✝️ 耶稣受难节" to calculateNextSolarDate(base, 4, 3),
+                "🌿 清明节" to calculateNextSolarDate(base, 4, 4),
+                "🛠️ 劳动节" to calculateNextSolarDate(base, 5, 1),
+                "☸️ 佛诞" to calculateNextLunarDate(base, 4, 8),
+                "🎏 端午节" to calculateNextLunarDate(base, 5, 5),
+                "🥮 中秋节" to calculateNextLunarDate(base, 8, 15),
+                "🇨🇳 国庆节" to calculateNextSolarDate(base, 10, 1),
+                "🏔️ 重阳节" to calculateNextLunarDate(base, 9, 9),
+                "🇲🇴 特区成立纪念日" to calculateNextSolarDate(base, 12, 20),
+                "🎄 圣诞节" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.SINGAPORE -> listOf(
+                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
+                "🧧 农历新年" to calculateNextLunarDate(base, 1, 1),
+                "✝️ 耶稣受难节" to calculateNextSolarDate(base, 4, 3),
+                "☪️ 开斋节" to calculateNextSolarDate(base, 3, 31),
+                "🛠️ 劳动节" to calculateNextSolarDate(base, 5, 1),
+                "☸️ 卫塞节" to calculateNextSolarDate(base, 5, 12),
+                "☪️ 哈芝节" to calculateNextSolarDate(base, 6, 7),
+                "🇸🇬 国庆日" to calculateNextSolarDate(base, 8, 9),
+                "🪔 屠妖节" to calculateNextSolarDate(base, 10, 20),
+                "🎄 圣诞节" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.MALAYSIA -> listOf(
+                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
+                "🧧 农历新年" to calculateNextLunarDate(base, 1, 1),
+                "☪️ 开斋节" to calculateNextSolarDate(base, 3, 31),
+                "🛠️ 劳动节" to calculateNextSolarDate(base, 5, 1),
+                "☸️ 卫塞节" to calculateNextSolarDate(base, 5, 12),
+                "👑 最高元首诞辰" to calculateNextSolarDate(base, 6, 2),
+                "☪️ 哈芝节" to calculateNextSolarDate(base, 6, 7),
+                "🇲🇾 独立日" to calculateNextSolarDate(base, 8, 31),
+                "🇲🇾 马来西亚日" to calculateNextSolarDate(base, 9, 16),
+                "🪔 屠妖节" to calculateNextSolarDate(base, 10, 20),
+                "🎄 圣诞节" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.VIETNAM -> listOf(
+                "🎆 阳历新年" to calculateNextSolarDate(base, 1, 1),
+                "🧧 越南春节" to calculateNextLunarDate(base, 1, 1),
+                "👑 雄王祭祖日" to calculateNextLunarDate(base, 3, 10),
+                "🇻🇳 南方解放日" to calculateNextSolarDate(base, 4, 30),
+                "🛠️ 国际劳动节" to calculateNextSolarDate(base, 5, 1),
+                "🇻🇳 国庆节" to calculateNextSolarDate(base, 9, 2)
+            )
+            HolidayRegion.JAPAN -> listOf(
+                "🎆 元日" to calculateNextSolarDate(base, 1, 1),
+                "🌸 成人の日" to calculateNextSolarDate(base, 1, 12),
+                "🌸 建国記念の日" to calculateNextSolarDate(base, 2, 11),
+                "🌸 天皇誕生日" to calculateNextSolarDate(base, 2, 23),
+                "🌿 昭和の日" to calculateNextSolarDate(base, 4, 29),
+                "🎏 憲法記念日" to calculateNextSolarDate(base, 5, 3),
+                "🌿 みどりの日" to calculateNextSolarDate(base, 5, 4),
+                "🎏 こどもの日" to calculateNextSolarDate(base, 5, 5),
+                "🌊 海の日" to calculateNextSolarDate(base, 7, 20),
+                "⛰️ 山の日" to calculateNextSolarDate(base, 8, 11),
+                "🍁 敬老の日" to calculateNextSolarDate(base, 9, 21),
+                "🍁 秋分の日" to calculateNextSolarDate(base, 9, 23),
+                "🏃 スポーツの日" to calculateNextSolarDate(base, 10, 12),
+                "🎨 文化の日" to calculateNextSolarDate(base, 11, 3),
+                "🍂 勤労感謝の日" to calculateNextSolarDate(base, 11, 23)
+            )
+            HolidayRegion.SOUTH_KOREA -> listOf(
+                "🎆 신정 (元旦)" to calculateNextSolarDate(base, 1, 1),
+                "🧧 설날 (春节)" to calculateNextLunarDate(base, 1, 1),
+                "🇰🇷 삼일절 (三一节)" to calculateNextSolarDate(base, 3, 1),
+                "🧸 어린이날 (儿童节)" to calculateNextSolarDate(base, 5, 5),
+                "☸️ 부처님 오신 날" to calculateNextLunarDate(base, 4, 8),
+                "🌾 현충일 (显忠日)" to calculateNextSolarDate(base, 6, 6),
+                "🇰🇷 광복절 (光复节)" to calculateNextSolarDate(base, 8, 15),
+                "🥮 추석 (秋夕/中秋)" to calculateNextLunarDate(base, 8, 15),
+                "🇰🇷 개천절 (开天节)" to calculateNextSolarDate(base, 10, 3),
+                "🇰🇷 한글날 (韩文节)" to calculateNextSolarDate(base, 10, 9),
+                "🎄 성탄절 (圣诞节)" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.UNITED_KINGDOM -> listOf(
+                "🎆 New Year's Day" to calculateNextSolarDate(base, 1, 1),
+                "✝️ Good Friday" to calculateNextSolarDate(base, 4, 3),
+                "✝️ Easter Monday" to calculateNextSolarDate(base, 4, 6),
+                "🇬🇧 Early May Bank Holiday" to calculateNextSolarDate(base, 5, 4),
+                "🇬🇧 Spring Bank Holiday" to calculateNextSolarDate(base, 5, 25),
+                "🇬🇧 Summer Bank Holiday" to calculateNextSolarDate(base, 8, 31),
+                "🎄 Christmas Day" to calculateNextSolarDate(base, 12, 25),
+                "🎁 Boxing Day" to calculateNextSolarDate(base, 12, 26)
+            )
+            HolidayRegion.GERMANY -> listOf(
+                "🎆 Neujahr" to calculateNextSolarDate(base, 1, 1),
+                "✝️ Karfreitag" to calculateNextSolarDate(base, 4, 3),
+                "✝️ Ostermontag" to calculateNextSolarDate(base, 4, 6),
+                "🛠️ Tag der Arbeit" to calculateNextSolarDate(base, 5, 1),
+                "✝️ Christi Himmelfahrt" to calculateNextSolarDate(base, 5, 14),
+                "✝️ Pfingstmontag" to calculateNextSolarDate(base, 5, 25),
+                "🇩🇪 Tag der Deutschen Einheit" to calculateNextSolarDate(base, 10, 3),
+                "🎄 1. Weihnachtstag" to calculateNextSolarDate(base, 12, 25),
+                "🎄 2. Weihnachtstag" to calculateNextSolarDate(base, 12, 26)
+            )
+            HolidayRegion.FRANCE -> listOf(
+                "🎆 Jour de l'An" to calculateNextSolarDate(base, 1, 1),
+                "✝️ Lundi de Pâques" to calculateNextSolarDate(base, 4, 6),
+                "🛠️ Fête du Travail" to calculateNextSolarDate(base, 5, 1),
+                "🎖️ Victoire 1945" to calculateNextSolarDate(base, 5, 8),
+                "✝️ Ascension" to calculateNextSolarDate(base, 5, 14),
+                "🇫🇷 Fête Nationale" to calculateNextSolarDate(base, 7, 14),
+                "✝️ Assomption" to calculateNextSolarDate(base, 8, 15),
+                "✝️ Toussaint" to calculateNextSolarDate(base, 11, 1),
+                "🎖️ Armistice 1918" to calculateNextSolarDate(base, 11, 11),
+                "🎄 Noël" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.ITALY -> listOf(
+                "🎆 Capodanno" to calculateNextSolarDate(base, 1, 1),
+                "👑 Epifania" to calculateNextSolarDate(base, 1, 6),
+                "✝️ Lunedì dell'Angelo" to calculateNextSolarDate(base, 4, 6),
+                "🇮🇹 Festa della Liberazione" to calculateNextSolarDate(base, 4, 25),
+                "🛠️ Festa del Lavoro" to calculateNextSolarDate(base, 5, 1),
+                "🇮🇹 Festa della Repubblica" to calculateNextSolarDate(base, 6, 2),
+                "☀️ Ferragosto" to calculateNextSolarDate(base, 8, 15),
+                "✝️ Ognissanti" to calculateNextSolarDate(base, 11, 1),
+                "🎄 Natale" to calculateNextSolarDate(base, 12, 25),
+                "🎁 Santo Stefano" to calculateNextSolarDate(base, 12, 26)
+            )
+            HolidayRegion.INDIA -> listOf(
+                "🎆 New Year's Day" to calculateNextSolarDate(base, 1, 1),
+                "🇮🇳 Republic Day" to calculateNextSolarDate(base, 1, 26),
+                "🎨 Holi" to calculateNextSolarDate(base, 3, 4),
+                "✝️ Good Friday" to calculateNextSolarDate(base, 4, 3),
+                "☪️ Eid al-Fitr" to calculateNextSolarDate(base, 3, 20),
+                "🇮🇳 Independence Day" to calculateNextSolarDate(base, 8, 15),
+                "🪔 Diwali" to calculateNextSolarDate(base, 11, 8),
+                "🇮🇳 Gandhi Jayanti" to calculateNextSolarDate(base, 10, 2),
+                "🎄 Christmas" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.INDONESIA -> listOf(
+                "🎆 Tahun Baru Masehi" to calculateNextSolarDate(base, 1, 1),
+                "🧧 Tahun Baru Imlek" to calculateNextLunarDate(base, 1, 1),
+                "🇮🇩 Nyepi" to calculateNextSolarDate(base, 3, 19),
+                "✝️ Wafat Isa Almasih" to calculateNextSolarDate(base, 4, 3),
+                "🛠️ Hari Buruh" to calculateNextSolarDate(base, 5, 1),
+                "☸️ Hari Waisak" to calculateNextSolarDate(base, 5, 31),
+                "🇮🇩 Hari Lahir Pancasila" to calculateNextSolarDate(base, 6, 1),
+                "☪️ Idul Fitri" to calculateNextSolarDate(base, 3, 20),
+                "🇮🇩 Hari Kemerdekaan RI" to calculateNextSolarDate(base, 8, 17),
+                "🎄 Hari Natal" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.UNITED_STATES -> listOf(
+                "🎆 New Year's Day" to calculateNextSolarDate(base, 1, 1),
+                "🕊️ MLK Day" to calculateNextSolarDate(base, 1, 19),
+                "🇺🇸 Presidents' Day" to calculateNextSolarDate(base, 2, 16),
+                "🎖️ Memorial Day" to calculateNextSolarDate(base, 5, 25),
+                "🕊️ Juneteenth Day" to calculateNextSolarDate(base, 6, 19),
+                "🇺🇸 Independence Day" to calculateNextSolarDate(base, 7, 4),
+                "🛠️ Labor Day" to calculateNextSolarDate(base, 9, 7),
+                "🌎 Columbus Day" to calculateNextSolarDate(base, 10, 12),
+                "🎖️ Veterans Day" to calculateNextSolarDate(base, 11, 11),
+                "🎃 Thanksgiving" to calculateNextSolarDate(base, 11, 26),
+                "🎄 Christmas" to calculateNextSolarDate(base, 12, 25)
+            )
+            HolidayRegion.THAILAND -> listOf(
+                "🎆 元旦" to calculateNextSolarDate(base, 1, 1),
+                "☸️ 万佛节" to calculateNextSolarDate(base, 2, 26),
+                "👑 扎克里王朝纪念日" to calculateNextSolarDate(base, 4, 6),
+                "💦 宋干节 (泼水节)" to calculateNextSolarDate(base, 4, 13),
+                "🛠️ 劳动节" to calculateNextSolarDate(base, 5, 1),
+                "👑 泰王诞辰" to calculateNextSolarDate(base, 7, 28),
+                "👑 母亲节" to calculateNextSolarDate(base, 8, 12),
+                "👑 父亲节" to calculateNextSolarDate(base, 12, 5),
+                "📜 宪法日" to calculateNextSolarDate(base, 12, 10)
+            )
+            else -> listOf(
+                stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
+                stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1)
+            )
+        }
+
+        val presetCountdowns = rawPresets.filterNot { (label, _) ->
+            uiState.disabledPresetHolidays.contains(label)
+        }
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            presetCountdowns.forEach { (label, targetDate) ->
+                val isSelected = (targetCalendarType == 0 && uiState.endDate == targetDate)
+                NeumorphicChip(
+                    text = label,
+                    selected = isSelected,
+                    onClick = {
+                        targetCalendarType = 0
+                        viewModel.updateEndDate(targetDate)
+                        currentTargetEventName = label
+                        showDiffResult = true
+
+                        // 预设节日芯片点击后自动生成历史记录
+                        val natDays = DateCalculatorUtils.naturalDaysBetween(uiState.baseDate, targetDate)
+                        val workDays = DateCalculatorUtils.workdaysBetween(
+                            uiState.baseDate, targetDate, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays
+                        )
+                        val title = "$label: 相差 ${abs(natDays)} 天 (${abs(workDays)} 工作日)"
+                        val detail = "${uiState.baseDate}  ➔  ${targetDate}"
+                        val regionTag = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+
+                        viewModel.saveToHistory(
+                            category = "日期倒计时",
+                            title = title,
+                            detail = detail,
+                            regionTag = regionTag,
+                            resultDate = targetDate,
+                            resultDays = natDays
+                        )
+                    },
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+            }
+
+            uiState.customEvents.forEach { customEvent ->
+                val effectiveTargetDate = customEvent.getNextUpcomingDate(uiState.baseDate)
+                val isSelected = (targetCalendarType == 0 && uiState.endDate == effectiveTargetDate)
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val scale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.92f else 1.0f,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "ChipPressScale"
+                )
+
+                val chipModifier = if (isSelected) {
+                    Modifier
+                        .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+                        .background(NeumorphicAccent, shape = CircleShape)
+                } else {
+                    Modifier
+                        .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
+                        .background(NeumorphicBg, shape = CircleShape)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                        .then(chipModifier)
+                        .clip(CircleShape)
+                        .combinedClickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = {
+                                targetCalendarType = 0
+                                viewModel.updateEndDate(effectiveTargetDate)
+                                currentTargetEventName = customEvent.name
+                                showDiffResult = true
+
+                                // 自定义倒计时芯片点击后自动生成历史记录
+                                val natDays = DateCalculatorUtils.naturalDaysBetween(uiState.baseDate, effectiveTargetDate)
+                                val workDays = DateCalculatorUtils.workdaysBetween(
+                                    uiState.baseDate, effectiveTargetDate, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays
+                                )
+                                val title = "${customEvent.name}: 相差 ${abs(natDays)} 天 (${abs(workDays)} 工作日)"
+                                val detail = "${uiState.baseDate}  ➔  ${effectiveTargetDate}"
+                                val regionTag = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+
+                                viewModel.saveToHistory(
+                                    category = "日期倒计时",
+                                    title = title,
+                                    detail = detail,
+                                    regionTag = regionTag,
+                                    resultDate = effectiveTargetDate,
+                                    resultDays = natDays
+                                )
+                            },
+                            onLongClick = {
+                                eventToDelete = customEvent
+                            }
+                        )
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = customEvent.name,
+                            color = if (isSelected) Color.White else NeumorphicTextPrimary,
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "删除",
+                            tint = if (isSelected) Color.White.copy(alpha = 0.8f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { eventToDelete = customEvent }
+                        )
+                    }
+                }
+            }
+
+            // "+ 新增倒计时" 胶囊按键放置在常用倒计时列表的最后一个位置
+            Box(
+                modifier = Modifier
+                    .height(40.dp)
+                    .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+                    .background(NeumorphicBg, shape = CircleShape)
+                    .clip(CircleShape)
+                    .clickable { showAddCustomDialog = true }
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(stringResource(R.string.label_add_custom_countdown), fontSize = 13.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // 结果卡片展开
         AnimatedVisibility(
             visible = showDiffResult,
             enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
@@ -1067,7 +1237,7 @@ fun DateDiffScreen(
                     .neumorphicExtruded(shape = RoundedCornerShape(24.dp), elevation = 6.dp)
                     .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f), shape = RoundedCornerShape(24.dp))
                     .clip(RoundedCornerShape(24.dp))
-                    .padding(20.dp)
+                    .padding(16.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -1080,7 +1250,7 @@ fun DateDiffScreen(
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     val statusLabel = when {
                         totalNaturalDays > 0 -> stringResource(R.string.label_status_future, totalNaturalDays)
@@ -1094,7 +1264,7 @@ fun DateDiffScreen(
                         label = { Text(statusLabel, fontWeight = FontWeight.Bold) }
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1121,19 +1291,19 @@ fun DateDiffScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(stringResource(R.string.label_period_len, periodStr), color = MaterialTheme.colorScheme.onSecondaryContainer)
-                        Text(stringResource(R.string.label_weeks_len, String.format("%.1f", abs(totalWeeks))), color = MaterialTheme.colorScheme.onSecondaryContainer)
-                        Text(stringResource(R.string.label_holiday_std, "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"), color = MaterialTheme.colorScheme.onSecondaryContainer)
-                        Text(stringResource(R.string.label_rest_days_len, abs(weekendDays).toString()), color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text(stringResource(R.string.label_period_len, periodStr), color = MaterialTheme.colorScheme.onSecondaryContainer, fontSize = 12.sp)
+                        Text(stringResource(R.string.label_weeks_len, String.format("%.1f", abs(totalWeeks))), color = MaterialTheme.colorScheme.onSecondaryContainer, fontSize = 12.sp)
+                        Text(stringResource(R.string.label_holiday_std, "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"), color = MaterialTheme.colorScheme.onSecondaryContainer, fontSize = 12.sp)
+                        Text(stringResource(R.string.label_rest_days_len, abs(weekendDays).toString()), color = MaterialTheme.colorScheme.onSecondaryContainer, fontSize = 12.sp)
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     // 倒计时设置提醒按键
                     Box(
@@ -1152,7 +1322,7 @@ fun DateDiffScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     NeumorphicCopyButton(
                         text = stringResource(R.string.label_copy_comparison),
@@ -1167,7 +1337,7 @@ fun DateDiffScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

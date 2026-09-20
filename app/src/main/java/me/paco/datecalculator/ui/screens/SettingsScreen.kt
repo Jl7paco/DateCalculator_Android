@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Public
@@ -48,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -65,6 +68,7 @@ import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
+import me.paco.datecalculator.ui.components.NeumorphicChip
 import me.paco.datecalculator.ui.components.NeumorphicCustomPopup
 import me.paco.datecalculator.ui.components.NeumorphicRadioButton
 import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
@@ -111,7 +115,7 @@ fun SettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(14.dp)
     ) {
         // 新拟物规则与历史选项切换
         NeumorphicSegmentedRow(
@@ -130,11 +134,18 @@ fun SettingsScreen(
                     .fillMaxSize()
                     .verticalScroll(scrollState)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // 对齐历史记录页面的 36dp 统一小标题高度与样式
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = null,
-                        tint = NeumorphicAccent
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -145,9 +156,11 @@ fun SettingsScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // 节假日地区选择 Card
+                val selected = uiState.holidayRegion
+
+                // 1. 节假日地区选择 Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -166,7 +179,7 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = stringResource(R.string.label_region_selection),
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicAccent
                             )
                         }
@@ -212,20 +225,12 @@ fun SettingsScreen(
                                     } else {
                                         viewModel.updateGpsAutoDetect(false, context)
                                     }
-                                }
+                                },
+                                modifier = Modifier.scale(0.85f)
                             )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = stringResource(R.string.label_region_sub_info),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = NeumorphicTextPrimary.copy(alpha = 0.8f)
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        val selected = uiState.holidayRegion
 
                         // 新拟物 58dp 下拉菜单选择框
                         Box(modifier = Modifier.fillMaxWidth()) {
@@ -297,48 +302,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
-                        HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        val holidaysCount = RegionalHolidays.getHolidaysCount(selected)
-                        val shiftCount = RegionalHolidays.getShiftWorkdaysCount(selected)
-
-                        val regionDesc = when (selected) {
-                            HolidayRegion.CHINA -> stringResource(R.string.region_desc_cn)
-                            HolidayRegion.TAIWAN -> stringResource(R.string.region_desc_tw)
-                            HolidayRegion.HONG_KONG -> stringResource(R.string.region_desc_hk)
-                            HolidayRegion.MACAO -> stringResource(R.string.region_desc_mo)
-                            HolidayRegion.SINGAPORE -> "含新加坡法定公众假期"
-                            HolidayRegion.MALAYSIA -> "含马来西亚全国法定公众假期"
-                            HolidayRegion.VIETNAM -> "含越南法定节假日及补假"
-                            HolidayRegion.JAPAN -> stringResource(R.string.region_desc_jp)
-                            HolidayRegion.SOUTH_KOREA -> stringResource(R.string.region_desc_kr)
-                            HolidayRegion.AUSTRALIA -> "含澳大利亚全国及州法定公众假期"
-                            HolidayRegion.NEW_ZEALAND -> "含新西兰全国法定公众假期"
-                            HolidayRegion.UNITED_STATES -> stringResource(R.string.region_desc_us)
-                            HolidayRegion.THAILAND -> stringResource(R.string.region_desc_th)
-                        }
-
-                        Text(
-                            text = stringResource(R.string.label_current_region, selected.flagEmoji, selected.nativeName),
-                            fontWeight = FontWeight.Bold,
-                            color = NeumorphicAccent
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = regionDesc,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = NeumorphicTextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        val shiftStr = if (shiftCount > 0) stringResource(R.string.label_shift_count_fmt, shiftCount) else ""
-                        Text(
-                            text = stringResource(R.string.label_region_holiday_count, holidaysCount, shiftStr),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = NeumorphicTextPrimary.copy(alpha = 0.7f)
-                        )
-
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // 新拟物同步最新假期按钮
@@ -369,7 +332,53 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 周末休假模式 Card
+                // 2. 常用倒计时节日配置 Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
+                        .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(20.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Celebration, contentDescription = null, tint = NeumorphicAccent)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("常用倒计时节日配置", fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "点击节日按钮切换在“日期倒计时”页面的显示或隐藏配置:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = NeumorphicTextPrimary.copy(alpha = 0.8f)
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val allPresets = RegionalHolidays.getPresetHolidayNames(selected)
+
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            allPresets.forEach { holidayName ->
+                                val isEnabled = !uiState.disabledPresetHolidays.contains(holidayName)
+                                NeumorphicChip(
+                                    text = if (isEnabled) holidayName else "$holidayName (已隐藏)",
+                                    selected = isEnabled,
+                                    onClick = { viewModel.togglePresetHolidayEnabled(holidayName) }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 3. 周末休假模式 Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -388,7 +397,7 @@ fun SettingsScreen(
 
                         Column(
                             modifier = Modifier.selectableGroup(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             WeekendRule.values().forEach { rule ->
                                 val ruleLabel = when (rule) {
@@ -416,43 +425,73 @@ fun SettingsScreen(
                                     Modifier.background(Color.Transparent)
                                 }
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .then(itemModifier)
-                                        .clip(itemShape)
-                                        .semantics {
-                                            role = Role.RadioButton
-                                            contentDescription = "周末休假规则: $ruleLabel。$ruleDesc"
-                                        }
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) { viewModel.updateWeekendRule(rule, context) }
-                                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.Top
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .then(itemModifier)
+                                            .clip(itemShape)
+                                            .semantics {
+                                                role = Role.RadioButton
+                                                contentDescription = "周末休假规则: $ruleLabel。$ruleDesc"
+                                            }
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) { viewModel.updateWeekendRule(rule, context) }
+                                            .padding(horizontal = 12.dp, vertical = 10.dp)
                                     ) {
-                                        NeumorphicRadioButton(
-                                            selected = isSelected,
-                                            onClick = { viewModel.updateWeekendRule(rule, context) },
-                                            modifier = Modifier.padding(top = 2.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = ruleLabel,
-                                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = if (isSelected) NeumorphicAccent else NeumorphicTextPrimary
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            NeumorphicRadioButton(
+                                                selected = isSelected,
+                                                onClick = { viewModel.updateWeekendRule(rule, context) },
+                                                modifier = Modifier.padding(top = 2.dp)
                                             )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = ruleDesc,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = NeumorphicTextPrimary.copy(alpha = 0.7f)
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = ruleLabel,
+                                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = if (isSelected) NeumorphicAccent else NeumorphicTextPrimary
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = ruleDesc,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = NeumorphicTextPrimary.copy(alpha = 0.7f)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // 双休附加选项：仅保留“📈 股市模式”单行纯精简开关 (按 0.75 比例缩放对齐 13sp 字号)
+                                    if (rule == WeekendRule.STANDARD_FIVE_DAYS && selected == HolidayRegion.CHINA && uiState.weekendRule == WeekendRule.STANDARD_FIVE_DAYS) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(42.dp)
+                                                .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                                                .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                                                .padding(start = 14.dp, end = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("📈 股市模式", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
+
+                                            Switch(
+                                                checked = uiState.disableChinaShiftWorkdays,
+                                                onCheckedChange = { disable ->
+                                                    viewModel.updateDisableChinaShift(disable, context)
+                                                    if (disable) {
+                                                        Toast.makeText(context, "已开启股市模式", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                },
+                                                modifier = Modifier.scale(0.75f)
                                             )
                                         }
                                     }
@@ -486,7 +525,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 数据库支持与应用版本信息 Card
+                // 4. 数据库支持与应用版本信息 Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -494,7 +533,7 @@ fun SettingsScreen(
                         .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
                         .semantics(mergeDescendants = true) {
-                            contentDescription = "多地区节假日安排说明及应用版本号 v1.2.1"
+                            contentDescription = "多地区节假日安排说明及应用版本号 v1.3.0"
                         }
                         .padding(16.dp)
                 ) {
@@ -527,7 +566,7 @@ fun SettingsScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("应用版本", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                             }
-                            Text("v1.2.1", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                            Text("v1.3.0", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                         }
                     }
                 }

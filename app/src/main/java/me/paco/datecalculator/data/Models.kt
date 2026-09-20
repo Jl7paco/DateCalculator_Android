@@ -21,6 +21,12 @@ enum class HolidayRegion(
     VIETNAM("VN", "越南", "Việt Nam", "🇻🇳", "含越南法定节假日及补假"),
     JAPAN("JP", "日本", "日本", "🇯🇵", "含国民之祝日与振替休日"),
     SOUTH_KOREA("KR", "韩国", "대한민국", "🇰🇷", "含公休日与替代公休日"),
+    UNITED_KINGDOM("GB", "英国", "United Kingdom", "🇬🇧", "含英国 Bank Holidays 法定假期"),
+    GERMANY("DE", "德国", "Deutschland", "🇩🇪", "含德国全国及联邦州法定节假日"),
+    FRANCE("FR", "法国", "France", "🇫🇷", "含法国法定公众假期 (Jours Fériés)"),
+    ITALY("IT", "意大利", "Italia", "🇮🇹", "含意大利法定公众假期 (Giorni Festivi)"),
+    INDIA("IN", "印度", "India", "🇮🇳", "含印度全国及各邦法定节假日"),
+    INDONESIA("ID", "印尼", "Indonesia", "🇮🇩", "含印尼全国法定公众假期 (Hari Libur)"),
     AUSTRALIA("AU", "澳大利亚", "Australia", "🇦🇺", "含澳大利亚全国及州法定公众假期"),
     NEW_ZEALAND("NZ", "新西兰", "New Zealand", "🇳🇿", "含新西兰全国法定公众假期"),
     UNITED_STATES("US", "美国", "United States", "🇺🇸", "含联邦法定节假日 (Federal Holidays)"),
@@ -60,8 +66,8 @@ enum class WeekendRule(val label: String, val description: String) {
 }
 
 enum class CalculationType(val symbol: String, val label: String) {
-    ADD("+", "加法 (往前推算)"),
-    SUBTRACT("-", "减法 (往后倒推)")
+    ADD("+", "加天数"),
+    SUBTRACT("-", "减天数")
 }
 
 enum class DateMode(val label: String) {
@@ -71,9 +77,11 @@ enum class DateMode(val label: String) {
 
 data class HistoryItem(
     val id: Long = System.nanoTime(),
+    val category: String = "日期计算",
     val title: String,
     val detail: String,
-    val resultDate: LocalDate?,
-    val resultDays: Long?,
+    val regionTag: String = "🇨🇳 中国大陆",
+    val resultDate: LocalDate? = null,
+    val resultDays: Long? = null,
     val timestamp: Long = System.currentTimeMillis()
 )

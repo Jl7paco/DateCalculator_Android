@@ -12,6 +12,7 @@ object PreferenceUtils {
     private const val KEY_WEEKEND_RULE = "weekend_rule"
     private const val KEY_BIG_WEEK = "is_big_week"
     private const val KEY_GPS_AUTO = "is_gps_auto"
+    private const val KEY_DISABLE_CHINA_SHIFT = "disable_china_shift"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -56,6 +57,14 @@ object PreferenceUtils {
     }
 
     fun getIsGpsAuto(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_GPS_AUTO, false)
+        return getPrefs(context).getBoolean(KEY_GPS_AUTO, true)
+    }
+
+    fun saveDisableChinaShift(context: Context, disable: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_DISABLE_CHINA_SHIFT, disable).apply()
+    }
+
+    fun getDisableChinaShift(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_DISABLE_CHINA_SHIFT, false)
     }
 }

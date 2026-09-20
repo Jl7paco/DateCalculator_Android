@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,10 +44,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
 import me.paco.datecalculator.data.DateMode
-import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.ui.components.DatePickerModal
 import me.paco.datecalculator.ui.components.NeumorphicAccent
@@ -93,6 +94,14 @@ fun DateCalculationScreen(
         }
     }
 
+    // 结果展开后自动平滑下滑至结果区域完全展示 (无需用户手动下滑)
+    LaunchedEffect(uiState.showResult) {
+        if (uiState.showResult) {
+            delay(180)
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+
     if (showDatePicker) {
         DatePickerModal(
             selectedDate = uiState.baseDate,
@@ -108,9 +117,9 @@ fun DateCalculationScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(16.dp)
+            .padding(14.dp)
     ) {
-        // 顶部子页面选框: [ 工作日 | 自然日 ] (新拟物双胶囊 Toggle)
+        // 顶部子页面选框: [ 工作日 | 自然日 ]
         NeumorphicSegmentedRow(
             items = listOf("工作日", stringResource(R.string.tab_natural_day)),
             selectedIndex = if (uiState.dateMode == DateMode.WORKDAY) 0 else 1,
@@ -119,24 +128,25 @@ fun DateCalculationScreen(
             }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // 提示卡片 (新拟物 Extruded 凸起卡片)
+        // 紧凑型规则说明条 (占用极小高度，提升一屏空间展现率)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 3.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp))
-                .padding(12.dp)
+                .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(12.dp))
+                .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = NeumorphicAccent
+                    tint = NeumorphicAccent,
+                    modifier = Modifier.size(14.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 val infoText = if (uiState.dateMode == DateMode.WORKDAY) {
                     val regionText = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
                     val ruleLabel = when (uiState.weekendRule) {
@@ -154,14 +164,15 @@ fun DateCalculationScreen(
                 Text(
                     text = infoText,
                     style = MaterialTheme.typography.bodySmall,
+                    fontSize = 11.sp,
                     color = NeumorphicTextPrimary
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // 显眼放大版基准起始日期 Hero Card (柔和主题底色)
+        // 紧凑精致版起始日期 Hero Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -179,7 +190,7 @@ fun DateCalculationScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -188,20 +199,21 @@ fun DateCalculationScreen(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(end = 12.dp)
+                        modifier = Modifier.padding(end = 10.dp)
                     )
                     Column {
                         Text(
                             text = stringResource(R.string.label_start_date_section),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(uiState.baseDate)
                         Text(
                             text = dateFormattedWithWeek,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -216,9 +228,9 @@ fun DateCalculationScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // 点击快捷键高亮选中并直接触发计算与结果展示
+        // 快捷选项 Chips
         QuickDateChips(
             selectedDate = uiState.baseDate,
             onSelectDate = { date ->
@@ -227,7 +239,7 @@ fun DateCalculationScreen(
             }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         val unitLabel = if (uiState.dateMode == DateMode.WORKDAY) {
             stringResource(R.string.label_days_workday)
@@ -244,7 +256,7 @@ fun DateCalculationScreen(
             dayUnitLabel = unitLabel
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         val resultTitle = if (uiState.dateMode == DateMode.WORKDAY) {
             stringResource(R.string.label_result_title_workday)
@@ -262,6 +274,6 @@ fun DateCalculationScreen(
             isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

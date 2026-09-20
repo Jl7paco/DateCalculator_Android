@@ -67,7 +67,9 @@ data class DateCalculatorUiState(
     val isCurrentWeekBigWeek: Boolean = true,
     val enableChineseHolidays: Boolean = true,
     val holidayRegion: HolidayRegion = HolidayRegion.CHINA,
-    val isGpsAutoDetectEnabled: Boolean = false,
+    val isGpsAutoDetectEnabled: Boolean = true,
+    val disableChinaShiftWorkdays: Boolean = false, // 金融/股市模式：关闭中国大陆国务院调休补班 (默认关闭)
+    val disabledPresetHolidays: Set<String> = emptySet(),
     val showResult: Boolean = false,
     val historyList: List<HistoryItem> = emptyList(),
     val customEvents: List<CustomEventItem> = emptyList(),
@@ -84,12 +86,14 @@ class DateCalculatorViewModel : ViewModel() {
         val savedRule = PreferenceUtils.getWeekendRule(context)
         val savedBigWeek = PreferenceUtils.getIsBigWeek(context)
         val savedGpsAuto = PreferenceUtils.getIsGpsAuto(context)
+        val savedDisableShift = PreferenceUtils.getDisableChinaShift(context)
 
         _uiState.value = _uiState.value.copy(
             holidayRegion = savedRegion,
             weekendRule = savedRule,
             isCurrentWeekBigWeek = savedBigWeek,
-            isGpsAutoDetectEnabled = savedGpsAuto
+            isGpsAutoDetectEnabled = savedGpsAuto,
+            disableChinaShiftWorkdays = savedDisableShift
         )
 
         if (savedGpsAuto) {
@@ -155,6 +159,21 @@ class DateCalculatorViewModel : ViewModel() {
         }
     }
 
+    fun updateDisableChinaShift(disable: Boolean, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(disableChinaShiftWorkdays = disable, showResult = false)
+        context?.let { PreferenceUtils.saveDisableChinaShift(it, disable) }
+    }
+
+    fun togglePresetHolidayEnabled(holidayName: String) {
+        val currentDisabled = _uiState.value.disabledPresetHolidays.toMutableSet()
+        if (currentDisabled.contains(holidayName)) {
+            currentDisabled.remove(holidayName)
+        } else {
+            currentDisabled.add(holidayName)
+        }
+        _uiState.value = _uiState.value.copy(disabledPresetHolidays = currentDisabled.toSet())
+    }
+
     fun setToday() {
         _uiState.value = _uiState.value.copy(baseDate = LocalDate.now(), showResult = false)
     }
@@ -192,7 +211,7 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     /**
-     * 按等于号按键：显示结果并自动存入历史记录
+     * 按等于号按键：生成结构化历史记录并存储
      */
     fun performCalculation(): LocalDate {
         val result = calculateTargetDate()
@@ -200,10 +219,18 @@ class DateCalculatorViewModel : ViewModel() {
         val rawDays = state.daysInput.toLongOrNull() ?: 0L
 
         val modeLabel = if (state.dateMode == DateMode.WORKDAY) "工作日" else "自然日"
-        val title = "${modeLabel}计算: $result"
-        val detail = "以 ${state.baseDate} 为基准，${state.calculationType.label} $rawDays 个$modeLabel [${state.holidayRegion.label}]"
+        val title = DateCalculatorUtils.formatDate(result)
+        val detail = "起始: ${state.baseDate}  ➔  ${state.calculationType.symbol}${rawDays} ${modeLabel}"
+        val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
 
-        saveToHistory(title, detail, result, rawDays)
+        saveToHistory(
+            category = "日期计算",
+            title = title,
+            detail = detail,
+            regionTag = regionTag,
+            resultDate = result,
+            resultDays = rawDays
+        )
         _uiState.value = _uiState.value.copy(showResult = true)
         return result
     }
@@ -222,10 +249,10 @@ class DateCalculatorViewModel : ViewModel() {
             DateMode.WORKDAY -> {
                 when (state.calculationType) {
                     CalculationType.ADD -> DateCalculatorUtils.addWorkdays(
-                        base, rawDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek
+                        base, rawDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
                     )
                     CalculationType.SUBTRACT -> DateCalculatorUtils.addWorkdays(
-                        base, -rawDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek
+                        base, -rawDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
                     )
                 }
             }
@@ -238,11 +265,20 @@ class DateCalculatorViewModel : ViewModel() {
         }
     }
 
-    fun saveToHistory(title: String, detail: String, resultDate: LocalDate?, resultDays: Long? = null) {
+    fun saveToHistory(
+        category: String = "日期计算",
+        title: String,
+        detail: String,
+        regionTag: String = "🇨🇳 中国大陆",
+        resultDate: LocalDate? = null,
+        resultDays: Long? = null
+    ) {
         val newItem = HistoryItem(
             id = System.nanoTime(),
+            category = category,
             title = title,
             detail = detail,
+            regionTag = regionTag,
             resultDate = resultDate,
             resultDays = resultDays,
             timestamp = System.currentTimeMillis()
