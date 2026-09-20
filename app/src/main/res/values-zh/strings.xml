@@ -32,9 +32,9 @@
     <string name="label_result_title_natural">自然日推算结果</string>
     <string name="label_copy_result">复制结果</string>
     <string name="label_save_history">存入历史</string>
-    <string name="label_workday_chip">工作日 (好好摸鱼)</string>
-    <string name="label_weekend_chip">休息日 (周末或法定假期)</string>
-    <string name="label_natural_mode_info">自然日模式：按连续日历推算，不扣除周末与节假日</string>
+    <string name="label_workday_chip">工作日 (充实的一天)</string>
+    <string name="label_weekend_chip">休息日 (好好放松一下)</string>
+    <string name="label_natural_mode_info">自然日模式：按连续日历推算，陪伴你的每一天</string>
 
     <!-- Date Diff & Countdown -->
     <string name="label_date_diff_title">目标日期倒计时</string>
@@ -43,7 +43,7 @@
     <string name="label_preset_countdown">常用目标日期</string>
     <string name="label_add_custom_countdown">+ 自定义</string>
     <string name="label_custom_event_dialog_title">添加自定义倒计时</string>
-    <string name="label_event_name">日期名称 (例: 妈妈生日)</string>
+    <string name="label_event_name">日期名称 (如: 妈妈生日 / 周年纪念)</string>
     <string name="label_set_reminder">添加系统提醒</string>
     <string name="label_target_date">目标日期:</string>
     <string name="label_custom_target_date">目标日期</string>
@@ -85,10 +85,10 @@
     <string name="label_leap_month_check">该月为闰月 (闰%1$s)</string>
     <string name="label_corresponding_solar">对应公历: %1$s</string>
     <string name="label_gregorian_year_hint">输入公历年份 (自动匹配干支属相)：%1$s</string>
-    <string name="label_traditional_festival">🎉 传统节日: %1$s (点击放烟花)</string>
+    <string name="label_traditional_festival">🎉 传统佳节: %1$s (点击放烟花许愿)</string>
 
     <!-- Settings & History -->
-    <string name="label_rules_and_history">工作日与休假规则</string>
+    <string name="label_rules_and_history">休假与计算规则</string>
     <string name="label_weekend_mode">周末休息模式</string>
     <string name="label_region_selection">选择国家/地区</string>
     <string name="label_region_sub_info">自动按所选国家/地区的法定安排扣除节假日及调休:</string>
@@ -99,8 +99,8 @@
     <string name="label_this_week_big">本周是大周 (周六日休息)</string>
     <string name="label_this_week_small">本周是小周 (仅周日休息)</string>
 
-    <string name="label_database_support">支持国家/地区语言与上架标注</string>
-    <string name="label_database_support_desc">• 本应用仅提供支持列表内 19 个国家/地区（中国大陆、臺灣、香港、澳門、新加坡、马来西亚、越南、日本、대한민국、United Kingdom、Deutschland、France、Italia、India、Indonesia、Australia、New Zealand、United States、ประเทศไทย）的官方语言支持与法定节假日/调休数据库。\n• 已按各支持地区合规及商店上架标准完成语言与数据校对标注。</string>
+    <string name="label_database_support">多地区节假日说明与语言支持</string>
+    <string name="label_database_support_desc">• 内置全球 19 个国家/地区的官方语言与法定节假日/调休安排，方便日常出行、度假排期与生活规划。\n• 支持根据 GPS 自动识别所在地，让你的日子心中有数。</string>
 
     <string name="label_history">历史记录</string>
     <string name="label_rules">规则设置</string>
@@ -123,16 +123,6 @@
     <string name="rule_six_days_saturday_desc">每周日及周一至周五为工作日，仅周六休息</string>
     <string name="rule_seven_days">无休 (七天工作)</string>
     <string name="rule_seven_days_desc">一周七天均为工作日，不计周末</string>
-
-    <!-- Holiday Region Descriptions (Chinese) -->
-    <string name="region_desc_cn">含法定节假日及调休补班</string>
-    <string name="region_desc_tw">含法定节假日及补假/补班安排</string>
-    <string name="region_desc_hk">含公众假期与补假安排</string>
-    <string name="region_desc_mo">含强制性假日及公众假期</string>
-    <string name="region_desc_jp">含国民之祝日与振替休日</string>
-    <string name="region_desc_kr">含公休日与替代公休日</string>
-    <string name="region_desc_us">含联邦法定节假日 (Federal Holidays)</string>
-    <string name="region_desc_th">含泰国法定公众假期及补假</string>
 
     <!-- Toasts -->
     <string name="toast_copied">结果已复制到剪贴板</string>

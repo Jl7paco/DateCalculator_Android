@@ -23,17 +23,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,14 +47,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.R
+import me.paco.datecalculator.data.HistoryItem
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
+import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.neumorphicExtruded
+import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import java.text.SimpleDateFormat
@@ -67,27 +73,161 @@ fun HistoryScreen(
 ) {
     val context = LocalContext.current
     var showClearDialog by remember { mutableStateOf(false) }
+    var itemToEditTitle by remember { mutableStateOf<HistoryItem?>(null) }
+    var editedTitleText by remember { mutableStateOf("") }
 
     val historyClearedToast = stringResource(R.string.toast_history_cleared)
     val copiedToast = stringResource(R.string.toast_copied)
 
+    // 新拟物 3D 风格清空确认二次弹窗
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text(stringResource(R.string.label_clear_dialog_title)) },
-            text = { Text(stringResource(R.string.label_clear_dialog_msg)) },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = NeumorphicBg,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.label_clear_dialog_title),
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeumorphicTextPrimary,
+                        fontSize = 16.sp
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.label_clear_dialog_msg),
+                    color = NeumorphicTextPrimary.copy(alpha = 0.85f),
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.clearHistory()
-                    showClearDialog = false
-                    Toast.makeText(context, historyClearedToast, Toast.LENGTH_SHORT).show()
-                }) {
-                    Text(stringResource(R.string.label_clear_confirm), color = MaterialTheme.colorScheme.error)
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+                        .background(MaterialTheme.colorScheme.error, shape = CircleShape)
+                        .clip(CircleShape)
+                        .clickable {
+                            viewModel.clearHistory()
+                            showClearDialog = false
+                            Toast.makeText(context, historyClearedToast, Toast.LENGTH_SHORT).show()
+                        }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.label_clear_confirm),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
-                    Text(stringResource(R.string.label_cancel))
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                        .background(NeumorphicBg, shape = CircleShape)
+                        .clip(CircleShape)
+                        .clickable { showClearDialog = false }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.label_cancel),
+                        color = NeumorphicTextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        )
+    }
+
+    // 新拟物 3D 风格修改历史记录名称弹窗
+    itemToEditTitle?.let { item ->
+        AlertDialog(
+            onDismissRequest = { itemToEditTitle = null },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = NeumorphicBg,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("修改历史记录名称", fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("请输入新的历史记录名称:", fontSize = 13.sp, color = NeumorphicTextPrimary)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .neumorphicInset(shape = RoundedCornerShape(12.dp))
+                            .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(12.dp))
+                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        BasicTextField(
+                            value = editedTitleText,
+                            onValueChange = { editedTitleText = it },
+                            singleLine = true,
+                            textStyle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+                        .background(NeumorphicAccent, shape = CircleShape)
+                        .clip(CircleShape)
+                        .clickable {
+                            if (editedTitleText.isNotBlank()) {
+                                viewModel.updateHistoryItemTitle(item.id, editedTitleText.trim())
+                                Toast.makeText(context, "已重命名历史记录名称", Toast.LENGTH_SHORT).show()
+                            }
+                            itemToEditTitle = null
+                        }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("保存名称", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            },
+            dismissButton = {
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                        .background(NeumorphicBg, shape = CircleShape)
+                        .clip(CircleShape)
+                        .clickable { itemToEditTitle = null }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("取消", color = NeumorphicTextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         )
@@ -109,12 +249,12 @@ fun HistoryScreen(
                     imageVector = Icons.Default.History,
                     contentDescription = null,
                     tint = NeumorphicAccent,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = stringResource(R.string.label_history_count_fmt, uiState.historyList.size),
-                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicTextPrimary
                 )
@@ -185,7 +325,7 @@ fun HistoryScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // 1. 分类 Pill 胶囊标签 (配以对应主题色彩)
+                                // 1. 分类 Pill 胶囊标签
                                 val categoryBg = when (item.category) {
                                     "日期计算" -> NeumorphicAccent
                                     "日期倒计时" -> Color(0xFF8B5CF6)
@@ -207,9 +347,26 @@ fun HistoryScreen(
                                     )
                                 }
 
-                                // 右侧复制与删除 32dp 圆角按键
+                                // 右侧编辑、复制与删除按键
                                 val buttonShape = RoundedCornerShape(10.dp)
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    // ✏️ 重命名历史记录名称按键
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .neumorphicExtruded(shape = buttonShape, elevation = 3.dp)
+                                            .background(NeumorphicBg, shape = buttonShape)
+                                            .clip(buttonShape)
+                                            .clickable {
+                                                itemToEditTitle = item
+                                                editedTitleText = item.title
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Edit, contentDescription = "重命名记录", tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                                    }
+
+                                    // 📋 复制记录
                                     Box(
                                         modifier = Modifier
                                             .size(32.dp)
@@ -227,6 +384,7 @@ fun HistoryScreen(
                                         Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "复制记录", tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                                     }
 
+                                    // 🗑️ 删除记录
                                     Box(
                                         modifier = Modifier
                                             .size(32.dp)
@@ -245,17 +403,17 @@ fun HistoryScreen(
 
                             Spacer(modifier = Modifier.height(10.dp))
 
-                            // 2. 突出展示核心计算结果大字 (大字加粗高亮)
+                            // 2. 突出展示核心计算结果或自定义方案大字
                             Text(
                                 text = item.title,
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 20.sp,
+                                fontSize = 18.sp,
                                 color = NeumorphicTextPrimary
                             )
 
                             Spacer(modifier = Modifier.height(4.dp))
 
-                            // 3. 结构化计算过程 (清晰箭头标识)
+                            // 3. 结构化计算过程
                             Text(
                                 text = item.detail,
                                 style = MaterialTheme.typography.bodyMedium,

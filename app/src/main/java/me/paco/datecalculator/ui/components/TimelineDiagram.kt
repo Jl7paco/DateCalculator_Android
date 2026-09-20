@@ -345,7 +345,7 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // 终点标记里程碑
+            // 终点标记里程碑 (改名为: 最终完成日期)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -371,7 +371,7 @@ fun TimelineDiagram(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("最终达成日期", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
+                    Text("最终完成日期", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
                     Text("$finalDate", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Color(0xFF10B981))
                 }
             }

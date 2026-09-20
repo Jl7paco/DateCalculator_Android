@@ -117,14 +117,14 @@ fun SettingsScreen(
             .fillMaxSize()
             .padding(14.dp)
     ) {
-        // 新拟物规则与历史选项切换
+        // 新拟物规则与历史选项切换 (与前三页 SegmentedRow 13sp 完全统一)
         NeumorphicSegmentedRow(
             items = listOf(stringResource(R.string.label_rules), "${stringResource(R.string.label_history)} (${uiState.historyList.size})"),
             selectedIndex = pageTab,
             onIndexSelected = { pageTab = it }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         if (pageTab == 1) {
             HistoryScreen(viewModel = viewModel, uiState = uiState)
@@ -134,7 +134,7 @@ fun SettingsScreen(
                     .fillMaxSize()
                     .verticalScroll(scrollState)
             ) {
-                // 对齐历史记录页面的 36dp 统一小标题高度与样式
+                // 对齐全应用统一 36dp 小标题与 15sp 尺寸
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -145,62 +145,64 @@ fun SettingsScreen(
                         imageVector = Icons.Default.Settings,
                         contentDescription = null,
                         tint = NeumorphicAccent,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.label_rules_and_history),
-                        style = MaterialTheme.typography.titleMedium,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = NeumorphicTextPrimary
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 val selected = uiState.holidayRegion
 
-                // 1. 节假日地区选择 Card
+                // 1. 节假日地区选择 Card (统一为 14sp 小标题与 13sp 选项字号)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
                         .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
-                        .padding(16.dp)
+                        .padding(14.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Public,
                                 contentDescription = null,
-                                tint = NeumorphicAccent
+                                tint = NeumorphicAccent,
+                                modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = stringResource(R.string.label_region_selection),
-                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
                                 color = NeumorphicAccent
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         // 🛰️ GPS 自动定位识别所在地开关行
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(46.dp)
-                                .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
-                                .background(NeumorphicBg, shape = RoundedCornerShape(14.dp))
-                                .padding(horizontal = 14.dp),
+                                .height(44.dp)
+                                .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
+                                .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.GpsFixed, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("GPS 自动识别所在地", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 14.sp)
+                                Icon(imageVector = Icons.Default.GpsFixed, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("GPS 自动识别所在地", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 13.sp)
                             }
 
                             Switch(
@@ -230,24 +232,24 @@ fun SettingsScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        // 新拟物 58dp 下拉菜单选择框
+                        // 新拟物下拉菜单选择框 (对齐前三页 15sp 文本规范)
                         Box(modifier = Modifier.fillMaxWidth()) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(58.dp)
-                                    .neumorphicInset(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
-                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(18.dp))
-                                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
-                                    .clip(RoundedCornerShape(18.dp))
+                                    .height(52.dp)
+                                    .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 4.dp)
+                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(14.dp))
+                                    .background(NeumorphicBg, shape = RoundedCornerShape(14.dp))
+                                    .clip(RoundedCornerShape(14.dp))
                                     .semantics {
                                         role = Role.Button
                                         contentDescription = "当前选择的地区: ${selected.nativeName}，点击展开地区选择列表"
                                     }
                                     .clickable { regionMenuExpanded = true }
-                                    .padding(horizontal = 16.dp),
+                                    .padding(horizontal = 14.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
                                 Row(
@@ -257,11 +259,11 @@ fun SettingsScreen(
                                 ) {
                                     Text(
                                         text = "${selected.flagEmoji} ${selected.nativeName}",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
                                         color = NeumorphicTextPrimary
                                     )
-                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "展开地区下拉菜单", tint = NeumorphicAccent)
+                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "展开地区下拉菜单", tint = NeumorphicAccent, modifier = Modifier.size(20.dp))
                                 }
                             }
 
@@ -289,26 +291,26 @@ fun SettingsScreen(
                                                 viewModel.updateHolidayRegion(region, context)
                                                 regionMenuExpanded = false
                                             }
-                                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                                            .padding(horizontal = 12.dp, vertical = 10.dp)
                                     ) {
                                         Text(
                                             text = "${region.flagEmoji} ${region.nativeName}",
                                             fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold,
                                             color = if (isCurrent) NeumorphicAccent else NeumorphicTextPrimary,
-                                            fontSize = 15.sp
+                                            fontSize = 14.sp
                                         )
                                     }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         // 新拟物同步最新假期按钮
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp)
+                                .height(44.dp)
                                 .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
                                 .background(NeumorphicAccent, shape = CircleShape)
                                 .clip(CircleShape)
@@ -322,15 +324,15 @@ fun SettingsScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White)
+                                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("同步最新节假日数据", fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("同步最新节假日数据", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // 2. 常用倒计时节日配置 Card
                 Box(
@@ -339,23 +341,24 @@ fun SettingsScreen(
                         .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
                         .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
-                        .padding(16.dp)
+                        .padding(14.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Celebration, contentDescription = null, tint = NeumorphicAccent)
+                            Icon(imageVector = Icons.Default.Celebration, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("常用倒计时节日配置", fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                            Text("常用倒计时节日配置", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
                         }
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "点击节日按钮切换在“日期倒计时”页面的显示或隐藏配置:",
                             style = MaterialTheme.typography.bodySmall,
-                            color = NeumorphicTextPrimary.copy(alpha = 0.8f)
+                            fontSize = 12.sp,
+                            color = NeumorphicTextPrimary.copy(alpha = 0.7f)
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         val allPresets = RegionalHolidays.getPresetHolidayNames(selected)
 
@@ -376,28 +379,29 @@ fun SettingsScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // 3. 周末休假模式 Card
+                // 3. 周末休息模式 Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
                         .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
-                        .padding(16.dp)
+                        .padding(14.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = stringResource(R.string.label_weekend_mode),
                             fontWeight = FontWeight.Bold,
-                            color = NeumorphicAccent
+                            color = NeumorphicAccent,
+                            fontSize = 14.sp
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         Column(
                             modifier = Modifier.selectableGroup(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             WeekendRule.values().forEach { rule ->
                                 val ruleLabel = when (rule) {
@@ -416,10 +420,10 @@ fun SettingsScreen(
                                 }
 
                                 val isSelected = (rule == uiState.weekendRule)
-                                val itemShape = RoundedCornerShape(14.dp)
+                                val itemShape = RoundedCornerShape(12.dp)
                                 val itemModifier = if (isSelected) {
                                     Modifier
-                                        .neumorphicInset(shape = itemShape, elevation = 3.dp)
+                                        .neumorphicInset(shape = itemShape, elevation = 2.dp)
                                         .background(NeumorphicBg, shape = itemShape)
                                 } else {
                                     Modifier.background(Color.Transparent)
@@ -439,7 +443,7 @@ fun SettingsScreen(
                                                 interactionSource = remember { MutableInteractionSource() },
                                                 indication = null
                                             ) { viewModel.updateWeekendRule(rule, context) }
-                                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                                            .padding(horizontal = 10.dp, vertical = 8.dp)
                                     ) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
@@ -450,38 +454,38 @@ fun SettingsScreen(
                                                 onClick = { viewModel.updateWeekendRule(rule, context) },
                                                 modifier = Modifier.padding(top = 2.dp)
                                             )
-                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Spacer(modifier = Modifier.width(10.dp))
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(
                                                     text = ruleLabel,
-                                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                                    fontSize = 13.sp,
                                                     color = if (isSelected) NeumorphicAccent else NeumorphicTextPrimary
                                                 )
                                                 Spacer(modifier = Modifier.height(2.dp))
                                                 Text(
                                                     text = ruleDesc,
-                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontSize = 11.sp,
                                                     color = NeumorphicTextPrimary.copy(alpha = 0.7f)
                                                 )
                                             }
                                         }
                                     }
 
-                                    // 双休附加选项：仅保留“📈 股市模式”单行纯精简开关 (按 0.75 比例缩放对齐 13sp 字号)
+                                    // 双休附加选项：仅保留“📈 股市模式”单行精简开关 (对齐 13sp 字号)
                                     if (rule == WeekendRule.STANDARD_FIVE_DAYS && selected == HolidayRegion.CHINA && uiState.weekendRule == WeekendRule.STANDARD_FIVE_DAYS) {
-                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Spacer(modifier = Modifier.height(4.dp))
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(42.dp)
-                                                .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
-                                                .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
-                                                .padding(start = 14.dp, end = 6.dp),
+                                                .height(38.dp)
+                                                .neumorphicInset(shape = RoundedCornerShape(10.dp), elevation = 2.dp)
+                                                .background(NeumorphicBg, shape = RoundedCornerShape(10.dp))
+                                                .padding(start = 12.dp, end = 4.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("📈 股市模式", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
+                                            Text("📈 股市模式", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.sp)
 
                                             Switch(
                                                 checked = uiState.disableChinaShiftWorkdays,
@@ -501,18 +505,18 @@ fun SettingsScreen(
 
                         // 若选择大小周规则，显示当前为大周还是小周的配置选项
                         if (uiState.weekendRule == WeekendRule.ALTERNATE_BIG_SMALL_WEEKS) {
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
                             HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
                                 text = stringResource(R.string.label_big_small_setting),
                                 fontWeight = FontWeight.Bold,
                                 color = NeumorphicAccent,
-                                style = MaterialTheme.typography.bodyMedium
+                                fontSize = 13.sp
                             )
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
 
                             NeumorphicSegmentedRow(
                                 items = listOf(stringResource(R.string.label_this_week_big), stringResource(R.string.label_this_week_small)),
@@ -523,7 +527,7 @@ fun SettingsScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // 4. 数据库支持与应用版本信息 Card
                 Box(
@@ -533,28 +537,29 @@ fun SettingsScreen(
                         .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
                         .semantics(mergeDescendants = true) {
-                            contentDescription = "多地区节假日安排说明及应用版本号 v1.3.0"
+                            contentDescription = "多地区节假日安排说明及应用版本号 v2.0.0"
                         }
-                        .padding(16.dp)
+                        .padding(14.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.EventNote, contentDescription = null, tint = NeumorphicAccent)
+                            Icon(imageVector = Icons.AutoMirrored.Filled.EventNote, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = stringResource(R.string.label_database_support), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                            Text(text = stringResource(R.string.label_database_support), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 14.sp)
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = stringResource(R.string.label_database_support_desc),
                             style = MaterialTheme.typography.bodySmall,
+                            fontSize = 12.sp,
                             color = NeumorphicTextPrimary.copy(alpha = 0.8f)
                         )
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -562,11 +567,11 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = NeumorphicAccent)
+                                Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("应用版本", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                                Text("应用版本", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 13.sp)
                             }
-                            Text("v1.3.0", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                            Text("v2.0.0", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 13.sp)
                         }
                     }
                 }

@@ -351,7 +351,33 @@ fun DateCalculationScreen(
                             color = NeumorphicAccent,
                             fontSize = 15.sp
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // 生活化温暖提示语: "给这段安排起个名字 (如: 毕业旅行 / 装修进度 / 减脂计划)"
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(42.dp)
+                                .neumorphicInset(shape = RoundedCornerShape(10.dp))
+                                .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(10.dp))
+                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (uiState.multiStagePlanTitle.isEmpty()) {
+                                Text("给这段安排起个名字 (如: 毕业旅行 / 装修进度 / 减脂计划)", fontSize = 12.sp, color = NeumorphicTextPrimary.copy(alpha = 0.5f))
+                            }
+                            BasicTextField(
+                                value = uiState.multiStagePlanTitle,
+                                onValueChange = { viewModel.updateMultiStagePlanTitle(it) },
+                                singleLine = true,
+                                textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "为各个时间段设置天数与备注，系统将自动依次多段累加/累减推算:",
                             fontSize = 11.sp,
@@ -470,7 +496,7 @@ fun DateCalculationScreen(
                                     contentAlignment = Alignment.CenterStart
                                 ) {
                                     if (stage.remark.isEmpty()) {
-                                        Text("输入时间段备注 (例如: 第一段时间 / 需求评审)", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.5f))
+                                        Text("输入时间段备注 (例如: 第一段时间 / 毕业旅行)", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.5f))
                                     }
                                     BasicTextField(
                                         value = stage.remark,

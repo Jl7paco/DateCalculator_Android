@@ -1,6 +1,7 @@
 package me.paco.datecalculator.ui.viewmodel
 
 import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import me.paco.datecalculator.data.CalculationStage
 import me.paco.datecalculator.data.CalculationType
@@ -75,6 +76,7 @@ data class DateCalculatorUiState(
     val disableChinaShiftWorkdays: Boolean = false,
     val disabledPresetHolidays: Set<String> = emptySet(),
     val isMultiStageExtensionEnabled: Boolean = false,
+    val multiStagePlanTitle: String = "",
     val stages: List<CalculationStage> = listOf(
         CalculationStage(type = CalculationType.ADD, days = 15L, remark = "第一段时间"),
         CalculationStage(type = CalculationType.ADD, days = 15L, remark = "第二段时间")
@@ -105,9 +107,19 @@ class DateCalculatorViewModel : ViewModel() {
             disableChinaShiftWorkdays = savedDisableShift
         )
 
+        // 修复：启动 App 时静默同步当前地区放假安排，只同步一次且不弹 Toast
         if (savedGpsAuto) {
             val detected = LocationUtils.detectCurrentRegion(context)
-            updateHolidayRegion(detected, context)
+            updateHolidayRegion(detected, context, showToast = false)
+        } else {
+            autoSyncHolidayData(context, savedRegion, showToast = false)
+        }
+    }
+
+    private fun autoSyncHolidayData(context: Context, region: HolidayRegion, showToast: Boolean = false) {
+        if (showToast) {
+            val regionName = "${region.flagEmoji} ${region.nativeName}"
+            Toast.makeText(context, "已自动同步 $regionName 最新节假日数据", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -146,7 +158,7 @@ class DateCalculatorViewModel : ViewModel() {
         context?.let { PreferenceUtils.saveIsBigWeek(it, isBigWeek) }
     }
 
-    fun updateHolidayRegion(region: HolidayRegion, context: Context? = null) {
+    fun updateHolidayRegion(region: HolidayRegion, context: Context? = null, showToast: Boolean = true) {
         val rule = if (region == HolidayRegion.CHINA || region == HolidayRegion.HONG_KONG || region == HolidayRegion.MACAO) {
             _uiState.value.weekendRule
         } else {
@@ -159,7 +171,10 @@ class DateCalculatorViewModel : ViewModel() {
             weekendRule = rule,
             showResult = false
         )
-        context?.let { PreferenceUtils.saveHolidayRegion(it, region) }
+        context?.let {
+            PreferenceUtils.saveHolidayRegion(it, region)
+            autoSyncHolidayData(it, region, showToast = showToast)
+        }
     }
 
     fun updateGpsAutoDetect(enabled: Boolean, context: Context? = null) {
@@ -168,7 +183,7 @@ class DateCalculatorViewModel : ViewModel() {
             PreferenceUtils.saveIsGpsAuto(it, enabled)
             if (enabled) {
                 val detected = LocationUtils.detectCurrentRegion(it)
-                updateHolidayRegion(detected, it)
+                updateHolidayRegion(detected, it, showToast = true)
             }
         }
     }
@@ -176,6 +191,10 @@ class DateCalculatorViewModel : ViewModel() {
     fun updateDisableChinaShift(disable: Boolean, context: Context? = null) {
         _uiState.value = _uiState.value.copy(disableChinaShiftWorkdays = disable, showResult = false)
         context?.let { PreferenceUtils.saveDisableChinaShift(it, disable) }
+    }
+
+    fun updateMultiStagePlanTitle(title: String) {
+        _uiState.value = _uiState.value.copy(multiStagePlanTitle = title)
     }
 
     fun toggleMultiStageExtension(enabled: Boolean) {
@@ -221,7 +240,6 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun updateStageType(stageId: Long, type: CalculationType) {
-        // 强制所有阶段同步为相同的计算类型 (全部是加 或 全部是减)
         val updatedStages = _uiState.value.stages.map { it.copy(type = type) }
         _uiState.value = _uiState.value.copy(
             calculationType = type,
@@ -364,18 +382,18 @@ class DateCalculatorViewModel : ViewModel() {
         val resultDate = if (state.isMultiStageExtensionEnabled) {
             val (finalDate, segments) = calculateMultiStageTimeline()
             val totalDays = segments.sumOf { it.daysCount }
-            val title = DateCalculatorUtils.formatDate(finalDate)
+            val customTitle = state.multiStagePlanTitle.ifBlank { "多段安排 (${DateCalculatorUtils.formatDate(finalDate)})" }
             val actionTypeLabel = if (state.calculationType == CalculationType.ADD) "多段加" else "多段减"
-            val detail = "$actionTypeLabel (${segments.size} 段时间): 共推算 ${totalDays} ${modeLabel}"
+            val detail = "$actionTypeLabel (${segments.size} 段时间): 共推算 ${totalDays} ${modeLabel} ➔ 达成: ${DateCalculatorUtils.formatDate(finalDate)}"
             val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
 
-            saveToHistory(category = actionTypeLabel, title = title, detail = detail, regionTag = regionTag, resultDate = finalDate, resultDays = totalDays)
+            saveToHistory(category = "多段加减", title = customTitle, detail = detail, regionTag = regionTag, resultDate = finalDate, resultDays = totalDays)
             finalDate
         } else {
             val res = calculateTargetDate()
             val rawDays = state.daysInput.toLongOrNull() ?: 0L
-            val title = DateCalculatorUtils.formatDate(res)
-            val detail = "起始: ${state.baseDate}  ➔  ${state.calculationType.symbol}${rawDays} ${modeLabel}"
+            val title = "推算目标日: ${DateCalculatorUtils.formatDate(res)}"
+            val detail = "${state.baseDate}  ➔  ${state.calculationType.symbol} ${rawDays} ${modeLabel}"
             val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
 
             saveToHistory(category = "日期计算", title = title, detail = detail, regionTag = regionTag, resultDate = res, resultDays = rawDays)
@@ -388,6 +406,13 @@ class DateCalculatorViewModel : ViewModel() {
 
     fun setShowResult(show: Boolean) {
         _uiState.value = _uiState.value.copy(showResult = show)
+    }
+
+    fun updateHistoryItemTitle(itemId: Long, newTitle: String) {
+        val currentHistory = _uiState.value.historyList.map {
+            if (it.id == itemId) it.copy(title = newTitle) else it
+        }
+        _uiState.value = _uiState.value.copy(historyList = currentHistory)
     }
 
     fun saveToHistory(
