@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -483,11 +484,20 @@ fun DateCalculationScreen(
             }
         }
 
-        // 3. 模式 C: 高级多段计算模式（像科学计算器展开）
+        // 3. 模式 C: 高级多段计算模式（平滑物理弹簧展开/折叠，无突兀闪烁）
         AnimatedVisibility(
             visible = uiState.isMultiStageExtensionEnabled,
-            enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
-            exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
+            enter = fadeIn(animationSpec = tween(280)) +
+                    expandVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy),
+                        expandFrom = Alignment.Top
+                    ),
+            exit = fadeOut(animationSpec = tween(200)) +
+                   shrinkVertically(
+                       animationSpec = spring(stiffness = Spring.StiffnessMedium, dampingRatio = Spring.DampingRatioNoBouncy),
+                       shrinkTowards = Alignment.Top
+                   ),
+            modifier = Modifier.clipToBounds()
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Box(
@@ -608,7 +618,7 @@ fun DateCalculationScreen(
 
                                     Spacer(modifier = Modifier.width(8.dp))
 
-                                    // 2. 明显突出的天数数字输入框 (点击聚焦时高亮全选 15，未点击时不带蓝色高光条带)
+                                    // 2. 明显突出的天数数字输入框 (点击聚焦时全选高亮 15，未点击时不带蓝色高光条带)
                                     Box(
                                         modifier = Modifier
                                             .width(100.dp)

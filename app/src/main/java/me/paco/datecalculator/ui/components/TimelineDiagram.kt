@@ -65,6 +65,10 @@ fun TimelineDiagram(
     val grandTotalCalendarDays = allChronologicalBlocks.sumOf { it.daysCount }.coerceAtLeast(1L)
 
     val hasFuturePrediction = finalDate.year >= 2027
+    val isSubtractMode = segments.firstOrNull()?.type == CalculationType.SUBTRACT
+    val milestoneTitle = if (isSubtractMode) "最初开始日期" else "最终完成日期"
+    val milestoneIcon = if (isSubtractMode) "⏳" else "🏁"
+    val milestoneAccentColor = if (isSubtractMode) Color(0xFFEF4444) else Color(0xFF10B981)
 
     Box(
         modifier = modifier
@@ -149,7 +153,7 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 2. 总时间轴：按实际时间先后顺序与真实比例交替显示 (----工作日----  休息日----工作日---休息日)
+            // 2. 总时间轴：按实际时间先后顺序与真实比例交替显示
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -159,7 +163,7 @@ fun TimelineDiagram(
             ) {
                 allChronologicalBlocks.forEach { block ->
                     val blockColor = when (block.type) {
-                        TimelineBlockType.WORKDAY -> NeumorphicAccent
+                        TimelineBlockType.WORKDAY -> if (isSubtractMode) Color(0xFFEF4444) else NeumorphicAccent
                         TimelineBlockType.WEEKEND_REST -> Color(0xFFF59E0B)
                         TimelineBlockType.STATUTORY_HOLIDAY -> Color(0xFFEF4444)
                     }
@@ -345,7 +349,7 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // 终点标记里程碑 (改名为: 最终完成日期)
+            // 终点/起点标记里程碑 (减法显示“最初开始日期”，加法显示“最终完成日期”)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -354,10 +358,10 @@ fun TimelineDiagram(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF10B981)),
+                        .background(milestoneAccentColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("🏁", fontSize = 14.sp)
+                    Text(milestoneIcon, fontSize = 14.sp)
                 }
 
                 Spacer(modifier = Modifier.width(10.dp))
@@ -371,8 +375,8 @@ fun TimelineDiagram(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("最终完成日期", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
-                    Text("$finalDate", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Color(0xFF10B981))
+                    Text(milestoneTitle, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
+                    Text("$finalDate", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = milestoneAccentColor)
                 }
             }
         }
