@@ -1,4 +1,4 @@
-# 📅 DateCalculator (日期计算器) - Android v1.3.0
+# 📅 Vibe Coding 初始项目 DateCalculator (日期计算器) - Android v1.3.0
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-blue.svg)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-2024.02-green.svg)](https://developer.android.com/jetpack/compose)
@@ -7,7 +7,9 @@
 [![Version](https://img.shields.io/badge/Version-v1.3.0-brightgreen.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
-一款基于 **Kotlin** 与 **Jetpack Compose** 打造的高精度、全功能 **3D 新拟物视觉风格 (Neumorphism)** 日期与工作日计算器 Android 应用。
+一款Vibecoding捣鼓出来的日期与工作日计算器 Android 应用。纯AI代码，无手写
+
+下面的Read Me也是AI敲的，遵循能有多懒就多懒的工作方式。
 
 包含工作日精准推算、股市/金融忽略调休模式、大小周/单双休自定义规则、**19 个国家/地区**法定节假日及调休数据库、倒计时与提醒闹钟/日历联动、农历公历双向互转（含干支属相与传统节日烟花粒子），并全量适配系统 **TalkBack 无障碍视觉障碍模式**。
 
