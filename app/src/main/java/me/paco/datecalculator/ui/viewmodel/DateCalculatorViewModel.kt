@@ -2,10 +2,12 @@ package me.paco.datecalculator.ui.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import me.paco.datecalculator.data.CalculationStage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DateMode
 import me.paco.datecalculator.data.HistoryItem
 import me.paco.datecalculator.data.HolidayRegion
+import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LocationUtils
@@ -14,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import kotlin.math.abs
 
 enum class EventRepeatMode(val label: String) {
     NONE("不重复"),
@@ -60,7 +64,7 @@ data class CustomEventItem(
 data class DateCalculatorUiState(
     val baseDate: LocalDate = LocalDate.now(),
     val endDate: LocalDate = LocalDate.now().plusDays(30),
-    val daysInput: String = "",
+    val daysInput: String = "15",
     val calculationType: CalculationType = CalculationType.ADD,
     val dateMode: DateMode = DateMode.WORKDAY,
     val weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
@@ -68,8 +72,13 @@ data class DateCalculatorUiState(
     val enableChineseHolidays: Boolean = true,
     val holidayRegion: HolidayRegion = HolidayRegion.CHINA,
     val isGpsAutoDetectEnabled: Boolean = true,
-    val disableChinaShiftWorkdays: Boolean = false, // 金融/股市模式：关闭中国大陆国务院调休补班 (默认关闭)
+    val disableChinaShiftWorkdays: Boolean = false,
     val disabledPresetHolidays: Set<String> = emptySet(),
+    val isMultiStageExtensionEnabled: Boolean = false,
+    val stages: List<CalculationStage> = listOf(
+        CalculationStage(days = 15L, remark = "第一段时间"),
+        CalculationStage(days = 15L, remark = "第二段时间")
+    ),
     val showResult: Boolean = false,
     val historyList: List<HistoryItem> = emptyList(),
     val customEvents: List<CustomEventItem> = emptyList(),
@@ -164,6 +173,48 @@ class DateCalculatorViewModel : ViewModel() {
         context?.let { PreferenceUtils.saveDisableChinaShift(it, disable) }
     }
 
+    fun toggleMultiStageExtension(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isMultiStageExtensionEnabled = enabled, showResult = false)
+    }
+
+    fun addCalculationStage() {
+        val current = _uiState.value.stages.toMutableList()
+        val nextIdx = current.size + 1
+        val numZh = when (nextIdx) {
+            1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "$nextIdx"
+        }
+        current.add(CalculationStage(days = 15L, remark = "第${numZh}段时间"))
+        _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+    }
+
+    fun removeCalculationStage(stageId: Long) {
+        val current = _uiState.value.stages.filterNot { it.id == stageId }
+        if (current.isNotEmpty()) {
+            _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+        }
+    }
+
+    fun updateStageDays(stageId: Long, days: Long) {
+        val current = _uiState.value.stages.map {
+            if (it.id == stageId) it.copy(days = days) else it
+        }
+        _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+    }
+
+    fun updateStageType(stageId: Long, type: CalculationType) {
+        val current = _uiState.value.stages.map {
+            if (it.id == stageId) it.copy(type = type) else it
+        }
+        _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+    }
+
+    fun updateStageRemark(stageId: Long, remark: String) {
+        val current = _uiState.value.stages.map {
+            if (it.id == stageId) it.copy(remark = remark) else it
+        }
+        _uiState.value = _uiState.value.copy(stages = current)
+    }
+
     fun togglePresetHolidayEnabled(holidayName: String) {
         val currentDisabled = _uiState.value.disabledPresetHolidays.toMutableSet()
         if (currentDisabled.contains(holidayName)) {
@@ -210,33 +261,52 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
     }
 
-    /**
-     * 按等于号按键：生成结构化历史记录并存储
-     */
-    fun performCalculation(): LocalDate {
-        val result = calculateTargetDate()
+    fun calculateMultiStageTimeline(): Pair<LocalDate, List<StageSegmentResult>> {
         val state = _uiState.value
-        val rawDays = state.daysInput.toLongOrNull() ?: 0L
+        var currDate = state.baseDate
+        val results = mutableListOf<StageSegmentResult>()
 
-        val modeLabel = if (state.dateMode == DateMode.WORKDAY) "工作日" else "自然日"
-        val title = DateCalculatorUtils.formatDate(result)
-        val detail = "起始: ${state.baseDate}  ➔  ${state.calculationType.symbol}${rawDays} ${modeLabel}"
-        val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
+        state.stages.forEachIndexed { index, stage ->
+            val startDate = currDate
+            val endDate = when (state.dateMode) {
+                DateMode.WORKDAY -> {
+                    when (stage.type) {
+                        CalculationType.ADD -> DateCalculatorUtils.addWorkdays(
+                            currDate, stage.days, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
+                        )
+                        CalculationType.SUBTRACT -> DateCalculatorUtils.addWorkdays(
+                            currDate, -stage.days, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
+                        )
+                    }
+                }
+                DateMode.NATURAL_DAY -> {
+                    when (stage.type) {
+                        CalculationType.ADD -> DateCalculatorUtils.addNaturalDays(currDate, stage.days)
+                        CalculationType.SUBTRACT -> DateCalculatorUtils.addNaturalDays(currDate, -stage.days)
+                    }
+                }
+            }
 
-        saveToHistory(
-            category = "日期计算",
-            title = title,
-            detail = detail,
-            regionTag = regionTag,
-            resultDate = result,
-            resultDays = rawDays
-        )
-        _uiState.value = _uiState.value.copy(showResult = true)
-        return result
-    }
+            val totalCalDays = abs(ChronoUnit.DAYS.between(startDate, endDate))
+            val restDays = if (state.dateMode == DateMode.WORKDAY) totalCalDays - stage.days else 0L
 
-    fun setShowResult(show: Boolean) {
-        _uiState.value = _uiState.value.copy(showResult = show)
+            results.add(
+                StageSegmentResult(
+                    stageIndex = index,
+                    remark = stage.remark,
+                    type = stage.type,
+                    daysCount = stage.days,
+                    startDate = startDate,
+                    endDate = endDate,
+                    totalCalendarDays = totalCalDays,
+                    restDaysCount = restDays
+                )
+            )
+
+            currDate = endDate
+        }
+
+        return Pair(currDate, results)
     }
 
     fun calculateTargetDate(overrideMode: DateMode? = null): LocalDate {
@@ -263,6 +333,38 @@ class DateCalculatorViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    fun performCalculation(): LocalDate {
+        val state = _uiState.value
+        val modeLabel = if (state.dateMode == DateMode.WORKDAY) "工作日" else "自然日"
+
+        val resultDate = if (state.isMultiStageExtensionEnabled) {
+            val (finalDate, segments) = calculateMultiStageTimeline()
+            val totalDays = segments.sumOf { it.daysCount }
+            val title = DateCalculatorUtils.formatDate(finalDate)
+            val detail = "多段加减 (${segments.size} 段时间): 共推算 ${totalDays} ${modeLabel}"
+            val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
+
+            saveToHistory(category = "多段加减", title = title, detail = detail, regionTag = regionTag, resultDate = finalDate, resultDays = totalDays)
+            finalDate
+        } else {
+            val res = calculateTargetDate()
+            val rawDays = state.daysInput.toLongOrNull() ?: 0L
+            val title = DateCalculatorUtils.formatDate(res)
+            val detail = "起始: ${state.baseDate}  ➔  ${state.calculationType.symbol}${rawDays} ${modeLabel}"
+            val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
+
+            saveToHistory(category = "日期计算", title = title, detail = detail, regionTag = regionTag, resultDate = res, resultDays = rawDays)
+            res
+        }
+
+        _uiState.value = _uiState.value.copy(showResult = true)
+        return resultDate
+    }
+
+    fun setShowResult(show: Boolean) {
+        _uiState.value = _uiState.value.copy(showResult = show)
     }
 
     fun saveToHistory(

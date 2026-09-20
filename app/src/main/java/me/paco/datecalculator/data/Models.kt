@@ -75,6 +75,30 @@ enum class DateMode(val label: String) {
     NATURAL_DAY("自然日")
 }
 
+/**
+ * 链式多阶段计算阶段模型
+ */
+data class CalculationStage(
+    val id: Long = System.nanoTime(),
+    var type: CalculationType = CalculationType.ADD,
+    var days: Long = 15L,
+    var remark: String = "" // 阶段备注说明 (例如: "需求评审", "研发开发")
+)
+
+/**
+ * 阶段节点推算结果模型 (供线性时间轴渲染与 CSV 导出)
+ */
+data class StageSegmentResult(
+    val stageIndex: Int,
+    val remark: String,
+    val type: CalculationType,
+    val daysCount: Long,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val totalCalendarDays: Long,
+    val restDaysCount: Long
+)
+
 data class HistoryItem(
     val id: Long = System.nanoTime(),
     val category: String = "日期计算",

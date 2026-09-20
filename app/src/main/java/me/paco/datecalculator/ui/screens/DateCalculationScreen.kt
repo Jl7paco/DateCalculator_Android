@@ -1,10 +1,16 @@
 package me.paco.datecalculator.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,12 +24,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,25 +51,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
+import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DateMode
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.ui.components.DatePickerModal
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
+import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.NumericCalculatorInput
 import me.paco.datecalculator.ui.components.QuickDateChips
 import me.paco.datecalculator.ui.components.ResultCard
+import me.paco.datecalculator.ui.components.TimelineDiagram
 import me.paco.datecalculator.ui.components.neumorphicExtruded
+import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
@@ -73,8 +92,9 @@ fun DateCalculationScreen(
     var showDatePicker by remember { mutableStateOf(false) }
 
     val resultDate = viewModel.calculateTargetDate()
+    val (multiFinalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
 
-    // 基准日期切换时的 Pop Bounce 缩放与渐变高亮动效
+    // 基准日期切换时的 Pop Bounce 缩放动效
     val cardScale = remember { Animatable(1.0f) }
     val cardAlpha = remember { Animatable(1.0f) }
     var isInitialLoad by remember { mutableStateOf(true) }
@@ -94,7 +114,7 @@ fun DateCalculationScreen(
         }
     }
 
-    // 结果展开后自动平滑下滑至结果区域完全展示 (无需用户手动下滑)
+    // 结果展开后自动平滑下滑至视口完全展示
     LaunchedEffect(uiState.showResult) {
         if (uiState.showResult) {
             delay(180)
@@ -130,7 +150,7 @@ fun DateCalculationScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 紧凑型规则说明条 (占用极小高度，提升一屏空间展现率)
+        // 紧凑型规则说明条
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -172,7 +192,7 @@ fun DateCalculationScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 紧凑精致版起始日期 Hero Card
+        // 起始日期 Hero Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -230,7 +250,6 @@ fun DateCalculationScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 快捷选项 Chips
         QuickDateChips(
             selectedDate = uiState.baseDate,
             onSelectDate = { date ->
@@ -247,14 +266,267 @@ fun DateCalculationScreen(
             stringResource(R.string.label_days_natural)
         }
 
-        NumericCalculatorInput(
-            daysInput = uiState.daysInput,
-            onDaysInputChange = { viewModel.updateDaysInput(it) },
-            selectedType = uiState.calculationType,
-            onTypeSelected = { viewModel.updateCalculationType(it) },
-            onEqualClick = { viewModel.performCalculation() },
-            dayUnitLabel = unitLabel
-        )
+        // 轻量级单阶段输入（默认模式）
+        if (!uiState.isMultiStageExtensionEnabled) {
+            NumericCalculatorInput(
+                daysInput = uiState.daysInput,
+                onDaysInputChange = { viewModel.updateDaysInput(it) },
+                selectedType = uiState.calculationType,
+                onTypeSelected = { viewModel.updateCalculationType(it) },
+                onEqualClick = { viewModel.performCalculation() },
+                dayUnitLabel = unitLabel
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 拓展功能切换开关 (改名为: 多段加减)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(42.dp)
+                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                .background(NeumorphicBg, shape = CircleShape)
+                .clip(CircleShape)
+                .clickable {
+                    viewModel.toggleMultiStageExtension(!uiState.isMultiStageExtensionEnabled)
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Timeline,
+                    contentDescription = null,
+                    tint = NeumorphicAccent,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                val extBtnText = if (uiState.isMultiStageExtensionEnabled) {
+                    "➖ 折叠多段加减"
+                } else {
+                    "➕ 展开多段加减 (拓展功能)"
+                }
+                Text(
+                    text = extBtnText,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicAccent
+                )
+            }
+        }
+
+        // 高级拓展功能区：多段加减工期排期与编辑（动画展开）
+        AnimatedVisibility(
+            visible = uiState.isMultiStageExtensionEnabled,
+            enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
+            exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
+                        .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(20.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "多段加减",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = NeumorphicAccent,
+                            fontSize = 15.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "为各个时间段设置天数与备注，系统将自动依次多段累加/累减推算:",
+                            fontSize = 11.sp,
+                            color = NeumorphicTextPrimary.copy(alpha = 0.7f)
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 各阶段配置项列表 (明显突出的加粗蓝色边框与陷落输入框)
+                        uiState.stages.forEachIndexed { index, stage ->
+                            val numZh = when (index + 1) {
+                                1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${index + 1}"
+                            }
+                            val defaultRemark = "第${numZh}段时间"
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
+                                    .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = RoundedCornerShape(14.dp))
+                                    .background(NeumorphicBg, shape = RoundedCornerShape(14.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val actionLabel = if (stage.type == CalculationType.ADD) "多段加" else "多段减"
+                                    Text("${stage.remark.ifBlank { defaultRemark }} ($actionLabel)", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = NeumorphicAccent)
+
+                                    if (uiState.stages.size > 1) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "删除时间段",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier
+                                                .size(18.dp)
+                                                .clickable { viewModel.removeCalculationStage(stage.id) }
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // 1. 多段加 / 多段减 按键选择
+                                    Box(
+                                        modifier = Modifier
+                                            .width(72.dp)
+                                            .height(42.dp)
+                                            .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = 3.dp)
+                                            .background(
+                                                if (stage.type == CalculationType.ADD) NeumorphicAccent else Color(0xFFEF4444),
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                val nextType = if (stage.type == CalculationType.ADD) CalculationType.SUBTRACT else CalculationType.ADD
+                                                viewModel.updateStageType(stage.id, nextType)
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = if (stage.type == CalculationType.ADD) "+ 加" else "- 减",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color.White
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    // 2. 明显突出的天数数字输入框 (支持清晰打字输入)
+                                    Box(
+                                        modifier = Modifier
+                                            .width(100.dp)
+                                            .height(42.dp)
+                                            .neumorphicInset(shape = RoundedCornerShape(10.dp))
+                                            .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(10.dp))
+                                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                                            .padding(horizontal = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        BasicTextField(
+                                            value = stage.days.toString(),
+                                            onValueChange = {
+                                                val parsed = it.toLongOrNull() ?: 0L
+                                                viewModel.updateStageDays(stage.id, parsed)
+                                            },
+                                            singleLine = true,
+                                            textStyle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary),
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(unitLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // 3. 明显突出的阶段备注输入框
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(40.dp)
+                                        .neumorphicInset(shape = RoundedCornerShape(10.dp))
+                                        .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(10.dp))
+                                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (stage.remark.isEmpty()) {
+                                        Text("输入时间段备注 (例如: 第一段时间 / 需求评审)", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.5f))
+                                    }
+                                    BasicTextField(
+                                        value = stage.remark,
+                                        onValueChange = { viewModel.updateStageRemark(stage.id, it) },
+                                        singleLine = true,
+                                        textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // + 添加下一段时间按钮 与纯粹 "=" 按键
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1.2f)
+                                    .height(44.dp)
+                                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                    .background(NeumorphicBg, shape = CircleShape)
+                                    .clip(CircleShape)
+                                    .clickable { viewModel.addCalculationStage() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("+ 添加下一段时间", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(0.8f)
+                                    .height(44.dp)
+                                    .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+                                    .background(NeumorphicAccent, shape = CircleShape)
+                                    .clip(CircleShape)
+                                    .clickable { viewModel.performCalculation() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("=", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // 轴向线性示意图展示
+                TimelineDiagram(
+                    baseDate = uiState.baseDate,
+                    finalDate = multiFinalDate,
+                    segments = multiSegments,
+                    modeLabel = unitLabel,
+                    regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -264,15 +536,18 @@ fun DateCalculationScreen(
             stringResource(R.string.label_result_title_natural)
         }
 
-        ResultCard(
-            visible = uiState.showResult,
-            title = resultTitle,
-            resultDate = resultDate,
-            weekendRule = uiState.weekendRule,
-            enableHolidays = uiState.enableChineseHolidays,
-            holidayRegion = uiState.holidayRegion,
-            isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek
-        )
+        // 纯轻量单阶段计算结果卡片
+        if (!uiState.isMultiStageExtensionEnabled) {
+            ResultCard(
+                visible = uiState.showResult,
+                title = resultTitle,
+                resultDate = resultDate,
+                weekendRule = uiState.weekendRule,
+                enableHolidays = uiState.enableChineseHolidays,
+                holidayRegion = uiState.holidayRegion,
+                isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
     }
