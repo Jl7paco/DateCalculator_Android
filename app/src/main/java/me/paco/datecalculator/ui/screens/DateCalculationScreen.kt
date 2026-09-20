@@ -13,6 +13,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,13 +52,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -83,6 +87,64 @@ import me.paco.datecalculator.ui.viewmodel.CalcSubMode
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
+
+/**
+ * 未点击时不显示高光条带，点击聚焦时全选高亮整个 15，打字输入后替代高光并变为深色正常文字
+ */
+@Composable
+fun InsertDaysTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "15"
+) {
+    val isDefault = (value.isEmpty() || value == placeholder)
+    val displayValue = if (value.isEmpty()) placeholder else value
+
+    var isFocused by remember { mutableStateOf(false) }
+
+    var textFieldValueState by remember(displayValue, isFocused) {
+        mutableStateOf(
+            TextFieldValue(
+                text = displayValue,
+                selection = if (isFocused && isDefault) TextRange(0, displayValue.length) else TextRange(displayValue.length)
+            )
+        )
+    }
+
+    val isDark = isSystemInDarkTheme()
+    val textColor = if (isDefault) {
+        if (isDark) Color(0xFF808D9E) else Color(0xFF94A3B8)
+    } else {
+        NeumorphicTextPrimary
+    }
+
+    BasicTextField(
+        value = textFieldValueState,
+        onValueChange = { newTFV ->
+            val newText = newTFV.text
+            if (newText.isEmpty() || newText.all { it.isDigit() }) {
+                val nextSelection = if (newText != placeholder && isDefault) {
+                    TextRange(newText.length)
+                } else {
+                    newTFV.selection
+                }
+                textFieldValueState = newTFV.copy(selection = nextSelection)
+                onValueChange(newText)
+            }
+        },
+        singleLine = true,
+        textStyle = TextStyle(
+            fontSize = 15.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = textColor
+        ),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = modifier.onFocusChanged { focusState ->
+            isFocused = focusState.isFocused
+        }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -307,7 +369,7 @@ fun DateCalculationScreen(
                         elevation = if (isMultiStageDisabled) 1.dp else if (uiState.isMultiStageExtensionEnabled) 2.dp else 4.dp
                     )
                     .background(
-                        if (isMultiStageDisabled) NeumorphicBg.copy(alpha = 0.6f)
+                        if (isMultiStageDisabled) NeumorphicBg.copy(alpha = 0.5f)
                         else if (uiState.isMultiStageExtensionEnabled) NeumorphicAccent
                         else NeumorphicBg,
                         shape = CircleShape
@@ -315,7 +377,7 @@ fun DateCalculationScreen(
                     .clip(CircleShape)
                     .clickable {
                         if (isMultiStageDisabled) {
-                            Toast.makeText(context, "区间拆算模式下不支持开启多段排期", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "区间拆算模式下多段模式不可操作", Toast.LENGTH_SHORT).show()
                         } else {
                             viewModel.toggleMultiStageExtension(!uiState.isMultiStageExtensionEnabled)
                         }
@@ -458,7 +520,7 @@ fun DateCalculationScreen(
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (uiState.multiStagePlanTitle.isEmpty()) {
-                                Text("给这段安排起个名字 (如: 毕业旅行 / 装修进度 / 减脂计划)", fontSize = 12.sp, color = NeumorphicTextPrimary.copy(alpha = 0.5f))
+                                Text("给这段安排起个名字 (如: 毕业旅行 / 装修进度 / 减脂计划)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f))
                             }
                             BasicTextField(
                                 value = uiState.multiStagePlanTitle,
@@ -546,7 +608,7 @@ fun DateCalculationScreen(
 
                                     Spacer(modifier = Modifier.width(8.dp))
 
-                                    // 2. 明显突出的天数数字输入框
+                                    // 2. 明显突出的天数数字输入框 (点击聚焦时高亮全选 15，未点击时不带蓝色高光条带)
                                     Box(
                                         modifier = Modifier
                                             .width(100.dp)
@@ -557,15 +619,11 @@ fun DateCalculationScreen(
                                             .padding(horizontal = 10.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        BasicTextField(
-                                            value = stage.days.toString(),
-                                            onValueChange = {
-                                                val parsed = it.toLongOrNull() ?: 0L
-                                                viewModel.updateStageDays(stage.id, parsed)
+                                        InsertDaysTextField(
+                                            value = stage.daysInput,
+                                            onValueChange = { newValue ->
+                                                viewModel.updateStageDaysInput(stage.id, newValue)
                                             },
-                                            singleLine = true,
-                                            textStyle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary),
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                     }
@@ -576,7 +634,7 @@ fun DateCalculationScreen(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // 3. 明显突出的阶段备注输入框
+                                // 3. 阶段备注输入框
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -588,7 +646,7 @@ fun DateCalculationScreen(
                                     contentAlignment = Alignment.CenterStart
                                 ) {
                                     if (stage.remark.isEmpty()) {
-                                        Text("记下这段时间要安排的事 (如: 方案准备 / 旅程第一站)", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.5f))
+                                        Text("记下这段时间要安排的事 (如: 方案准备 / 旅程第一站)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f))
                                     }
                                     BasicTextField(
                                         value = stage.remark,

@@ -76,14 +76,17 @@ enum class DateMode(val label: String) {
 }
 
 /**
- * 链式多阶段计算阶段模型
+ * 链式多阶段计算阶段模型 (daysInput 默认空串以实现灰色 15 占位符，默认天数为 15L)
  */
 data class CalculationStage(
     val id: Long = System.nanoTime(),
     var type: CalculationType = CalculationType.ADD,
-    var days: Long = 15L,
-    var remark: String = "" // 阶段备注说明 (例如: "需求评审", "研发开发")
-)
+    var daysInput: String = "",
+    var remark: String = ""
+) {
+    val days: Long
+        get() = daysInput.toLongOrNull() ?: 15L
+}
 
 /**
  * 阶段节点推算结果模型 (供线性时间轴渲染与 CSV 导出)

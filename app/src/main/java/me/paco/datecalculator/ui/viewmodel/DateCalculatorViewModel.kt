@@ -95,8 +95,8 @@ data class DateCalculatorUiState(
     val isMultiStageExtensionEnabled: Boolean = false,
     val multiStagePlanTitle: String = "",
     val stages: List<CalculationStage> = listOf(
-        CalculationStage(type = CalculationType.ADD, days = 15L, remark = "第一段时间"),
-        CalculationStage(type = CalculationType.ADD, days = 15L, remark = "第二段时间")
+        CalculationStage(type = CalculationType.ADD, daysInput = "", remark = "第一段时间"),
+        CalculationStage(type = CalculationType.ADD, daysInput = "", remark = "第二段时间")
     ),
     val showResult: Boolean = false,
     val historyList: List<HistoryItem> = emptyList(),
@@ -170,7 +170,6 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun updateCalcSubMode(mode: CalcSubMode) {
-        // 切换至区间拆算模式时，自动屏蔽/关闭多段模式
         val disableMulti = if (mode == CalcSubMode.REVERSE_RANGE) false else _uiState.value.isMultiStageExtensionEnabled
         _uiState.value = _uiState.value.copy(
             calcSubMode = mode,
@@ -231,7 +230,11 @@ class DateCalculatorViewModel : ViewModel() {
     fun toggleMultiStageExtension(enabled: Boolean) {
         if (enabled && _uiState.value.stages.isNotEmpty()) {
             val mainType = _uiState.value.calculationType
-            val current = _uiState.value.stages.map { it.copy(type = mainType) }
+            val current = _uiState.value.stages.map {
+                it.copy(
+                    type = mainType
+                )
+            }
             _uiState.value = _uiState.value.copy(
                 stages = current,
                 isMultiStageExtensionEnabled = true,
@@ -252,7 +255,7 @@ class DateCalculatorViewModel : ViewModel() {
             1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "$nextIdx"
         }
         val mainType = _uiState.value.calculationType
-        current.add(CalculationStage(type = mainType, days = 15L, remark = "第${numZh}段时间"))
+        current.add(CalculationStage(type = mainType, daysInput = "", remark = "第${numZh}段时间"))
         _uiState.value = _uiState.value.copy(stages = current, showResult = false)
     }
 
@@ -263,9 +266,10 @@ class DateCalculatorViewModel : ViewModel() {
         }
     }
 
-    fun updateStageDays(stageId: Long, days: Long) {
+    fun updateStageDaysInput(stageId: Long, daysInput: String) {
+        val cleanInput = if (daysInput.isEmpty() || daysInput.all { it.isDigit() }) daysInput else ""
         val current = _uiState.value.stages.map {
-            if (it.id == stageId) it.copy(days = days) else it
+            if (it.id == stageId) it.copy(daysInput = cleanInput) else it
         }
         _uiState.value = _uiState.value.copy(stages = current, showResult = false)
     }
@@ -378,34 +382,35 @@ class DateCalculatorViewModel : ViewModel() {
 
         state.stages.forEachIndexed { index, stage ->
             val startDate = currDate
+            val stageDays = stage.days
             val endDate = when (state.dateMode) {
                 DateMode.WORKDAY -> {
                     when (stage.type) {
                         CalculationType.ADD -> DateCalculatorUtils.addWorkdays(
-                            currDate, stage.days, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
+                            currDate, stageDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
                         )
                         CalculationType.SUBTRACT -> DateCalculatorUtils.addWorkdays(
-                            currDate, -stage.days, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
+                            currDate, -stageDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
                         )
                     }
                 }
                 DateMode.NATURAL_DAY -> {
                     when (stage.type) {
-                        CalculationType.ADD -> DateCalculatorUtils.addNaturalDays(currDate, stage.days)
-                        CalculationType.SUBTRACT -> DateCalculatorUtils.addNaturalDays(currDate, -stage.days)
+                        CalculationType.ADD -> DateCalculatorUtils.addNaturalDays(currDate, stageDays)
+                        CalculationType.SUBTRACT -> DateCalculatorUtils.addNaturalDays(currDate, -stageDays)
                     }
                 }
             }
 
             val totalCalDays = abs(ChronoUnit.DAYS.between(startDate, endDate))
-            val restDays = if (state.dateMode == DateMode.WORKDAY) totalCalDays - stage.days else 0L
+            val restDays = if (state.dateMode == DateMode.WORKDAY) totalCalDays - stageDays else 0L
 
             results.add(
                 StageSegmentResult(
                     stageIndex = index,
                     remark = stage.remark,
                     type = stage.type,
-                    daysCount = stage.days,
+                    daysCount = stageDays,
                     startDate = startDate,
                     endDate = endDate,
                     totalCalendarDays = totalCalDays,
