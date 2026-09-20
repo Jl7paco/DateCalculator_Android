@@ -1,10 +1,11 @@
 package me.paco.datecalculator.data
 
 import me.paco.datecalculator.util.LunarCalendarUtils
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 /**
- * 多地区法定节假日与调休/补假数据库 (支持 19 个国家/地区)
+ * 多地区法定节假日与调休/补假数据库 (支持 19 个国家/地区及智能未来节假日预测)
  */
 object RegionalHolidays {
 
@@ -133,10 +134,66 @@ object RegionalHolidays {
         LocalDate.of(2026, 9, 27), LocalDate.of(2026, 10, 10)
     )
 
+    /**
+     * 智能未来节假日算法推算 (针对 2027 年及以后的远期推算)
+     */
+    private fun isChinaPredictedHoliday(date: LocalDate): Boolean {
+        val month = date.monthValue
+        val day = date.dayOfMonth
+
+        // 1. 元旦 (1/1)
+        if (month == 1 && day == 1) return true
+
+        // 2. 五一劳动节 (5/1 - 5/5)
+        if (month == 5 && day in 1..5) return true
+
+        // 3. 国庆节 (10/1 - 10/7)
+        if (month == 10 && day in 1..7) return true
+
+        // 4. 清明节 (~4/4 或 4/5)
+        if (month == 4 && (day == 4 || day == 5)) return true
+
+        // 5. 农历传统节日 (春节农历除夕至正月初六, 端午, 中秋)
+        val lunar = LunarCalendarUtils.solarToLunar(date)
+        if (!lunar.isLeapMonth) {
+            // 春节 (除夕至正月初六)
+            if (lunar.month == 12 && lunar.day >= 29) return true
+            if (lunar.month == 1 && lunar.day in 1..6) return true
+            // 端午 (五月初五)
+            if (lunar.month == 5 && lunar.day in 5..7 && date.dayOfWeek in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY, DayOfWeek.FRIDAY, DayOfWeek.MONDAY)) return true
+            // 中秋 (八月十五)
+            if (lunar.month == 8 && lunar.day in 15..17 && date.dayOfWeek in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY, DayOfWeek.FRIDAY, DayOfWeek.MONDAY)) return true
+        }
+
+        return false
+    }
+
+    private fun isChinaPredictedShiftWorkday(date: LocalDate): Boolean {
+        val year = date.year
+        if (year <= 2026) return shiftWorkdaysChina.contains(date)
+
+        // 预测 2027+ 国庆节/五一节/春节前后的调休周末
+        val month = date.monthValue
+        val day = date.dayOfMonth
+        val dayOfWeek = date.dayOfWeek
+
+        // 五一调休补班 (4月底或5月上旬周末)
+        if (month == 4 && day in 25..30 && (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY)) return true
+        if (month == 5 && day in 6..12 && (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY)) return true
+
+        // 国庆调休补班 (9月底或10月上旬周末)
+        if (month == 9 && day in 25..30 && (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY)) return true
+        if (month == 10 && day in 8..14 && (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY)) return true
+
+        return false
+    }
+
     private fun isChinaHistoricalHoliday(date: LocalDate): Boolean {
         val year = date.year
         if (year < 1949) return false
-        if (year >= 1999) return holidaysChinaPrecise.contains(date)
+        if (year in 1999..2026) return holidaysChinaPrecise.contains(date)
+        if (year > 2026) return isChinaPredictedHoliday(date)
+
         val month = date.monthValue
         val day = date.dayOfMonth
         if (month == 1 && day == 1) return true
@@ -183,7 +240,6 @@ object RegionalHolidays {
         LocalDate.of(2026, 1, 1), LocalDate.of(2026, 2, 17), LocalDate.of(2026, 3, 19), LocalDate.of(2026, 3, 20), LocalDate.of(2026, 4, 3), LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 14), LocalDate.of(2026, 5, 31), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 5, 27), LocalDate.of(2026, 6, 16), LocalDate.of(2026, 8, 17), LocalDate.of(2026, 8, 25), LocalDate.of(2026, 12, 25)
     )
 
-    // 台湾、香港、澳门、日本、韩国、澳洲、新西兰、美国、泰国数据库
     private val holidaysTaiwan = setOf(
         LocalDate.of(2024, 1, 1), LocalDate.of(2024, 2, 8), LocalDate.of(2024, 2, 9), LocalDate.of(2024, 2, 10), LocalDate.of(2024, 2, 11), LocalDate.of(2024, 2, 12), LocalDate.of(2024, 2, 13), LocalDate.of(2024, 2, 14), LocalDate.of(2024, 2, 28), LocalDate.of(2024, 4, 4), LocalDate.of(2024, 4, 5), LocalDate.of(2024, 6, 10), LocalDate.of(2024, 9, 17), LocalDate.of(2024, 10, 10),
         LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 27), LocalDate.of(2025, 1, 28), LocalDate.of(2025, 1, 29), LocalDate.of(2025, 1, 30), LocalDate.of(2025, 1, 31), LocalDate.of(2025, 2, 28), LocalDate.of(2025, 4, 3), LocalDate.of(2025, 4, 4), LocalDate.of(2025, 5, 30), LocalDate.of(2025, 10, 6), LocalDate.of(2025, 10, 10),
@@ -287,7 +343,7 @@ object RegionalHolidays {
 
     fun isShiftWorkday(date: LocalDate, region: HolidayRegion): Boolean {
         return when (region) {
-            HolidayRegion.CHINA -> shiftWorkdaysChina.contains(date)
+            HolidayRegion.CHINA -> isChinaPredictedShiftWorkday(date)
             HolidayRegion.TAIWAN -> shiftWorkdaysTaiwan.contains(date)
             else -> false
         }

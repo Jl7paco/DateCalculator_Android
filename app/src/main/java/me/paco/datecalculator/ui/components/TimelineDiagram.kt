@@ -64,6 +64,8 @@ fun TimelineDiagram(
     val totalStatutoryDaysCount = allChronologicalBlocks.filter { it.type == TimelineBlockType.STATUTORY_HOLIDAY }.sumOf { it.daysCount }
     val grandTotalCalendarDays = allChronologicalBlocks.sumOf { it.daysCount }.coerceAtLeast(1L)
 
+    val hasFuturePrediction = finalDate.year >= 2027
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -168,6 +170,25 @@ fun TimelineDiagram(
                             .weight(blockWeight)
                             .fillMaxHeight()
                             .background(blockColor)
+                    )
+                }
+            }
+
+            // 远期预测提示横幅
+            if (hasFuturePrediction) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFFEF3C7))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "⚠️ 2027年及以后的节假日及调休安排包含智能算法预测（官方公布后自动校准）",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFB45309)
                     )
                 }
             }
