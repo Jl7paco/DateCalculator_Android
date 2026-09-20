@@ -32,8 +32,8 @@
     <string name="label_result_title_natural">自然日推算结果</string>
     <string name="label_copy_result">复制结果</string>
     <string name="label_save_history">存入历史</string>
-    <string name="label_workday_chip">工作日 (充实的一天)</string>
-    <string name="label_weekend_chip">休息日 (好好放松一下)</string>
+    <string name="label_workday_chip">工作日 (好好摸鱼)</string>
+    <string name="label_weekend_chip">休息日 (好好放松)</string>
     <string name="label_natural_mode_info">自然日模式：按连续日历推算，陪伴你的每一天</string>
 
     <!-- Date Diff & Countdown -->

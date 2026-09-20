@@ -8,6 +8,7 @@ import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DateMode
 import me.paco.datecalculator.data.HistoryItem
 import me.paco.datecalculator.data.HolidayRegion
+import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.util.DateCalculatorUtils
@@ -26,6 +27,20 @@ enum class EventRepeatMode(val label: String) {
     MONTHLY("每月"),
     YEARLY("每年")
 }
+
+enum class CalcSubMode(val label: String) {
+    FORWARD_DAYS("加减天数"),
+    REVERSE_RANGE("区间拆算")
+}
+
+data class RangeBreakdownResult(
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val totalNaturalDays: Long,
+    val workdaysCount: Long,
+    val statutoryHolidaysCount: Long,
+    val regularWeekendDaysCount: Long
+)
 
 data class CustomEventItem(
     val id: Long = System.nanoTime(),
@@ -65,9 +80,11 @@ data class CustomEventItem(
 data class DateCalculatorUiState(
     val baseDate: LocalDate = LocalDate.now(),
     val endDate: LocalDate = LocalDate.now().plusDays(30),
+    val reverseEndDate: LocalDate = LocalDate.now().plusDays(30),
     val daysInput: String = "15",
     val calculationType: CalculationType = CalculationType.ADD,
     val dateMode: DateMode = DateMode.WORKDAY,
+    val calcSubMode: CalcSubMode = CalcSubMode.FORWARD_DAYS,
     val weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
     val isCurrentWeekBigWeek: Boolean = true,
     val enableChineseHolidays: Boolean = true,
@@ -107,7 +124,7 @@ class DateCalculatorViewModel : ViewModel() {
             disableChinaShiftWorkdays = savedDisableShift
         )
 
-        // 修复：启动 App 时静默同步当前地区放假安排，只同步一次且不弹 Toast
+        // 启动 App 时静默同步当前地区放假安排，只同步一次且不弹 Toast
         if (savedGpsAuto) {
             val detected = LocationUtils.detectCurrentRegion(context)
             updateHolidayRegion(detected, context, showToast = false)
@@ -131,6 +148,10 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(endDate = date, showResult = false)
     }
 
+    fun updateReverseEndDate(date: LocalDate) {
+        _uiState.value = _uiState.value.copy(reverseEndDate = date, showResult = false)
+    }
+
     fun updateDaysInput(input: String) {
         _uiState.value = _uiState.value.copy(daysInput = input, showResult = false)
     }
@@ -146,6 +167,16 @@ class DateCalculatorViewModel : ViewModel() {
 
     fun updateDateMode(mode: DateMode) {
         _uiState.value = _uiState.value.copy(dateMode = mode, showResult = false)
+    }
+
+    fun updateCalcSubMode(mode: CalcSubMode) {
+        // 切换至区间拆算模式时，自动屏蔽/关闭多段模式
+        val disableMulti = if (mode == CalcSubMode.REVERSE_RANGE) false else _uiState.value.isMultiStageExtensionEnabled
+        _uiState.value = _uiState.value.copy(
+            calcSubMode = mode,
+            isMultiStageExtensionEnabled = disableMulti,
+            showResult = false
+        )
     }
 
     fun updateWeekendRule(rule: WeekendRule, context: Context? = null) {
@@ -301,6 +332,45 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
     }
 
+    fun calculateRangeBreakdown(): RangeBreakdownResult {
+        val state = _uiState.value
+        val start = if (state.baseDate.isBefore(state.reverseEndDate)) state.baseDate else state.reverseEndDate
+        val end = if (state.baseDate.isBefore(state.reverseEndDate)) state.reverseEndDate else state.baseDate
+
+        val totalNatDays = abs(ChronoUnit.DAYS.between(start, end))
+        var workdays = 0L
+        var statutory = 0L
+        var regularWeekends = 0L
+
+        var curr = start.plusDays(1)
+        while (!curr.isAfter(end)) {
+            val isShift = state.enableChineseHolidays && !state.disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, state.holidayRegion)
+            val isStat = state.enableChineseHolidays && RegionalHolidays.isStatutoryHoliday(curr, state.holidayRegion)
+            val isWeekend = state.weekendRule.isWeekend(curr, state.isCurrentWeekBigWeek)
+
+            if (isShift) {
+                workdays++
+            } else if (isStat) {
+                statutory++
+            } else if (isWeekend) {
+                regularWeekends++
+            } else {
+                workdays++
+            }
+
+            curr = curr.plusDays(1)
+        }
+
+        return RangeBreakdownResult(
+            startDate = start,
+            endDate = end,
+            totalNaturalDays = totalNatDays,
+            workdaysCount = workdays,
+            statutoryHolidaysCount = statutory,
+            regularWeekendDaysCount = regularWeekends
+        )
+    }
+
     fun calculateMultiStageTimeline(): Pair<LocalDate, List<StageSegmentResult>> {
         val state = _uiState.value
         var currDate = state.baseDate
@@ -384,11 +454,19 @@ class DateCalculatorViewModel : ViewModel() {
             val totalDays = segments.sumOf { it.daysCount }
             val customTitle = state.multiStagePlanTitle.ifBlank { "多段安排 (${DateCalculatorUtils.formatDate(finalDate)})" }
             val actionTypeLabel = if (state.calculationType == CalculationType.ADD) "多段加" else "多段减"
-            val detail = "$actionTypeLabel (${segments.size} 段时间): 共推算 ${totalDays} ${modeLabel} ➔ 达成: ${DateCalculatorUtils.formatDate(finalDate)}"
+            val detail = "$actionTypeLabel (${segments.size} 段时间): 共推算 ${totalDays} ${modeLabel} ➔ 完成: ${DateCalculatorUtils.formatDate(finalDate)}"
             val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
 
             saveToHistory(category = "多段加减", title = customTitle, detail = detail, regionTag = regionTag, resultDate = finalDate, resultDays = totalDays)
             finalDate
+        } else if (state.calcSubMode == CalcSubMode.REVERSE_RANGE) {
+            val bd = calculateRangeBreakdown()
+            val title = "区间拆算: ${bd.totalNaturalDays} 自然日"
+            val detail = "${bd.startDate} ➔ ${bd.endDate} | 工作日: ${bd.workdaysCount}天, 周末: ${bd.regularWeekendDaysCount}天, 节假日: ${bd.statutoryHolidaysCount}天"
+            val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
+
+            saveToHistory(category = "区间拆算", title = title, detail = detail, regionTag = regionTag, resultDate = bd.endDate, resultDays = bd.totalNaturalDays)
+            bd.endDate
         } else {
             val res = calculateTargetDate()
             val rawDays = state.daysInput.toLongOrNull() ?: 0L

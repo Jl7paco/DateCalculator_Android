@@ -59,69 +59,12 @@ fun NumericCalculatorInput(
 
     Column(modifier = modifier.fillMaxWidth()) {
 
-        // 新拟物风格 + / - 切换按钮 (无论加号还是减号，图框均 100% 完整清晰显示)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            CalculationType.values().forEach { type ->
-                val isSelected = selectedType == type
-
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val scale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.93f else 1.0f,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "OpPressScale"
-                )
-
-                val segModifier = if (isSelected) {
-                    // 选中态：亮蓝色高亮 3D 凸起按键
-                    Modifier
-                        .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
-                        .background(NeumorphicAccent, shape = CircleShape)
-                } else {
-                    // 未选中态：清晰 3D 悬浮凸起按键
-                    Modifier
-                        .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .then(segModifier)
-                        .clip(CircleShape)
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null
-                        ) { onTypeSelected(type) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = type.symbol,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (isSelected) Color.White else NeumorphicTextPrimary
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // 显眼强化版天数输入框 (增加微光蓝色内边框与 3D 沉降凹槽，无数字遮挡)
+        // 同一行整合: [ 天数输入框 ] + [ 运算符切换 (+/-) 等于号左边 ] + [ 等于号按键 (=) ]
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // 1. 天数输入框 (58dp 高度)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -142,7 +85,7 @@ fun NumericCalculatorInput(
                         Text(
                             text = "输入${dayUnitLabel}天数 (如: 30)",
                             color = NeumorphicTextPrimary.copy(alpha = 0.5f),
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     },
@@ -167,12 +110,39 @@ fun NumericCalculatorInput(
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // 新拟物蓝色凸起等于号按键 (=)
+            // 2. 运算符 (+/-) 切换按钮 (等于号左边)
             Box(
                 modifier = Modifier
-                    .width(64.dp)
+                    .width(60.dp)
+                    .height(58.dp)
+                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
+                    .background(
+                        if (selectedType == CalculationType.ADD) NeumorphicAccent else Color(0xFFEF4444),
+                        shape = RoundedCornerShape(18.dp)
+                    )
+                    .clip(RoundedCornerShape(18.dp))
+                    .clickable {
+                        val nextType = if (selectedType == CalculationType.ADD) CalculationType.SUBTRACT else CalculationType.ADD
+                        onTypeSelected(nextType)
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = selectedType.symbol,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // 3. 新拟物蓝色凸起等于号按键 (=)
+            Box(
+                modifier = Modifier
+                    .width(60.dp)
                     .height(58.dp)
                     .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
                     .background(NeumorphicAccent, shape = RoundedCornerShape(18.dp))
@@ -198,7 +168,7 @@ fun NumericCalculatorInput(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 3 个新拟物选天数胶囊选项 (无论选中与否，图框 100% 完整显示)
+        // 3 个新拟物选天数胶囊选项
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -217,12 +187,10 @@ fun NumericCalculatorInput(
                 )
 
                 val chipModifier = if (isSelected) {
-                    // 选中态：亮蓝色高亮胶囊
                     Modifier
                         .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
                         .background(NeumorphicAccent, shape = CircleShape)
                 } else {
-                    // 未选中态：3D 悬浮凸起胶囊按键
                     Modifier
                         .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
                         .background(NeumorphicBg, shape = CircleShape)
