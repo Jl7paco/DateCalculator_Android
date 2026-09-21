@@ -349,14 +349,29 @@ fun LunarConverterScreen(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
 
-                            // 传统节日提示 Chip：点击触发烟花动效
-                            if (lunarResult.festival.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                SuggestionChip(
-                                    onClick = { viewModel.triggerFireworks() },
-                                    shape = CircleShape,
-                                    label = { Text(stringResource(R.string.label_traditional_festival, lunarResult.festival), fontWeight = FontWeight.Bold) }
-                                )
+                            // 二十四节气与节日芯片 (跟随节气名称动态匹配四季主题 Icon，如 🌸 春分 / 🏖️ 夏至 / 🌾 秋分 / 🥟 冬至)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (lunarResult.solarTerm.isNotEmpty()) {
+                                    val termIcon = LunarCalendarUtils.getSolarTermIcon(lunarResult.solarTerm)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    SuggestionChip(
+                                        onClick = {},
+                                        shape = CircleShape,
+                                        label = { Text("$termIcon ${lunarResult.solarTerm}", fontWeight = FontWeight.Bold) }
+                                    )
+                                }
+
+                                if (lunarResult.festival.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    SuggestionChip(
+                                        onClick = { viewModel.triggerFireworks() },
+                                        shape = CircleShape,
+                                        label = { Text(stringResource(R.string.label_traditional_festival, lunarResult.festival), fontWeight = FontWeight.Bold) }
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -392,7 +407,7 @@ fun LunarConverterScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    // 1. 宜 (Auspicious) 行：积极鲜艳
+                                    // 1. 宜 (Auspicious) 行
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically
@@ -435,7 +450,7 @@ fun LunarConverterScreen(
 
                                     HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
 
-                                    // 2. 忌 (Inauspicious) 行：灰暗收敛
+                                    // 2. 忌 (Inauspicious) 行
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically
@@ -867,13 +882,29 @@ fun LunarConverterScreen(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
                                 )
 
-                                if (festivalStr.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    SuggestionChip(
-                                        onClick = { viewModel.triggerFireworks() },
-                                        shape = CircleShape,
-                                        label = { Text(stringResource(R.string.label_traditional_festival, festivalStr), fontWeight = FontWeight.Bold) }
-                                    )
+                                // 二十四节气与节日芯片 (动态四季 Icon)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (convertLunar.solarTerm.isNotEmpty()) {
+                                        val termIcon = LunarCalendarUtils.getSolarTermIcon(convertLunar.solarTerm)
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        SuggestionChip(
+                                            onClick = {},
+                                            shape = CircleShape,
+                                            label = { Text("$termIcon ${convertLunar.solarTerm}", fontWeight = FontWeight.Bold) }
+                                        )
+                                    }
+
+                                    if (festivalStr.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        SuggestionChip(
+                                            onClick = { viewModel.triggerFireworks() },
+                                            shape = CircleShape,
+                                            label = { Text(stringResource(R.string.label_traditional_festival, festivalStr), fontWeight = FontWeight.Bold) }
+                                        )
+                                    }
                                 }
 
                                 Spacer(modifier = Modifier.height(8.dp))

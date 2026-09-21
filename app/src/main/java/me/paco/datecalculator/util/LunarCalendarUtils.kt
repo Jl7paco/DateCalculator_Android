@@ -13,12 +13,14 @@ data class LunarDateResult(
     val lunarDayName: String,
     val ganZhiYear: String,
     val zodiac: String,
-    val festival: String
+    val festival: String,
+    val solarTerm: String = ""
 ) {
     fun getFullDescription(): String {
         val leapStr = if (isLeapMonth) "闰" else ""
         val festStr = if (festival.isNotEmpty()) " [$festival]" else ""
-        return "农历 ${ganZhiYear}年 (${zodiac}) $leapStr$lunarMonthName$lunarDayName$festStr"
+        val termStr = if (solarTerm.isNotEmpty()) " [$solarTerm]" else ""
+        return "农历 ${ganZhiYear}年 (${zodiac}) $leapStr$lunarMonthName$lunarDayName$festStr$termStr"
     }
 }
 
@@ -92,6 +94,63 @@ object LunarCalendarUtils {
         return if ((LUNAR_INFO[year - 1900] and (0x10000 shr month)) != 0) 30 else 29
     }
 
+    /**
+     * 根据二十四节气名称匹配四季主题 Icon
+     */
+    fun getSolarTermIcon(termName: String): String {
+        return when (termName) {
+            "立春" -> "🌱"
+            "雨水" -> "🌧️"
+            "惊蛰" -> "⚡"
+            "春分" -> "🌸"
+            "清明" -> "🌿"
+            "谷雨" -> "🌾"
+            "立夏" -> "☀️"
+            "小满" -> "🌱"
+            "芒种" -> "🌾"
+            "夏至" -> "🏖️"
+            "小暑" -> "🌤️"
+            "大暑" -> "🔥"
+            "立秋" -> "🍂"
+            "处暑" -> "🍁"
+            "白露" -> "🌁"
+            "秋分" -> "🌾"
+            "寒露" -> "❄️"
+            "霜降" -> "🌩️"
+            "立冬" -> "🧊"
+            "小雪" -> "🌨️"
+            "大雪" -> "❄️"
+            "冬至" -> "🥟"
+            "小寒" -> "🥶"
+            "大寒" -> "⛄"
+            else -> "🌿"
+        }
+    }
+
+    /**
+     * 计算二十四节气
+     */
+    fun getSolarTerm(date: LocalDate): String {
+        val month = date.monthValue
+        val day = date.dayOfMonth
+
+        return when (month) {
+            1 -> if (day == 5 || day == 6) "小寒" else if (day == 20 || day == 21) "大寒" else ""
+            2 -> if (day == 3 || day == 4 || day == 5) "立春" else if (day == 18 || day == 19 || day == 20) "雨水" else ""
+            3 -> if (day == 5 || day == 6) "惊蛰" else if (day == 20 || day == 21) "春分" else ""
+            4 -> if (day == 4 || day == 5) "清明" else if (day == 19 || day == 20 || day == 21) "谷雨" else ""
+            5 -> if (day == 5 || day == 6) "立夏" else if (day == 20 || day == 21 || day == 22) "小满" else ""
+            6 -> if (day == 5 || day == 6 || day == 7) "芒种" else if (day == 21 || day == 22) "夏至" else ""
+            7 -> if (day == 6 || day == 7) "小暑" else if (day == 22 || day == 23) "大暑" else ""
+            8 -> if (day == 7 || day == 8) "立秋" else if (day == 22 || day == 23) "处暑" else ""
+            9 -> if (day == 7 || day == 8) "白露" else if (day == 22 || day == 23) "秋分" else ""
+            10 -> if (day == 8 || day == 9) "寒露" else if (day == 23 || day == 24) "霜降" else ""
+            11 -> if (day == 7 || day == 8) "立冬" else if (day == 22 || day == 23) "小雪" else ""
+            12 -> if (day == 7 || day == 8) "大雪" else if (day == 21 || day == 22) "冬至" else ""
+            else -> ""
+        }
+    }
+
     fun solarToLunar(date: LocalDate): LunarDateResult {
         var offset = ChronoUnit.DAYS.between(BASE_DATE, date).toInt()
         var year = 1900
@@ -134,6 +193,7 @@ object LunarCalendarUtils {
         val ganZhiYear = getGanZhiYear(year)
         val zodiac = ZODIACS[(year - 4) % 12]
         val festival = getLunarFestival(month, day, isLeap)
+        val term = getSolarTerm(date)
 
         return LunarDateResult(
             year = year,
@@ -144,7 +204,8 @@ object LunarCalendarUtils {
             lunarDayName = getLunarDayName(day),
             ganZhiYear = ganZhiYear,
             zodiac = zodiac,
-            festival = festival
+            festival = festival,
+            solarTerm = term
         )
     }
 
