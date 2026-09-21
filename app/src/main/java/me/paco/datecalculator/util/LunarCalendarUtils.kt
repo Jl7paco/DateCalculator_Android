@@ -2,55 +2,35 @@ package me.paco.datecalculator.util
 
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import kotlin.math.abs
 
-/**
- * 农历 (阴历) 数据模型
- */
-data class LunarDate(
+data class LunarDateResult(
     val year: Int,
     val month: Int,
     val day: Int,
-    val isLeapMonth: Boolean = false,
-    val ganZhiYear: String = "",
-    val zodiac: String = "",
-    val lunarMonthName: String = "",
-    val lunarDayName: String = "",
-    val solarTerm: String = "",
-    val festival: String = ""
+    val isLeapMonth: Boolean,
+    val lunarMonthName: String,
+    val lunarDayName: String,
+    val ganZhiYear: String,
+    val zodiac: String,
+    val festival: String
 ) {
     fun getFullDescription(): String {
         val leapStr = if (isLeapMonth) "闰" else ""
-        val festivalStr = if (festival.isNotEmpty()) " [$festival]" else ""
-        val solarTermStr = if (solarTerm.isNotEmpty()) " [$solarTerm]" else ""
-        return "农历 $ganZhiYear${zodiac}年 $leapStr$lunarMonthName$lunarDayName$festivalStr$solarTermStr"
+        val festStr = if (festival.isNotEmpty()) " [$festival]" else ""
+        return "农历 ${ganZhiYear}年 (${zodiac}) $leapStr$lunarMonthName$lunarDayName$festStr"
     }
 }
 
 /**
- * 农历 / 阳历 (公历) 核心算法与互转工具类 (支持 1900 年 - 2100 年)
+ * 老黄历宜忌数据模型
  */
+data class AlmanacYiJi(
+    val yiList: List<String>,
+    val jiList: List<String>
+)
+
 object LunarCalendarUtils {
-
-    // 天干
-    private val TIAN_GAN = arrayOf("甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸")
-
-    // 地支
-    private val DI_ZHI = arrayOf("子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥")
-
-    // 生肖
-    private val ZODIACS = arrayOf("鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪")
-
-    // 农历月份名称
-    private val LUNAR_MONTH_NAMES = arrayOf(
-        "正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊"
-    )
-
-    // 农历日期名称
-    private val LUNAR_DAY_NAMES = arrayOf(
-        "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
-        "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
-        "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"
-    )
 
     private val LUNAR_INFO = intArrayOf(
         0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
@@ -60,110 +40,110 @@ object LunarCalendarUtils {
         0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,
         0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5d0, 0x14573, 0x052d0, 0x0a9a8, 0x0e950, 0x06aa0,
         0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,
-        0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b6a0, 0x195a6,
-        0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570,
-        0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x055c0, 0x0ab60, 0x096d5, 0x092e0,
-        0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5,
-        0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930,
-        0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530,
-        0x05aa0, 0x076a3, 0x096d0, 0x04afb, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,
+        0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45, 0x0b5a0, 0x056d0,
+        0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0, 0x14b63, 0x09370,
+        0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0, 0x0a2e0, 0x0d2e3,
+        0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4, 0x052d0, 0x0a9b8,
+        0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0, 0x0b273, 0x06930,
+        0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160, 0x0e968, 0x0d520,
+        0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252, 0x0d520, 0x0dd45,
         0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,
         0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,
         0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,
         0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,
-        0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d260,
-        0x0e960, 0x0d520, 0x0faa5, 0x05aa0, 0x076a0, 0x096d0, 0x04bd7, 0x04ad0, 0x0a4d0, 0x1d0b6,
-        0x0d250, 0x0d520, 0x0dd45, 0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50
+        0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160,
+        0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252
+    )
+
+    private val TIAN_GAN = arrayOf("甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸")
+    private val DI_ZHI = arrayOf("子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥")
+    private val ZODIACS = arrayOf("鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪")
+
+    private val LUNAR_MONTH_NAMES = arrayOf("正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊")
+    private val LUNAR_DAY_NAMES = arrayOf(
+        "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
+        "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
+        "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"
     )
 
     private val BASE_DATE = LocalDate.of(1900, 1, 31)
 
+    private fun getLunarYearDays(year: Int): Int {
+        var sum = 348
+        var i = 0x8000
+        while (i > 0x8) {
+            if ((LUNAR_INFO[year - 1900] and i) != 0) sum++
+            i = i shr 1
+        }
+        return sum + getLeapMonthDays(year)
+    }
+
     fun getLeapMonth(year: Int): Int {
-        val index = year - 1900
-        if (index < 0 || index >= LUNAR_INFO.size) return 0
-        return LUNAR_INFO[index] and 0xf
+        return LUNAR_INFO[year - 1900] and 0xf
     }
 
     private fun getLeapMonthDays(year: Int): Int {
-        val leapMonth = getLeapMonth(year)
-        if (leapMonth == 0) return 0
-        val index = year - 1900
-        return if ((LUNAR_INFO[index] and 0x10000) != 0) 30 else 29
+        return if (getLeapMonth(year) != 0) {
+            if ((LUNAR_INFO[year - 1900] and 0x10000) != 0) 30 else 29
+        } else 0
     }
 
     private fun getLunarMonthDays(year: Int, month: Int): Int {
-        val index = year - 1900
-        if (index < 0 || index >= LUNAR_INFO.size) return 29
-        return if ((LUNAR_INFO[index] and (0x8000 shr (month - 1))) != 0) 30 else 29
+        return if ((LUNAR_INFO[year - 1900] and (0x10000 shr month)) != 0) 30 else 29
     }
 
-    private fun getLunarYearDays(year: Int): Int {
-        var sum = 0
-        for (m in 1..12) {
-            sum += getLunarMonthDays(year, m)
-        }
-        sum += getLeapMonthDays(year)
-        return sum
-    }
-
-    fun solarToLunar(solarDate: LocalDate): LunarDate {
-        var offset = ChronoUnit.DAYS.between(BASE_DATE, solarDate).toInt()
-
-        if (offset < 0) {
-            return LunarDate(1900, 1, 1, false, "庚子", "鼠", "正", "初一")
-        }
-
+    fun solarToLunar(date: LocalDate): LunarDateResult {
+        var offset = ChronoUnit.DAYS.between(BASE_DATE, date).toInt()
         var year = 1900
-        var daysInYear: Int
+        var month = 1
+        var day = 1
+        var isLeap = false
 
-        while (year <= 2100) {
-            daysInYear = getLunarYearDays(year)
+        while (year < 2100 && offset > 0) {
+            val daysInYear = getLunarYearDays(year)
             if (offset < daysInYear) break
             offset -= daysInYear
             year++
         }
 
         val leapMonth = getLeapMonth(year)
-        var isLeap = false
-        var month = 1
-        var daysInMonth: Int
+        var isLeapCurrent = false
 
-        while (month <= 12) {
-            if (isLeap) {
-                daysInMonth = getLeapMonthDays(year)
-            } else {
-                daysInMonth = getLunarMonthDays(year, month)
+        for (m in 1..12) {
+            if (leapMonth > 0 && m == (leapMonth + 1) && !isLeapCurrent) {
+                isLeapCurrent = true
+                val daysInLeap = getLeapMonthDays(year)
+                if (offset < daysInLeap) {
+                    month = m - 1
+                    isLeap = true
+                    break
+                }
+                offset -= daysInLeap
             }
 
-            if (offset < daysInMonth) break
+            val daysInMonth = getLunarMonthDays(year, m)
+            if (offset < daysInMonth) {
+                month = m
+                break
+            }
             offset -= daysInMonth
-
-            if (leapMonth > 0 && month == leapMonth && !isLeap) {
-                isLeap = true
-            } else {
-                if (isLeap) isLeap = false
-                month++
-            }
         }
 
-        val day = offset + 1
+        day = offset + 1
 
         val ganZhiYear = getGanZhiYear(year)
         val zodiac = ZODIACS[(year - 4) % 12]
-        val lunarMonthName = LUNAR_MONTH_NAMES[(month - 1).coerceIn(0, 11)] + "月"
-        val lunarDayName = LUNAR_DAY_NAMES[(day - 1).coerceIn(0, 29)]
-
         val festival = getLunarFestival(month, day, isLeap)
 
-        return LunarDate(
+        return LunarDateResult(
             year = year,
             month = month,
             day = day,
             isLeapMonth = isLeap,
+            lunarMonthName = getLunarMonthName(month),
+            lunarDayName = getLunarDayName(day),
             ganZhiYear = ganZhiYear,
             zodiac = zodiac,
-            lunarMonthName = lunarMonthName,
-            lunarDayName = lunarDayName,
             festival = festival
         )
     }
@@ -172,7 +152,6 @@ object LunarCalendarUtils {
         if (lunarYear < 1900 || lunarYear > 2100) return null
 
         var offset = 0
-
         for (y in 1900 until lunarYear) {
             offset += getLunarYearDays(y)
         }
@@ -238,5 +217,48 @@ object LunarCalendarUtils {
 
     fun getLunarDayName(day: Int): String {
         return LUNAR_DAY_NAMES.getOrNull(day - 1) ?: "${day}日"
+    }
+
+    /**
+     * 计算特定日期的传统老黄历“宜”与“忌”项 (利用 toEpochDay 与强质数 Hash 混合算法，确保天天天变不重样)
+     */
+    fun getAlmanacYiJi(date: LocalDate): AlmanacYiJi {
+        val epochDay = date.toEpochDay()
+        val dayHash = abs((epochDay * 1664525L + 1013904223L).toInt())
+
+        val allYi = listOf(
+            "祭祀", "祈福", "求嗣", "开光", "出行", "解除", "伐木", "拆卸",
+            "修造", "动土", "起基", "安床", "入宅", "开市", "交易", "立券",
+            "栽种", "纳畜", "移徙", "理发", "扫舍", "嫁娶", "订盟", "纳采",
+            "挂匾", "祭拜", "会亲友", "针灸", "进人口", "安香", "出火"
+        )
+
+        val allJi = listOf(
+            "安葬", "破土", "作灶", "掘井", "词讼", "探病", "伐木", "架马",
+            "安门", "行丧", "乘船", "置产", "针灸", "合脊", "归岫", "开仓",
+            "封顶", "分居", "补垣", "塞穴", "筑堤", "平治", "开渠", "架桥"
+        )
+
+        val yiCount = 4 + (dayHash % 3)
+        val jiCount = 3 + ((dayHash / 7) % 2)
+
+        val selectedYi = mutableListOf<String>()
+        for (i in 0 until yiCount) {
+            val idx = abs((dayHash * 17 + i * 31 + epochDay.toInt() * 7) % allYi.size)
+            val item = allYi[idx]
+            if (!selectedYi.contains(item)) selectedYi.add(item)
+        }
+
+        val selectedJi = mutableListOf<String>()
+        for (i in 0 until jiCount) {
+            val idx = abs((dayHash * 23 + i * 19 + epochDay.toInt() * 11) % allJi.size)
+            val item = allJi[idx]
+            if (!selectedJi.contains(item) && !selectedYi.contains(item)) selectedJi.add(item)
+        }
+
+        return AlmanacYiJi(
+            yiList = selectedYi,
+            jiList = selectedJi
+        )
     }
 }

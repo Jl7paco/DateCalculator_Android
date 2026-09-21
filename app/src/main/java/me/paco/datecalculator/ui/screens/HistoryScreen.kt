@@ -21,15 +21,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -51,16 +55,20 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import me.paco.datecalculator.R
+import me.paco.datecalculator.data.DateMode
 import me.paco.datecalculator.data.HistoryItem
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
+import me.paco.datecalculator.ui.components.TimelineDiagram
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
+import me.paco.datecalculator.util.CsvExporter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -74,6 +82,7 @@ fun HistoryScreen(
     val context = LocalContext.current
     var showClearDialog by remember { mutableStateOf(false) }
     var itemToEditTitle by remember { mutableStateOf<HistoryItem?>(null) }
+    var itemToViewDetail by remember { mutableStateOf<HistoryItem?>(null) }
     var editedTitleText by remember { mutableStateOf("") }
 
     val historyClearedToast = stringResource(R.string.toast_history_cleared)
@@ -155,7 +164,122 @@ fun HistoryScreen(
         )
     }
 
-    // 新拟物 3D 风格修改历史记录名称弹窗
+    // 多段排期历史记录详情弹窗 (宽度扩展至 92% 全屏宽展现，极为舒展)
+    itemToViewDetail?.let { item ->
+        AlertDialog(
+            onDismissRequest = { itemToViewDetail = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .padding(vertical = 16.dp),
+            shape = RoundedCornerShape(24.dp),
+            containerColor = NeumorphicBg,
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Timeline,
+                            contentDescription = null,
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(item.title, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, fontSize = 16.sp)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .height(32.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable {
+                                val (multiFinalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
+                                val unitLabel = if (uiState.dateMode == DateMode.WORKDAY) "工作日" else "自然日"
+                                val regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+                                CsvExporter.exportStagesToCsv(
+                                    context = context,
+                                    baseDate = uiState.baseDate,
+                                    finalDate = multiFinalDate,
+                                    segments = multiSegments,
+                                    modeLabel = unitLabel,
+                                    regionLabel = regionLabel
+                                )
+                            }
+                            .padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("导出 CSV", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
+                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Column {
+                            Text("排期明细概览", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(item.detail, fontSize = 13.sp, color = NeumorphicTextPrimary, lineHeight = 18.sp)
+                        }
+                    }
+
+                    val (multiFinalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
+                    val unitLabel = if (uiState.dateMode == DateMode.WORKDAY) "工作日" else "自然日"
+
+                    // 直接渲染图表，不加第二层带边框卡片
+                    TimelineDiagram(
+                        baseDate = uiState.baseDate,
+                        finalDate = multiFinalDate,
+                        segments = multiSegments,
+                        modeLabel = unitLabel,
+                        regionLabel = item.regionTag,
+                        showOuterCard = false,
+                        showExportButton = false
+                    )
+                }
+            },
+            confirmButton = {
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+                        .background(NeumorphicAccent, shape = CircleShape)
+                        .clip(CircleShape)
+                        .clickable { itemToViewDetail = null }
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("关闭详情", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
+        )
+    }
+
+    // 修改历史记录名称弹窗
     itemToEditTitle?.let { item ->
         AlertDialog(
             onDismissRequest = { itemToEditTitle = null },
@@ -308,15 +432,19 @@ fun HistoryScreen(
                     val timeStr = sdf.format(Date(item.timestamp))
                     val cardShape = RoundedCornerShape(18.dp)
 
-                    // 卡片预留 4.dp 外边距，确保新拟物软阴影 100% 弥散散开不被 Edge 边缘裁剪
+                    // 改回原版优雅的标准新拟物凸起卡片 (不加额外描边线)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp)
                             .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
                             .background(NeumorphicBg, shape = cardShape)
-                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = cardShape)
                             .clip(cardShape)
+                            .clickable {
+                                if (item.category == "多段加减") {
+                                    itemToViewDetail = item
+                                }
+                            }
                             .padding(16.dp)
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
@@ -332,19 +460,31 @@ fun HistoryScreen(
                                     else -> Color(0xFF10B981)
                                 }
 
-                                Box(
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .background(categoryBg)
-                                        .padding(horizontal = 10.dp, vertical = 4.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = item.category,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp
-                                    )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(categoryBg)
+                                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = item.category,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+
+                                    if (item.category == "多段加减") {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "点击查看详情",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = NeumorphicTextPrimary.copy(alpha = 0.5f)
+                                        )
+                                    }
                                 }
 
                                 // 右侧编辑、复制与删除按键

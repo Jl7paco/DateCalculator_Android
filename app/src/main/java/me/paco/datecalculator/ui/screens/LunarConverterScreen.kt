@@ -16,15 +16,19 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -41,6 +45,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SuggestionChip
@@ -85,7 +90,7 @@ import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun LunarConverterScreen(
     viewModel: DateCalculatorViewModel,
@@ -96,6 +101,7 @@ fun LunarConverterScreen(
     val scrollState = rememberScrollState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val isDark = isSystemInDarkTheme()
 
     // Mode: 0 = 阳历转农历, 1 = 农历转阳历
     var convertMode by remember { mutableIntStateOf(0) }
@@ -141,10 +147,14 @@ fun LunarConverterScreen(
                 solarDate = date
                 showLunarResult = true
                 val lunarResult = LunarCalendarUtils.solarToLunar(date)
+                val almanacYiJi = LunarCalendarUtils.getAlmanacYiJi(date)
+                val yiStr = almanacYiJi.yiList.joinToString("·")
+                val jiStr = almanacYiJi.jiList.joinToString("·")
+
                 viewModel.saveToHistory(
                     category = "农历公历",
                     title = "${lunarResult.lunarMonthName}${lunarResult.lunarDayName}",
-                    detail = "公历 ${date}  ➔  ${lunarResult.getFullDescription()}"
+                    detail = "公历 ${date} ➔ ${lunarResult.getFullDescription()} | 宜: $yiStr | 忌: $jiStr"
                 )
             },
             onDismiss = { showSolarPicker = false }
@@ -213,7 +223,7 @@ fun LunarConverterScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 显眼放大版新拟物 Hero Card (对齐第一页 Hero Card 14.dp, 10.dp 规格)
+                // 显眼放大版新拟物 Hero Card
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -278,10 +288,14 @@ fun LunarConverterScreen(
                         showLunarResult = true
                         triggerBounce++
                         val lunarResult = LunarCalendarUtils.solarToLunar(date)
+                        val almanacYiJi = LunarCalendarUtils.getAlmanacYiJi(date)
+                        val yiStr = almanacYiJi.yiList.joinToString("·")
+                        val jiStr = almanacYiJi.jiList.joinToString("·")
+
                         viewModel.saveToHistory(
                             category = "农历公历",
                             title = "${lunarResult.lunarMonthName}${lunarResult.lunarDayName}",
-                            detail = "公历 ${date}  ➔  ${lunarResult.getFullDescription()}"
+                            detail = "公历 ${date} ➔ ${lunarResult.getFullDescription()} | 宜: $yiStr | 忌: $jiStr"
                         )
                     }
                 )
@@ -289,6 +303,7 @@ fun LunarConverterScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 val lunarResult = LunarCalendarUtils.solarToLunar(solarDate)
+                val almanacYiJi = LunarCalendarUtils.getAlmanacYiJi(solarDate)
 
                 AnimatedVisibility(
                     visible = showLunarResult,
@@ -326,11 +341,12 @@ fun LunarConverterScreen(
 
                             Spacer(modifier = Modifier.height(6.dp))
 
+                            // 凸显干支纪年与生肖属相 (如: 丙午 (马) 年)
                             Text(
-                                text = "${lunarResult.ganZhiYear} (${lunarResult.zodiac})",
+                                text = "${lunarResult.ganZhiYear} (${lunarResult.zodiac}) 年",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
 
                             // 传统节日提示 Chip：点击触发烟花动效
@@ -343,12 +359,133 @@ fun LunarConverterScreen(
                                 )
                             }
 
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // 📜 沉降式老黄历“宜”与“忌”精致面板 (宜: 积极鲜艳亮绿; 忌: 灰暗收敛沉稳灰)
+                            val almanacBoxShape = RoundedCornerShape(18.dp)
+
+                            val yiBadgeBg = Color(0xFF10B981)
+                            val yiBadgeText = Color.White
+                            val yiChipBg = if (isDark) Color(0xFF065F46).copy(alpha = 0.7f) else Color(0xFFD1FAE5)
+                            val yiChipBorder = Color(0xFF10B981).copy(alpha = 0.45f)
+                            val yiChipText = if (isDark) Color(0xFF34D399) else Color(0xFF047857)
+
+                            val jiBadgeBg = Color(0xFF64748B)
+                            val jiBadgeText = Color.White
+                            val jiChipBg = if (isDark) Color(0xFF334155).copy(alpha = 0.7f) else Color(0xFFF1F5F9)
+                            val jiChipBorder = Color(0xFF94A3B8).copy(alpha = 0.35f)
+                            val jiChipText = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .neumorphicInset(shape = almanacBoxShape, elevation = 3.dp)
+                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = almanacBoxShape)
+                                    .background(
+                                        if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                        else Color(0xFFE8EEF5),
+                                        shape = almanacBoxShape
+                                    )
+                                    .padding(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    // 1. 宜 (Auspicious) 行：积极鲜艳
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(26.dp)
+                                                .clip(CircleShape)
+                                                .background(yiBadgeBg),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("宜", color = yiBadgeText, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                                        }
+
+                                        Spacer(modifier = Modifier.width(10.dp))
+
+                                        FlowRow(
+                                            modifier = Modifier.weight(1f),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            almanacYiJi.yiList.forEach { yiItem ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(yiChipBg)
+                                                        .border(0.5.dp, yiChipBorder, shape = RoundedCornerShape(8.dp))
+                                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                                ) {
+                                                    Text(
+                                                        text = yiItem,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = yiChipText
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
+
+                                    // 2. 忌 (Inauspicious) 行：灰暗收敛
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(26.dp)
+                                                .clip(CircleShape)
+                                                .background(jiBadgeBg),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("忌", color = jiBadgeText, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                                        }
+
+                                        Spacer(modifier = Modifier.width(10.dp))
+
+                                        FlowRow(
+                                            modifier = Modifier.weight(1f),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            almanacYiJi.jiList.forEach { jiItem ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(jiChipBg)
+                                                        .border(0.5.dp, jiChipBorder, shape = RoundedCornerShape(8.dp))
+                                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                                ) {
+                                                    Text(
+                                                        text = jiItem,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = jiChipText
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             Spacer(modifier = Modifier.height(14.dp))
 
                             NeumorphicCopyButton(
                                 text = stringResource(R.string.label_copy_lunar),
                                 onClick = {
-                                    val clipText = "Solar ${solarDate} ➔ ${lunarResult.getFullDescription()}"
+                                    val yiText = almanacYiJi.yiList.joinToString("·")
+                                    val jiText = almanacYiJi.jiList.joinToString("·")
+                                    val clipText = "Solar ${solarDate} ➔ ${lunarResult.getFullDescription()} | 宜: $yiText | 忌: $jiText"
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     clipboard.setPrimaryClip(ClipData.newPlainText("LunarDate", clipText))
                                     Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
@@ -640,10 +777,14 @@ fun LunarConverterScreen(
                                     showLunarResult = true
                                     if (convertedSolarDate != null) {
                                         val solarStr = DateCalculatorUtils.formatDate(convertedSolarDate)
+                                        val convertAlmanac = LunarCalendarUtils.getAlmanacYiJi(convertedSolarDate)
+                                        val yiStr = convertAlmanac.yiList.joinToString("·")
+                                        val jiStr = convertAlmanac.jiList.joinToString("·")
+
                                         viewModel.saveToHistory(
                                             category = "农历公历",
                                             title = solarStr,
-                                            detail = "农历 ${parsedYear}年${LunarCalendarUtils.getLunarMonthName(lunarMonth)}${LunarCalendarUtils.getLunarDayName(lunarDay)}  ➔  公历 ${solarStr}"
+                                            detail = "农历 ${parsedYear}年${LunarCalendarUtils.getLunarMonthName(lunarMonth)}${LunarCalendarUtils.getLunarDayName(lunarDay)} ➔ 公历 ${solarStr} | 宜: $yiStr | 忌: $jiStr"
                                         )
                                     }
                                 }
@@ -707,12 +848,23 @@ fun LunarConverterScreen(
                                 val solarStr = DateCalculatorUtils.formatDate(convertedSolarDate)
                                 val descStr = DateCalculatorUtils.getDateDescription(convertedSolarDate)
                                 val festivalStr = LunarCalendarUtils.solarToLunar(convertedSolarDate).festival
+                                val convertAlmanac = LunarCalendarUtils.getAlmanacYiJi(convertedSolarDate)
+                                val convertLunar = LunarCalendarUtils.solarToLunar(convertedSolarDate)
 
                                 Text(
                                     text = solarStr,
                                     fontSize = 30.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Text(
+                                    text = "${convertLunar.ganZhiYear} (${convertLunar.zodiac}) 年",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
                                 )
 
                                 if (festivalStr.isNotEmpty()) {
@@ -732,12 +884,131 @@ fun LunarConverterScreen(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                 )
 
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // 📜 沉降式老黄历“宜”与“忌”精致面板 (宜: 积极鲜艳亮绿; 忌: 灰暗收敛沉稳灰)
+                                val almanacBoxShape = RoundedCornerShape(18.dp)
+
+                                val convertYiBadgeBg = Color(0xFF10B981)
+                                val convertYiBadgeText = Color.White
+                                val convertYiChipBg = if (isDark) Color(0xFF065F46).copy(alpha = 0.7f) else Color(0xFFD1FAE5)
+                                val convertYiChipBorder = Color(0xFF10B981).copy(alpha = 0.45f)
+                                val convertYiChipText = if (isDark) Color(0xFF34D399) else Color(0xFF047857)
+
+                                val convertJiBadgeBg = Color(0xFF64748B)
+                                val convertJiBadgeText = Color.White
+                                val convertJiChipBg = if (isDark) Color(0xFF334155).copy(alpha = 0.7f) else Color(0xFFF1F5F9)
+                                val convertJiChipBorder = Color(0xFF94A3B8).copy(alpha = 0.35f)
+                                val convertJiChipText = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .neumorphicInset(shape = almanacBoxShape, elevation = 3.dp)
+                                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = almanacBoxShape)
+                                        .background(
+                                            if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                            else Color(0xFFE8EEF5),
+                                            shape = almanacBoxShape
+                                        )
+                                        .padding(12.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(26.dp)
+                                                    .clip(CircleShape)
+                                                    .background(convertYiBadgeBg),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("宜", color = convertYiBadgeText, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                                            }
+
+                                            Spacer(modifier = Modifier.width(10.dp))
+
+                                            FlowRow(
+                                                modifier = Modifier.weight(1f),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                convertAlmanac.yiList.forEach { yiItem ->
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                            .background(convertYiChipBg)
+                                                            .border(0.5.dp, convertYiChipBorder, shape = RoundedCornerShape(8.dp))
+                                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = yiItem,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = convertYiChipText
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(26.dp)
+                                                    .clip(CircleShape)
+                                                    .background(convertJiBadgeBg),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("忌", color = convertJiBadgeText, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                                            }
+
+                                            Spacer(modifier = Modifier.width(10.dp))
+
+                                            FlowRow(
+                                                modifier = Modifier.weight(1f),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                convertAlmanac.jiList.forEach { jiItem ->
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                            .background(convertJiChipBg)
+                                                            .border(0.5.dp, convertJiChipBorder, shape = RoundedCornerShape(8.dp))
+                                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = jiItem,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = convertJiChipText
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                                 Spacer(modifier = Modifier.height(14.dp))
 
                                 NeumorphicCopyButton(
                                     text = stringResource(R.string.label_copy_solar),
                                     onClick = {
-                                        val clipText = "Lunar ${parsedYear}/${lunarMonth}/${lunarDay} ➔ Solar: $solarStr"
+                                        val yiText = convertAlmanac.yiList.joinToString("·")
+                                        val jiText = convertAlmanac.jiList.joinToString("·")
+                                        val clipText = "Lunar ${parsedYear}/${lunarMonth}/${lunarDay} ➔ Solar: $solarStr | 宜: $yiText | 忌: $jiText"
                                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         clipboard.setPrimaryClip(ClipData.newPlainText("SolarDate", clipText))
                                         Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()

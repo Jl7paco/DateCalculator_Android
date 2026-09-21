@@ -40,7 +40,7 @@ val NeumorphicTextPrimary @Composable get() = if (isSystemInDarkTheme()) {
 }
 
 /**
- * 凸起悬浮 3D 新拟物效果 (去除硬描边，完全贴合原素材图效的柔和 3D 光影)
+ * 凸起悬浮 3D 新拟物效果 (四角平滑弥散高光与暗影，彻底消除右上角光影断层)
  */
 @Composable
 fun Modifier.neumorphicExtruded(
@@ -48,24 +48,23 @@ fun Modifier.neumorphicExtruded(
     elevation: Dp = 4.dp
 ): Modifier {
     val isDark = isSystemInDarkTheme()
-    // 左上白色高光降低透明度 (0.45f)，防止过白模糊；右下暗影调柔 (0.50f)，无任何硬描边线
-    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.45f)
-    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0xFFB8C4D2).copy(alpha = 0.50f)
+    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.55f)
+    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.50f) else Color(0xFFB0BDCC).copy(alpha = 0.45f)
 
     return this.drawBehind {
         val shadowRadius = elevation.toPx()
         val shapeOutline = shape.createOutline(size, layoutDirection, this)
 
-        // 1. 右下角柔和自然暗影
+        // 1. 柔和全向底边自然暗影 (增加平滑弥散半径，消除右上角断层)
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius,
-                        shadowRadius * 0.5f,
-                        shadowRadius * 0.5f,
+                        shadowRadius * 1.25f,
+                        shadowRadius * 0.35f,
+                        shadowRadius * 0.35f,
                         darkShadowColor.toArgb()
                     )
                 }
@@ -73,16 +72,16 @@ fun Modifier.neumorphicExtruded(
             canvas.drawOutline(shapeOutline, paint)
         }
 
-        // 2. 左上角自然柔和高光 (绝不糊成一片)
+        // 2. 柔和全向顶边自然高光 (4 角全覆盖，无干瘪挂边)
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius * 0.8f,
-                        -shadowRadius * 0.4f,
-                        -shadowRadius * 0.4f,
+                        shadowRadius * 1.0f,
+                        -shadowRadius * 0.30f,
+                        -shadowRadius * 0.30f,
                         lightShadowColor.toArgb()
                     )
                 }

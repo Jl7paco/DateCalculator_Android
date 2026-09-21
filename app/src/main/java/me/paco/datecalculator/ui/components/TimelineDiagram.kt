@@ -1,6 +1,7 @@
 package me.paco.datecalculator.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,7 +49,9 @@ fun TimelineDiagram(
     segments: List<StageSegmentResult>,
     modeLabel: String,
     regionLabel: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showOuterCard: Boolean = true,
+    showExportButton: Boolean = true
 ) {
     val context = LocalContext.current
 
@@ -70,14 +74,7 @@ fun TimelineDiagram(
     val milestoneIcon = if (isSubtractMode) "⏳" else "🏁"
     val milestoneAccentColor = if (isSubtractMode) Color(0xFFEF4444) else Color(0xFF10B981)
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-            .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-            .clip(RoundedCornerShape(20.dp))
-            .padding(16.dp)
-    ) {
+    val diagramContent = @Composable {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -91,36 +88,38 @@ fun TimelineDiagram(
                 }
 
                 // 📊 导出 CSV 表格按键
-                Box(
-                    modifier = Modifier
-                        .height(32.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
-                        .clip(CircleShape)
-                        .clickable {
-                            CsvExporter.exportStagesToCsv(
-                                context = context,
-                                baseDate = baseDate,
-                                finalDate = finalDate,
-                                segments = segments,
-                                modeLabel = modeLabel,
-                                regionLabel = regionLabel
-                            )
+                if (showExportButton) {
+                    Box(
+                        modifier = Modifier
+                            .height(32.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable {
+                                CsvExporter.exportStagesToCsv(
+                                    context = context,
+                                    baseDate = baseDate,
+                                    finalDate = finalDate,
+                                    segments = segments,
+                                    modeLabel = modeLabel,
+                                    regionLabel = regionLabel
+                                )
+                            }
+                            .padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("导出 CSV", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                         }
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("导出 CSV", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 1. 统一标注汇总行 (按对应颜色与文字统一说明)
+            // 1. 统一标注汇总行
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -379,6 +378,28 @@ fun TimelineDiagram(
                     Text("$finalDate", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = milestoneAccentColor)
                 }
             }
+        }
+    }
+
+    if (showOuterCard) {
+        val cardShape22 = RoundedCornerShape(22.dp)
+        Surface(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 6.dp)
+                .neumorphicExtruded(shape = cardShape22, elevation = 5.dp)
+                .background(NeumorphicBg, shape = cardShape22)
+                .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = cardShape22),
+            shape = cardShape22,
+            color = Color.Transparent
+        ) {
+            Box(modifier = Modifier.padding(16.dp)) {
+                diagramContent()
+            }
+        }
+    } else {
+        Box(modifier = modifier.fillMaxWidth()) {
+            diagramContent()
         }
     }
 }

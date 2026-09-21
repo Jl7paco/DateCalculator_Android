@@ -46,6 +46,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,7 +57,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -439,6 +439,7 @@ fun DateCalculationScreen(
                     .fillMaxWidth()
                     .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
                     .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
+                    .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = RoundedCornerShape(20.dp))
                     .clip(RoundedCornerShape(20.dp))
                     .padding(14.dp)
             ) {
@@ -488,7 +489,7 @@ fun DateCalculationScreen(
             }
         }
 
-        // 3. 模式 C: 高级多段计算模式（GPU CompositingStrategy.Offscreen 离屏缓存层，100% 消除重测掉帧卡顿）
+        // 3. 模式 C: 高级多段计算模式（使用 Surface 配合 padding 弥散缓冲区，阴影呈现绝对 22.dp 弧形圆角，绝不变成方形）
         val multiStageAlpha by animateFloatAsState(
             targetValue = if (uiState.isMultiStageExtensionEnabled) 1f else 0f,
             animationSpec = tween(
@@ -497,6 +498,8 @@ fun DateCalculationScreen(
             ),
             label = "MultiStageAlphaGpuAnim"
         )
+
+        val cardShape22 = RoundedCornerShape(22.dp)
 
         AnimatedVisibility(
             visible = uiState.isMultiStageExtensionEnabled,
@@ -509,29 +512,32 @@ fun DateCalculationScreen(
                    shrinkVertically(
                        animationSpec = tween(durationMillis = 120, easing = FastOutLinearInEasing),
                        shrinkTowards = Alignment.Top
-                   ),
-            modifier = Modifier
-                .graphicsLayer {
-                    alpha = multiStageAlpha
-                    compositingStrategy = CompositingStrategy.Offscreen
-                }
-                .clipToBounds()
+                   )
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clipToBounds()
+                    .graphicsLayer {
+                        alpha = multiStageAlpha
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
             ) {
-                Box(
+                // 外层全标准圆角 22.dp 新拟物 Surface 卡片，带 4.dp 弥散缓冲区，阴影完全圆润柔软
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clipToBounds()
-                        .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                        .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                        .clip(RoundedCornerShape(20.dp))
-                        .padding(16.dp)
+                        .padding(horizontal = 4.dp, vertical = 6.dp)
+                        .neumorphicExtruded(shape = cardShape22, elevation = 5.dp)
+                        .background(NeumorphicBg, shape = cardShape22)
+                        .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = cardShape22),
+                    shape = cardShape22,
+                    color = Color.Transparent
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
                         Text(
                             text = "多段模式",
                             fontWeight = FontWeight.ExtraBold,
@@ -541,14 +547,16 @@ fun DateCalculationScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // 生活化温馨提示语
+                        // 生活化温馨提示语 (标准 Neumorphic Inset 凹陷输入框)
+                        val sunkenShape12 = RoundedCornerShape(12.dp)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(42.dp)
-                                .neumorphicInset(shape = RoundedCornerShape(10.dp))
-                                .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(10.dp))
-                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                                .neumorphicInset(shape = sunkenShape12, elevation = 3.dp)
+                                .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = sunkenShape12)
+                                .background(NeumorphicSunkenBg, shape = sunkenShape12)
+                                .clip(sunkenShape12)
                                 .padding(horizontal = 12.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
@@ -573,19 +581,21 @@ fun DateCalculationScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // 各阶段配置项列表
+                        // 各阶段配置项列表 (标准 16.dp 圆角新拟物 3D 卡片)
                         uiState.stages.forEachIndexed { index, stage ->
                             val numZh = when (index + 1) {
                                 1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${index + 1}"
                             }
                             val defaultRemark = "第${numZh}段时间"
+                            val stageShape16 = RoundedCornerShape(16.dp)
 
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
-                                    .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = RoundedCornerShape(14.dp))
-                                    .background(NeumorphicBg, shape = RoundedCornerShape(14.dp))
+                                    .neumorphicInset(shape = stageShape16, elevation = 3.dp)
+                                    .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = stageShape16)
+                                    .background(NeumorphicBg, shape = stageShape16)
+                                    .clip(stageShape16)
                                     .padding(12.dp)
                             ) {
                                 Row(
@@ -615,16 +625,17 @@ fun DateCalculationScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // 1. 运算符按钮：仅显示 "+" 或 "-"
+                                    val opBtnShape = RoundedCornerShape(10.dp)
                                     Box(
                                         modifier = Modifier
                                             .width(52.dp)
                                             .height(42.dp)
-                                            .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = 3.dp)
+                                            .neumorphicExtruded(shape = opBtnShape, elevation = 3.dp)
                                             .background(
                                                 if (stage.type == CalculationType.ADD) NeumorphicAccent else Color(0xFFEF4444),
-                                                shape = RoundedCornerShape(10.dp)
+                                                shape = opBtnShape
                                             )
-                                            .clip(RoundedCornerShape(10.dp))
+                                            .clip(opBtnShape)
                                             .clickable {
                                                 val nextType = if (stage.type == CalculationType.ADD) CalculationType.SUBTRACT else CalculationType.ADD
                                                 viewModel.updateStageType(stage.id, nextType)
@@ -642,13 +653,15 @@ fun DateCalculationScreen(
                                     Spacer(modifier = Modifier.width(8.dp))
 
                                     // 2. 明显突出的天数数字输入框 (点击聚焦全选 15，打字自动替代)
+                                    val inputShape10 = RoundedCornerShape(10.dp)
                                     Box(
                                         modifier = Modifier
                                             .width(100.dp)
                                             .height(42.dp)
-                                            .neumorphicInset(shape = RoundedCornerShape(10.dp))
-                                            .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(10.dp))
-                                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                                            .neumorphicInset(shape = inputShape10)
+                                            .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = inputShape10)
+                                            .background(NeumorphicSunkenBg, shape = inputShape10)
+                                            .clip(inputShape10)
                                             .padding(horizontal = 10.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -668,13 +681,15 @@ fun DateCalculationScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 // 3. 阶段备注输入框
+                                val remarkShape10 = RoundedCornerShape(10.dp)
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(40.dp)
-                                        .neumorphicInset(shape = RoundedCornerShape(10.dp))
-                                        .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(10.dp))
-                                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                                        .neumorphicInset(shape = remarkShape10)
+                                        .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = remarkShape10)
+                                        .background(NeumorphicSunkenBg, shape = remarkShape10)
+                                        .clip(remarkShape10)
                                         .padding(horizontal = 10.dp),
                                     contentAlignment = Alignment.CenterStart
                                 ) {
@@ -696,7 +711,7 @@ fun DateCalculationScreen(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // 添加下一段时间按钮 与纯粹 "=" 按键
+                        // 添加下一段时间按钮 与 “保存到记录” 胶囊按键
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -716,7 +731,7 @@ fun DateCalculationScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .weight(0.8f)
+                                    .weight(1f)
                                     .height(44.dp)
                                     .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
                                     .background(NeumorphicAccent, shape = CircleShape)
@@ -724,7 +739,7 @@ fun DateCalculationScreen(
                                     .clickable { viewModel.performCalculation() },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("=", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                                Text("保存到记录", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             }
                         }
                     }
