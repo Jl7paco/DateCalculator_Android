@@ -1,7 +1,7 @@
 package me.paco.datecalculator.ui
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,12 +38,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -100,7 +103,7 @@ fun MainScreen(
                                     coroutineScope.launch {
                                         pagerState.animateScrollToPage(
                                             page = targetIndex,
-                                            animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing)
+                                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
                                         )
                                     }
                                 }
@@ -113,7 +116,7 @@ fun MainScreen(
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(
                                         page = pagerState.targetPage,
-                                        animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing)
+                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
                                     )
                                 }
                             },
@@ -121,12 +124,12 @@ fun MainScreen(
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(
                                         page = pagerState.targetPage,
-                                        animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing)
+                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
                                     )
                                 }
                             },
-                            onHorizontalDrag = { change, dragAmount ->
-                                change.consume()
+                            onHorizontalDrag = { _, dragAmount ->
+                                // 实时跟手驱动底栏高亮胶囊与页面跟随手指滑动，且不调用 change.consume() 避免手势锁冲突
                                 coroutineScope.launch {
                                     val scaleFactor = navItems.size.toFloat()
                                     pagerState.dispatchRawDelta(dragAmount * scaleFactor)
@@ -154,7 +157,7 @@ fun MainScreen(
                         .background(MaterialTheme.colorScheme.primary)
                 )
 
-                // 底部标签按钮 (颜色与 Icon 采用连续线性插值)
+                // 底部标签按钮 (颜色与 Icon 采用连续线性插值，0ms 即刻响应)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -177,11 +180,13 @@ fun MainScreen(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
                                 ) {
-                                    coroutineScope.launch {
-                                        pagerState.animateScrollToPage(
-                                            page = index,
-                                            animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing)
-                                        )
+                                    if (pagerState.currentPage != index) {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(
+                                                page = index,
+                                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                            )
+                                        }
                                     }
                                 },
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -207,17 +212,27 @@ fun MainScreen(
     ) { innerPadding ->
         val modifier = Modifier.padding(innerPadding)
 
-        // 预渲染相邻页面 (beyondBoundsPageCount = 1)
+        // 60 FPS 物理弹簧切页，结合 GPU 离屏渲染隔离，底栏跟手拖拽与主页面滑动 100% 完美共存
         HorizontalPager(
             state = pagerState,
             beyondBoundsPageCount = 1,
             modifier = modifier.fillMaxSize()
         ) { page ->
-            when (page) {
-                0 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
-                1 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
-                2 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
-                3 -> SettingsScreen(viewModel = viewModel, uiState = uiState)
+            key(page) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            compositingStrategy = CompositingStrategy.Offscreen
+                        }
+                ) {
+                    when (page) {
+                        0 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
+                        1 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
+                        2 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
+                        3 -> SettingsScreen(viewModel = viewModel, uiState = uiState)
+                    }
+                }
             }
         }
     }
