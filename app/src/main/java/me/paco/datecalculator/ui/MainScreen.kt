@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
+import me.paco.datecalculator.ui.components.DynamicCalendarWatermarkBg
 import me.paco.datecalculator.ui.screens.DateCalculationScreen
 import me.paco.datecalculator.ui.screens.DateDiffScreen
 import me.paco.datecalculator.ui.screens.LunarConverterScreen
@@ -212,25 +213,35 @@ fun MainScreen(
     ) { innerPadding ->
         val modifier = Modifier.padding(innerPadding)
 
-        // 60 FPS 物理弹簧切页，结合 GPU 离屏渲染隔离，底栏跟手拖拽与主页面滑动 100% 完美共存
-        HorizontalPager(
-            state = pagerState,
-            beyondBoundsPageCount = 1,
-            modifier = modifier.fillMaxSize()
-        ) { page ->
-            key(page) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            compositingStrategy = CompositingStrategy.Offscreen
+        Box(modifier = Modifier.fillMaxSize()) {
+            // 约 10% 清晰度的 3D 动态月历水纹背景 (对应真实年月与休假日动态标注，取消括号)
+            DynamicCalendarWatermarkBg(
+                weekendRule = uiState.weekendRule,
+                enableHolidays = uiState.enableChineseHolidays,
+                holidayRegion = uiState.holidayRegion,
+                isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek
+            )
+
+            // 60 FPS 物理弹簧切页，结合 GPU 离屏渲染隔离，底栏跟手拖拽与主页面滑动 100% 完美共存
+            HorizontalPager(
+                state = pagerState,
+                beyondBoundsPageCount = 1,
+                modifier = modifier.fillMaxSize()
+            ) { page ->
+                key(page) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                compositingStrategy = CompositingStrategy.Offscreen
+                            }
+                    ) {
+                        when (page) {
+                            0 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
+                            1 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
+                            2 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
+                            3 -> SettingsScreen(viewModel = viewModel, uiState = uiState)
                         }
-                ) {
-                    when (page) {
-                        0 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
-                        1 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
-                        2 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
-                        3 -> SettingsScreen(viewModel = viewModel, uiState = uiState)
                     }
                 }
             }
