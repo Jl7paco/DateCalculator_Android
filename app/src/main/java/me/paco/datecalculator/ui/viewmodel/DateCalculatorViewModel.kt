@@ -5,8 +5,12 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.paco.datecalculator.data.AnniversaryItem
 import me.paco.datecalculator.data.CalculationStage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DarkThemeMode
@@ -18,14 +22,11 @@ import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.ThemeColorPreset
 import me.paco.datecalculator.data.WeekendRule
-import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.DailyWeather
+import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LocationUtils
-import me.paco.datecalculator.util.WeatherUtils
 import me.paco.datecalculator.util.PreferenceUtils
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import me.paco.datecalculator.util.WeatherUtils
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
@@ -102,6 +103,7 @@ data class DateCalculatorUiState(
     val isGpsAutoDetectEnabled: Boolean = true,
     val disableChinaShiftWorkdays: Boolean = false,
     val disabledPresetHolidays: Set<String> = emptySet(),
+    val pinnedPresetHolidays: Set<String> = emptySet(),
     val isMultiStageExtensionEnabled: Boolean = false,
     val multiStagePlanTitle: String = "",
     val stages: List<CalculationStage> = listOf(
@@ -111,6 +113,7 @@ data class DateCalculatorUiState(
     val showResult: Boolean = false,
     val historyList: List<HistoryItem> = emptyList(),
     val customEvents: List<CustomEventItem> = emptyList(),
+    val anniversaryList: List<AnniversaryItem> = emptyList(),
     val fireworksTrigger: Int = 0,
 
     // V3.0 新增状态
@@ -118,7 +121,7 @@ data class DateCalculatorUiState(
     val customPrimaryColorHex: Long = 0xFF2563EB,
     val darkThemeMode: DarkThemeMode = DarkThemeMode.SYSTEM,
     val homeConfig: HomeConfig = HomeConfig(),
-    val selectedBirthDate: LocalDate = LocalDate.now().minusYears(25),
+    val selectedBirthDate: LocalDate = LocalDate.of(2000, 1, 1),
     val currentCityName: String = "北京市",
     val liveWeatherList: List<DailyWeather>? = null
 )
@@ -128,75 +131,96 @@ class DateCalculatorViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(DateCalculatorUiState())
     val uiState: StateFlow<DateCalculatorUiState> = _uiState.asStateFlow()
 
-    fun fetchCurrentGpsLocation(context: Context) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val cityName = LocationUtils.getCurrentCityName(context)
-                val coords = WeatherUtils.getCityCoordinates(cityName)
-                val liveWeather = WeatherUtils.fetchRealLiveWeather(coords.first, coords.second)
-
-                withContext(Dispatchers.Main) {
-                    _uiState.value = _uiState.value.copy(
-                        currentCityName = cityName,
-                        liveWeatherList = liveWeather ?: _uiState.value.liveWeatherList
-                    )
-                }
-
-                LocationUtils.requestSingleLocationUpdate(context) { updatedCity ->
-                    if (!updatedCity.isNullOrEmpty()) {
-                        viewModelScope.launch(Dispatchers.IO) {
-                            val updatedCoords = WeatherUtils.getCityCoordinates(updatedCity)
-                            val updatedWeather = WeatherUtils.fetchRealLiveWeather(updatedCoords.first, updatedCoords.second)
-                            withContext(Dispatchers.Main) {
-                                _uiState.value = _uiState.value.copy(
-                                    currentCityName = updatedCity,
-                                    liveWeatherList = updatedWeather ?: _uiState.value.liveWeatherList
-                                )
-                            }
-                        }
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-    }
-
     fun initPreferences(context: Context) {
-        val savedRegion = PreferenceUtils.getHolidayRegion(context)
-        val savedRule = PreferenceUtils.getWeekendRule(context)
-        val savedBigWeek = PreferenceUtils.getIsBigWeek(context)
-        val savedGpsAuto = PreferenceUtils.getIsGpsAuto(context)
-        val savedDisableShift = PreferenceUtils.getDisableChinaShift(context)
-        val savedPreset = PreferenceUtils.getThemePreset(context)
-        val savedCustomColor = PreferenceUtils.getCustomPrimaryColor(context)
-        val savedDarkMode = PreferenceUtils.getDarkThemeMode(context)
-        val savedHomeConfig = PreferenceUtils.getHomeConfig(context)
+        val region = PreferenceUtils.getHolidayRegion(context)
+        val weekendRule = PreferenceUtils.getWeekendRule(context)
+        val isBigWeek = PreferenceUtils.getIsBigWeek(context)
+        val isGpsAuto = PreferenceUtils.getIsGpsAuto(context)
+        val disableShift = PreferenceUtils.getDisableChinaShift(context)
+        val themePreset = PreferenceUtils.getThemePreset(context)
+        val customColor = PreferenceUtils.getCustomPrimaryColor(context)
+        val darkThemeMode = PreferenceUtils.getDarkThemeMode(context)
+        val homeConfig = PreferenceUtils.getHomeConfig(context)
+        val savedPinnedSet = PreferenceUtils.getPinnedEvents(context)
+        val savedAnniversaries = PreferenceUtils.getAnniversaries(context)
 
-        val cityName = LocationUtils.getCurrentCityName(context)
+        val updatedCustomEvents = if (savedPinnedSet.isNotEmpty()) {
+            _uiState.value.customEvents.map { event ->
+                if (savedPinnedSet.contains(event.name)) event.copy(isPinned = true) else event
+            }
+        } else _uiState.value.customEvents
 
         _uiState.value = _uiState.value.copy(
-            holidayRegion = savedRegion,
-            weekendRule = savedRule,
-            isCurrentWeekBigWeek = savedBigWeek,
-            isGpsAutoDetectEnabled = savedGpsAuto,
-            disableChinaShiftWorkdays = savedDisableShift,
-            themePreset = savedPreset,
-            customPrimaryColorHex = savedCustomColor,
-            darkThemeMode = savedDarkMode,
-            homeConfig = savedHomeConfig,
-            currentCityName = cityName
+            holidayRegion = region,
+            weekendRule = weekendRule,
+            isCurrentWeekBigWeek = isBigWeek,
+            isGpsAutoDetectEnabled = isGpsAuto,
+            disableChinaShiftWorkdays = disableShift,
+            themePreset = themePreset,
+            customPrimaryColorHex = customColor,
+            darkThemeMode = darkThemeMode,
+            homeConfig = homeConfig,
+            pinnedPresetHolidays = savedPinnedSet,
+            customEvents = updatedCustomEvents,
+            anniversaryList = savedAnniversaries
         )
+    }
 
-        // 启动 App 时静默同步当前地区放假安排，只同步一次且不弹 Toast
-        if (savedGpsAuto) {
-            val detected = LocationUtils.detectCurrentRegion(context)
-            updateHolidayRegion(detected, context, showToast = false)
-        } else {
-            autoSyncHolidayData(context, savedRegion, showToast = false)
+    fun loadAnniversaries(context: Context) {
+        val saved = PreferenceUtils.getAnniversaries(context)
+        _uiState.value = _uiState.value.copy(anniversaryList = saved)
+    }
+
+    fun addAnniversary(item: AnniversaryItem, context: Context) {
+        val current = _uiState.value.anniversaryList
+        if (current.size >= 999) {
+            Toast.makeText(context, "重要纪念日卡片已达 999 个上限", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val updated = listOf(item) + current
+        _uiState.value = _uiState.value.copy(anniversaryList = updated)
+        PreferenceUtils.saveAnniversaries(context, updated)
+    }
+
+    fun deleteAnniversary(itemId: Long, context: Context) {
+        val updated = _uiState.value.anniversaryList.filterNot { it.id == itemId }
+        _uiState.value = _uiState.value.copy(anniversaryList = updated)
+        PreferenceUtils.saveAnniversaries(context, updated)
+    }
+
+    fun togglePinAnniversary(itemId: Long, context: Context) {
+        val updated = _uiState.value.anniversaryList.map {
+            if (it.id == itemId) it.copy(isPinned = !it.isPinned) else it
+        }
+        _uiState.value = _uiState.value.copy(anniversaryList = updated)
+        PreferenceUtils.saveAnniversaries(context, updated)
+    }
+
+    fun fetchCurrentGpsLocation(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val cityName = LocationUtils.getCurrentCityName(context)
+            val region = LocationUtils.detectCurrentRegion(context)
+            val coords = WeatherUtils.getCityCoordinates(cityName)
+            val realWeather = WeatherUtils.fetchRealLiveWeather(coords.first, coords.second)
+                ?: WeatherUtils.getWeatherForecast(LocalDate.now())
+
+            withContext(Dispatchers.Main) {
+                _uiState.value = _uiState.value.copy(
+                    holidayRegion = region,
+                    currentCityName = cityName,
+                    liveWeatherList = realWeather
+                )
+            }
         }
     }
 
-    private fun autoSyncHolidayData(context: Context, region: HolidayRegion, showToast: Boolean = false) {
-        if (showToast) {
+    fun updateHolidayRegion(region: HolidayRegion, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(
+            holidayRegion = region,
+            showResult = false
+        )
+        context?.let {
+            PreferenceUtils.saveHolidayRegion(it, region)
             val regionName = "${region.flagEmoji} ${region.nativeName}"
             Toast.makeText(context, "已自动同步 $regionName 最新节假日数据", Toast.LENGTH_SHORT).show()
         }
@@ -241,11 +265,14 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun updateReverseEndDate(date: LocalDate) {
-        _uiState.value = _uiState.value.copy(reverseEndDate = date, showResult = false)
+        _uiState.value = _uiState.value.copy(reverseEndDate = date)
     }
 
     fun updateDaysInput(input: String) {
-        _uiState.value = _uiState.value.copy(daysInput = input, showResult = false)
+        _uiState.value = _uiState.value.copy(
+            daysInput = input,
+            showResult = false
+        )
     }
 
     fun updateCalculationType(type: CalculationType) {
@@ -256,56 +283,42 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun updateDateMode(mode: DateMode) {
-        _uiState.value = _uiState.value.copy(dateMode = mode, showResult = false)
+        _uiState.value = _uiState.value.copy(
+            dateMode = mode,
+            showResult = false
+        )
     }
 
-    fun updateCalcSubMode(mode: CalcSubMode) {
-        val disableMulti = if (mode == CalcSubMode.REVERSE_RANGE) false else _uiState.value.isMultiStageExtensionEnabled
+    fun updateCalcSubMode(subMode: CalcSubMode) {
         _uiState.value = _uiState.value.copy(
-            calcSubMode = mode,
-            isMultiStageExtensionEnabled = disableMulti,
+            calcSubMode = subMode,
             showResult = false
         )
     }
 
     fun updateWeekendRule(rule: WeekendRule, context: Context? = null) {
-        _uiState.value = _uiState.value.copy(weekendRule = rule, showResult = false)
-        context?.let { PreferenceUtils.saveWeekendRule(it, rule) }
-    }
-
-    fun updateCurrentWeekBigWeek(isBigWeek: Boolean, context: Context? = null) {
-        _uiState.value = _uiState.value.copy(isCurrentWeekBigWeek = isBigWeek, showResult = false)
-        context?.let { PreferenceUtils.saveIsBigWeek(it, isBigWeek) }
-    }
-
-    fun updateHolidayRegion(region: HolidayRegion, context: Context? = null, showToast: Boolean = true) {
-        val rule = if (region == HolidayRegion.CHINA || region == HolidayRegion.HONG_KONG || region == HolidayRegion.MACAO) {
-            _uiState.value.weekendRule
-        } else {
-            WeekendRule.STANDARD_FIVE_DAYS
-        }
-
         _uiState.value = _uiState.value.copy(
-            holidayRegion = region,
-            enableChineseHolidays = true,
             weekendRule = rule,
             showResult = false
         )
-        context?.let {
-            PreferenceUtils.saveHolidayRegion(it, region)
-            autoSyncHolidayData(it, region, showToast = showToast)
-        }
+        context?.let { PreferenceUtils.saveWeekendRule(it, rule) }
+    }
+
+    fun updateIsBigWeek(isBigWeek: Boolean, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(
+            isCurrentWeekBigWeek = isBigWeek,
+            showResult = false
+        )
+        context?.let { PreferenceUtils.saveIsBigWeek(it, isBigWeek) }
+    }
+
+    fun updateCurrentWeekBigWeek(isBigWeek: Boolean, context: Context? = null) {
+        updateIsBigWeek(isBigWeek, context)
     }
 
     fun updateGpsAutoDetect(enabled: Boolean, context: Context? = null) {
         _uiState.value = _uiState.value.copy(isGpsAutoDetectEnabled = enabled)
-        context?.let {
-            PreferenceUtils.saveIsGpsAuto(it, enabled)
-            if (enabled) {
-                val detected = LocationUtils.detectCurrentRegion(it)
-                updateHolidayRegion(detected, it, showToast = true)
-            }
-        }
+        context?.let { PreferenceUtils.saveIsGpsAuto(it, enabled) }
     }
 
     fun updateDisableChinaShift(disable: Boolean, context: Context? = null) {
@@ -313,102 +326,255 @@ class DateCalculatorViewModel : ViewModel() {
         context?.let { PreferenceUtils.saveDisableChinaShift(it, disable) }
     }
 
+    fun togglePresetHolidayEnabled(holidayName: String) {
+        val currentDisabled = _uiState.value.disabledPresetHolidays
+        val newDisabled = if (currentDisabled.contains(holidayName)) {
+            currentDisabled - holidayName
+        } else {
+            currentDisabled + holidayName
+        }
+        _uiState.value = _uiState.value.copy(disabledPresetHolidays = newDisabled)
+    }
+
+    fun togglePinPresetHoliday(presetName: String, context: Context? = null) {
+        val currentSet = _uiState.value.pinnedPresetHolidays
+        val newSet = if (currentSet.contains(presetName)) {
+            currentSet - presetName
+        } else {
+            currentSet + presetName
+        }
+        _uiState.value = _uiState.value.copy(pinnedPresetHolidays = newSet)
+
+        context?.let { ctx ->
+            val customPinnedNames = _uiState.value.customEvents.filter { it.isPinned }.map { it.name }.toSet()
+            PreferenceUtils.savePinnedEvents(ctx, newSet + customPinnedNames)
+        }
+    }
+
+    fun toggleMultiStageExtension(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isMultiStageExtensionEnabled = enabled)
+    }
+
     fun updateMultiStagePlanTitle(title: String) {
         _uiState.value = _uiState.value.copy(multiStagePlanTitle = title)
     }
 
-    fun toggleMultiStageExtension(enabled: Boolean) {
-        if (enabled && _uiState.value.stages.isNotEmpty()) {
-            _uiState.value = _uiState.value.copy(
-                isMultiStageExtensionEnabled = true,
-                showResult = false
-            )
-        } else {
-            _uiState.value = _uiState.value.copy(
-                isMultiStageExtensionEnabled = enabled,
-                showResult = false
-            )
-        }
-    }
-
     fun addCalculationStage() {
-        val current = _uiState.value.stages.toMutableList()
-        val nextIdx = current.size + 1
-        val numZh = when (nextIdx) {
-            1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "$nextIdx"
+        val currentStages = _uiState.value.stages
+        val numZh = when (currentStages.size + 1) {
+            1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${currentStages.size + 1}"
         }
-        val mainType = _uiState.value.calculationType
-        current.add(CalculationStage(type = mainType, daysInput = "", remark = "第${numZh}段时间"))
-        _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+        val defaultRemark = "第${numZh}段时间"
+        val lastType = currentStages.lastOrNull()?.type ?: _uiState.value.calculationType
+        val newStage = CalculationStage(
+            type = lastType,
+            daysInput = "",
+            remark = defaultRemark
+        )
+        _uiState.value = _uiState.value.copy(stages = currentStages + newStage)
     }
 
     fun duplicateCalculationStage(stageId: Long) {
-        val current = _uiState.value.stages.toMutableList()
-        val index = current.indexOfFirst { it.id == stageId }
+        val currentStages = _uiState.value.stages
+        val index = currentStages.indexOfFirst { it.id == stageId }
         if (index != -1) {
-            val target = current[index]
-            val duplicated = target.copy(
-                id = System.nanoTime(),
+            val target = currentStages[index]
+            val copyStage = CalculationStage(
+                type = target.type,
+                daysInput = target.daysInput,
                 remark = "${target.remark} (副本)"
             )
-            current.add(index + 1, duplicated)
-            _uiState.value = _uiState.value.copy(stages = current, showResult = false)
-        }
-    }
-
-    fun reorderCalculationStages(fromIndex: Int, toIndex: Int) {
-        if (fromIndex in _uiState.value.stages.indices && toIndex in _uiState.value.stages.indices && fromIndex != toIndex) {
-            val current = _uiState.value.stages.toMutableList()
-            val item = current.removeAt(fromIndex)
-            current.add(toIndex, item)
-            _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+            val mutableList = currentStages.toMutableList()
+            mutableList.add(index + 1, copyStage)
+            _uiState.value = _uiState.value.copy(stages = mutableList)
         }
     }
 
     fun removeCalculationStage(stageId: Long) {
-        val current = _uiState.value.stages.filterNot { it.id == stageId }
-        if (current.isNotEmpty()) {
-            _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+        val currentStages = _uiState.value.stages
+        if (currentStages.size > 1) {
+            _uiState.value = _uiState.value.copy(stages = currentStages.filterNot { it.id == stageId })
         }
     }
 
-    fun updateStageDaysInput(stageId: Long, daysInput: String) {
-        val cleanInput = if (daysInput.isEmpty() || daysInput.all { it.isDigit() }) daysInput else ""
-        val current = _uiState.value.stages.map {
-            if (it.id == stageId) it.copy(daysInput = cleanInput) else it
+    fun updateStageDaysInput(stageId: Long, input: String) {
+        val updatedStages = _uiState.value.stages.map {
+            if (it.id == stageId) it.copy(daysInput = input) else it
         }
-        _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+        _uiState.value = _uiState.value.copy(stages = updatedStages)
     }
 
     fun updateStageType(stageId: Long, type: CalculationType) {
-        val current = _uiState.value.stages.map {
+        val updatedStages = _uiState.value.stages.map {
             if (it.id == stageId) it.copy(type = type) else it
         }
-        _uiState.value = _uiState.value.copy(
-            stages = current,
-            showResult = false
-        )
+        _uiState.value = _uiState.value.copy(stages = updatedStages)
     }
 
     fun updateStageRemark(stageId: Long, remark: String) {
-        val current = _uiState.value.stages.map {
+        val updatedStages = _uiState.value.stages.map {
             if (it.id == stageId) it.copy(remark = remark) else it
         }
-        _uiState.value = _uiState.value.copy(stages = current)
+        _uiState.value = _uiState.value.copy(stages = updatedStages)
     }
 
-    fun togglePresetHolidayEnabled(holidayName: String) {
-        val currentDisabled = _uiState.value.disabledPresetHolidays.toMutableSet()
-        if (currentDisabled.contains(holidayName)) {
-            currentDisabled.remove(holidayName)
-        } else {
-            currentDisabled.add(holidayName)
+    fun reorderCalculationStages(fromIndex: Int, toIndex: Int) {
+        val currentStages = _uiState.value.stages.toMutableList()
+        if (fromIndex in currentStages.indices && toIndex in currentStages.indices) {
+            val item = currentStages.removeAt(fromIndex)
+            currentStages.add(toIndex, item)
+            _uiState.value = _uiState.value.copy(stages = currentStages)
         }
-        _uiState.value = _uiState.value.copy(disabledPresetHolidays = currentDisabled.toSet())
     }
 
-    fun setToday() {
-        _uiState.value = _uiState.value.copy(baseDate = LocalDate.now(), showResult = false)
+    fun performCalculation() {
+        calculateResult()
+    }
+
+    fun calculateResult() {
+        _uiState.value = _uiState.value.copy(showResult = true)
+        val state = _uiState.value
+        val resultDate = calculateTargetDate()
+        val formattedDate = DateCalculatorUtils.formatDate(resultDate)
+
+        val isWorkdayMode = (state.dateMode == DateMode.WORKDAY)
+        val modeText = if (isWorkdayMode) "工作日" else "自然日"
+        val opText = if (state.calculationType == CalculationType.ADD) "加" else "减"
+        val daysText = "${state.daysInput}$modeText"
+
+        val title = "$modeText 计算结果: $formattedDate"
+        val detail = "起始日期: ${state.baseDate} $opText $daysText ➔ 目标日期: $formattedDate"
+        val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
+
+        saveToHistory(
+            category = "日期计算",
+            title = title,
+            detail = detail,
+            regionTag = regionTag,
+            resultDate = resultDate
+        )
+    }
+
+    fun calculateTargetDate(): LocalDate {
+        val state = _uiState.value
+        val days = state.daysInput.toIntOrNull() ?: 15
+        return DateCalculatorUtils.calculateTargetDate(
+            baseDate = state.baseDate,
+            days = days,
+            type = state.calculationType,
+            isWorkdayMode = (state.dateMode == DateMode.WORKDAY),
+            weekendRule = state.weekendRule,
+            enableHolidays = state.enableChineseHolidays,
+            holidayRegion = state.holidayRegion,
+            isCurrentWeekBigWeek = state.isCurrentWeekBigWeek,
+            disableChinaShiftWorkdays = state.disableChinaShiftWorkdays
+        )
+    }
+
+    fun calculateMultiStageTimeline(): Pair<LocalDate, List<StageSegmentResult>> {
+        val results = computeMultiStageSequence()
+        val finalDate = results.lastOrNull()?.endDate ?: _uiState.value.baseDate
+        return Pair(finalDate, results)
+    }
+
+    fun computeMultiStageSequence(): List<StageSegmentResult> {
+        val state = _uiState.value
+        val isWorkdayMode = (state.dateMode == DateMode.WORKDAY)
+        var currentBase = state.baseDate
+        val results = mutableListOf<StageSegmentResult>()
+
+        state.stages.forEachIndexed { index, stage ->
+            val numZh = when (index + 1) {
+                1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${index + 1}"
+            }
+            val defaultRemark = "第${numZh}段时间"
+            val effectiveRemark = stage.remark.ifBlank { defaultRemark }
+
+            val days = stage.days.toInt()
+            val segmentEndDate = DateCalculatorUtils.calculateTargetDate(
+                baseDate = currentBase,
+                days = days,
+                type = stage.type,
+                isWorkdayMode = isWorkdayMode,
+                weekendRule = state.weekendRule,
+                enableHolidays = state.enableChineseHolidays,
+                holidayRegion = state.holidayRegion,
+                isCurrentWeekBigWeek = state.isCurrentWeekBigWeek,
+                disableChinaShiftWorkdays = state.disableChinaShiftWorkdays
+            )
+
+            val totalCalendarDays = abs(ChronoUnit.DAYS.between(currentBase, segmentEndDate))
+            val restDaysCount = if (isWorkdayMode) totalCalendarDays - days else 0L
+
+            results.add(
+                StageSegmentResult(
+                    stageIndex = index + 1,
+                    remark = effectiveRemark,
+                    type = stage.type,
+                    daysCount = days.toLong(),
+                    startDate = currentBase,
+                    endDate = segmentEndDate,
+                    totalCalendarDays = totalCalendarDays,
+                    restDaysCount = restDaysCount
+                )
+            )
+
+            currentBase = segmentEndDate
+        }
+
+        return results
+    }
+
+    fun saveToHistory(
+        category: String,
+        title: String,
+        detail: String,
+        regionTag: String = "${_uiState.value.holidayRegion.flagEmoji} ${_uiState.value.holidayRegion.nativeName}",
+        resultDate: LocalDate? = null,
+        resultDays: Long? = null
+    ) {
+        val newItem = HistoryItem(
+            category = category,
+            title = title,
+            detail = detail,
+            regionTag = regionTag,
+            resultDate = resultDate,
+            resultDays = resultDays
+        )
+
+        val updatedList = listOf(newItem) + _uiState.value.historyList.filterNot {
+            it.title == title && it.detail == detail
+        }
+
+        _uiState.value = _uiState.value.copy(historyList = updatedList)
+    }
+
+    fun updateHistoryItemTitle(itemId: Long, newTitle: String) {
+        renameHistoryItem(itemId, newTitle)
+    }
+
+    fun renameHistoryItem(itemId: Long, newTitle: String) {
+        val updatedList = _uiState.value.historyList.map {
+            if (it.id == itemId) it.copy(title = newTitle) else it
+        }
+        _uiState.value = _uiState.value.copy(historyList = updatedList)
+    }
+
+    fun deleteHistoryItem(itemId: Long) {
+        removeHistoryItem(itemId)
+    }
+
+    fun deleteHistoryItem(item: HistoryItem) {
+        removeHistoryItem(item.id)
+    }
+
+    fun removeHistoryItem(itemId: Long) {
+        val updatedList = _uiState.value.historyList.filterNot { it.id == itemId }
+        _uiState.value = _uiState.value.copy(historyList = updatedList)
+    }
+
+    fun clearHistory() {
+        _uiState.value = _uiState.value.copy(historyList = emptyList())
     }
 
     fun triggerFireworks() {
@@ -416,9 +582,7 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun resetFireworks() {
-        if (_uiState.value.fireworksTrigger != 0) {
-            _uiState.value = _uiState.value.copy(fireworksTrigger = 0)
-        }
+        _uiState.value = _uiState.value.copy(fireworksTrigger = 0)
     }
 
     fun addCustomEvent(
@@ -438,11 +602,16 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
     }
 
-    fun togglePinCustomEvent(event: CustomEventItem) {
+    fun togglePinCustomEvent(event: CustomEventItem, context: Context? = null) {
         val updatedEvents = _uiState.value.customEvents.map {
-            if (it.id == event.id) it.copy(isPinned = !it.isPinned) else it
+            if (it.id == event.id || it.name == event.name) it.copy(isPinned = !it.isPinned) else it
         }
         _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
+
+        context?.let { ctx ->
+            val customPinnedNames = updatedEvents.filter { it.isPinned }.map { it.name }.toSet()
+            PreferenceUtils.savePinnedEvents(ctx, _uiState.value.pinnedPresetHolidays + customPinnedNames)
+        }
     }
 
     fun deleteCustomEvent(event: CustomEventItem) {
@@ -487,160 +656,5 @@ class DateCalculatorViewModel : ViewModel() {
             statutoryHolidaysCount = statutory,
             regularWeekendDaysCount = regularWeekends
         )
-    }
-
-    fun calculateMultiStageTimeline(): Pair<LocalDate, List<StageSegmentResult>> {
-        val state = _uiState.value
-        var currDate = state.baseDate
-        val results = mutableListOf<StageSegmentResult>()
-
-        state.stages.forEachIndexed { index, stage ->
-            val startDate = currDate
-            val stageDays = stage.days
-            val endDate = when (state.dateMode) {
-                DateMode.WORKDAY -> {
-                    when (stage.type) {
-                        CalculationType.ADD -> DateCalculatorUtils.addWorkdays(
-                            currDate, stageDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
-                        )
-                        CalculationType.SUBTRACT -> DateCalculatorUtils.addWorkdays(
-                            currDate, -stageDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
-                        )
-                    }
-                }
-                DateMode.NATURAL_DAY -> {
-                    when (stage.type) {
-                        CalculationType.ADD -> DateCalculatorUtils.addNaturalDays(currDate, stageDays)
-                        CalculationType.SUBTRACT -> DateCalculatorUtils.addNaturalDays(currDate, -stageDays)
-                    }
-                }
-            }
-
-            val totalCalDays = abs(ChronoUnit.DAYS.between(startDate, endDate))
-            val restDays = if (state.dateMode == DateMode.WORKDAY) totalCalDays - stageDays else 0L
-
-            results.add(
-                StageSegmentResult(
-                    stageIndex = index,
-                    remark = stage.remark,
-                    type = stage.type,
-                    daysCount = stageDays,
-                    startDate = startDate,
-                    endDate = endDate,
-                    totalCalendarDays = totalCalDays,
-                    restDaysCount = restDays
-                )
-            )
-
-            currDate = endDate
-        }
-
-        return Pair(currDate, results)
-    }
-
-    fun calculateTargetDate(overrideMode: DateMode? = null): LocalDate {
-        val state = _uiState.value
-        val mode = overrideMode ?: state.dateMode
-        val base = state.baseDate
-        val rawDays = state.daysInput.toLongOrNull() ?: 0L
-
-        return when (mode) {
-            DateMode.WORKDAY -> {
-                when (state.calculationType) {
-                    CalculationType.ADD -> DateCalculatorUtils.addWorkdays(
-                        base, rawDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
-                    )
-                    CalculationType.SUBTRACT -> DateCalculatorUtils.addWorkdays(
-                        base, -rawDays, state.weekendRule, state.enableChineseHolidays, state.holidayRegion, state.isCurrentWeekBigWeek, state.disableChinaShiftWorkdays
-                    )
-                }
-            }
-            DateMode.NATURAL_DAY -> {
-                when (state.calculationType) {
-                    CalculationType.ADD -> DateCalculatorUtils.addNaturalDays(base, rawDays)
-                    CalculationType.SUBTRACT -> DateCalculatorUtils.addNaturalDays(base, -rawDays)
-                }
-            }
-        }
-    }
-
-    fun performCalculation(): LocalDate {
-        val state = _uiState.value
-        val modeLabel = if (state.dateMode == DateMode.WORKDAY) "工作日" else "自然日"
-
-        val resultDate = if (state.isMultiStageExtensionEnabled) {
-            val (finalDate, segments) = calculateMultiStageTimeline()
-            val totalDays = segments.sumOf { it.daysCount }
-            val customTitle = state.multiStagePlanTitle.ifBlank { "多段安排 (${DateCalculatorUtils.formatDate(finalDate)})" }
-            val actionTypeLabel = if (state.calculationType == CalculationType.ADD) "多段加" else "多段减"
-            val detail = "$actionTypeLabel (${segments.size} 段时间): 共推算 ${totalDays} ${modeLabel} ➔ 完成: ${DateCalculatorUtils.formatDate(finalDate)}"
-            val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
-
-            saveToHistory(category = "多段加减", title = customTitle, detail = detail, regionTag = regionTag, resultDate = finalDate, resultDays = totalDays)
-            finalDate
-        } else if (state.calcSubMode == CalcSubMode.REVERSE_RANGE) {
-            val bd = calculateRangeBreakdown()
-            val title = "区间拆算: ${bd.totalNaturalDays} 自然日"
-            val detail = "${bd.startDate} ➔ ${bd.endDate} | 工作日: ${bd.workdaysCount}天, 周末: ${bd.regularWeekendDaysCount}天, 节假日: ${bd.statutoryHolidaysCount}天"
-            val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
-
-            saveToHistory(category = "区间拆算", title = title, detail = detail, regionTag = regionTag, resultDate = bd.endDate, resultDays = bd.totalNaturalDays)
-            bd.endDate
-        } else {
-            val res = calculateTargetDate()
-            val rawDays = state.daysInput.toLongOrNull() ?: 0L
-            val title = "推算目标日: ${DateCalculatorUtils.formatDate(res)}"
-            val detail = "${state.baseDate}  ➔  ${state.calculationType.symbol} ${rawDays} ${modeLabel}"
-            val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
-
-            saveToHistory(category = "日期计算", title = title, detail = detail, regionTag = regionTag, resultDate = res, resultDays = rawDays)
-            res
-        }
-
-        _uiState.value = _uiState.value.copy(showResult = true)
-        return resultDate
-    }
-
-    fun setShowResult(show: Boolean) {
-        _uiState.value = _uiState.value.copy(showResult = show)
-    }
-
-    fun updateHistoryItemTitle(itemId: Long, newTitle: String) {
-        val currentHistory = _uiState.value.historyList.map {
-            if (it.id == itemId) it.copy(title = newTitle) else it
-        }
-        _uiState.value = _uiState.value.copy(historyList = currentHistory)
-    }
-
-    fun saveToHistory(
-        category: String = "日期计算",
-        title: String,
-        detail: String,
-        regionTag: String = "🇨🇳 中国大陆",
-        resultDate: LocalDate? = null,
-        resultDays: Long? = null
-    ) {
-        val newItem = HistoryItem(
-            id = System.nanoTime(),
-            category = category,
-            title = title,
-            detail = detail,
-            regionTag = regionTag,
-            resultDate = resultDate,
-            resultDays = resultDays,
-            timestamp = System.currentTimeMillis()
-        )
-        val currentHistory = _uiState.value.historyList.toMutableList()
-        currentHistory.add(0, newItem)
-        _uiState.value = _uiState.value.copy(historyList = currentHistory.toList())
-    }
-
-    fun clearHistory() {
-        _uiState.value = _uiState.value.copy(historyList = emptyList())
-    }
-
-    fun deleteHistoryItem(item: HistoryItem) {
-        val currentHistory = _uiState.value.historyList.filterNot { it.id == item.id }
-        _uiState.value = _uiState.value.copy(historyList = currentHistory.toList())
     }
 }

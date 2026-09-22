@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.HorizontalDivider
@@ -50,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -141,9 +143,9 @@ fun HomeScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(14.dp)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        // 顶栏 (36dp 高度, 15sp 标题, 右上角历史与设置图标)
+        // 顶栏 (36dp 高度, 15sp 标题，删掉冗余词样“首页”)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -160,7 +162,7 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "日期计算器 首页",
+                    text = "日期计算器",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicTextPrimary
@@ -168,7 +170,6 @@ fun HomeScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // 历史记录图标
                 Box(
                     modifier = Modifier
                         .size(32.dp)
@@ -186,7 +187,6 @@ fun HomeScreen(
                     )
                 }
 
-                // 设置图标
                 Box(
                     modifier = Modifier
                         .size(32.dp)
@@ -206,14 +206,14 @@ fun HomeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // ================= 上面 1/2: 月历视图 (无硬外框，沉浸于背景) =================
+        // ================= 月历视图 (高度扩展至 44dp 单元格，文字绝对清晰完整) =================
         if (homeConfig.showCalendar) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp, horizontal = 2.dp)
+                    .padding(vertical = 2.dp, horizontal = 2.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -226,22 +226,22 @@ fun HomeScreen(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = null,
                                 tint = NeumorphicAccent,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "${currentYearMonth.year}年 ${currentYearMonth.monthValue}月",
-                                fontSize = 16.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
                             )
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                    .size(28.dp)
+                                    .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
                                     .background(NeumorphicBg, shape = CircleShape)
                                     .clip(CircleShape)
                                     .clickable {
@@ -249,20 +249,20 @@ fun HomeScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "上个月", tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "上个月", tint = NeumorphicAccent, modifier = Modifier.size(14.dp))
                             }
 
                             Box(
                                 modifier = Modifier
-                                    .height(32.dp)
-                                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                    .height(28.dp)
+                                    .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
                                     .background(NeumorphicAccent, shape = CircleShape)
                                     .clip(CircleShape)
                                     .clickable {
                                         currentYearMonth = YearMonth.now()
                                         selectedCalendarDate = LocalDate.now()
                                     }
-                                    .padding(horizontal = 10.dp),
+                                    .padding(horizontal = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text("今天", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
@@ -270,8 +270,8 @@ fun HomeScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                    .size(28.dp)
+                                    .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
                                     .background(NeumorphicBg, shape = CircleShape)
                                     .clip(CircleShape)
                                     .clickable {
@@ -279,12 +279,12 @@ fun HomeScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "下个月", tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "下个月", tint = NeumorphicAccent, modifier = Modifier.size(14.dp))
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     val weekTitles = listOf("日", "一", "二", "三", "四", "五", "六")
                     Row(modifier = Modifier.fillMaxWidth()) {
@@ -294,14 +294,14 @@ fun HomeScreen(
                                 text = w,
                                 modifier = Modifier.weight(1f),
                                 textAlign = TextAlign.Center,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isWeekendCol) Color(0xFFEF4444) else NeumorphicTextPrimary.copy(alpha = 0.7f)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     val firstDayOfMonth = currentYearMonth.atDay(1)
                     val daysInMonth = currentYearMonth.lengthOfMonth()
@@ -334,14 +334,14 @@ fun HomeScreen(
                                                     else if (dayLunar.festival.isNotEmpty()) dayLunar.festival.take(2)
                                                     else dayLunar.lunarDayName
 
-                                    val cellShape = RoundedCornerShape(10.dp)
+                                    val cellShape = RoundedCornerShape(8.dp)
                                     val cellModifier = if (isSelected) {
                                         Modifier
-                                            .neumorphicExtruded(shape = cellShape, elevation = 4.dp)
+                                            .neumorphicExtruded(shape = cellShape, elevation = 3.dp)
                                             .background(NeumorphicAccent, shape = cellShape)
                                     } else if (isToday) {
                                         Modifier
-                                            .border(1.5.dp, NeumorphicAccent, shape = cellShape)
+                                            .border(1.2.dp, NeumorphicAccent, shape = cellShape)
                                             .background(NeumorphicBg, shape = cellShape)
                                     } else {
                                         Modifier.background(Color.Transparent)
@@ -359,7 +359,10 @@ fun HomeScreen(
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 val textColor = if (isSelected) Color.White
                                                 else if (isStatutory) Color(0xFFEF4444)
@@ -369,9 +372,11 @@ fun HomeScreen(
 
                                                 Text(
                                                     text = dayNum.toString(),
-                                                    fontSize = 13.sp,
+                                                    fontSize = 12.5.sp,
                                                     fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Bold,
-                                                    color = textColor
+                                                    color = textColor,
+                                                    maxLines = 1,
+                                                    softWrap = false
                                                 )
 
                                                 if (isStatutory) {
@@ -384,7 +389,10 @@ fun HomeScreen(
                                             Text(
                                                 text = lunarText,
                                                 fontSize = 9.sp,
-                                                color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.5f)
+                                                color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
                                     }
@@ -397,21 +405,21 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(4.dp))
         }
 
-        // ================= 下面 1/2: 当日黄历、节气、农历、星座、运势、天气 =================
+        // ================= 当日黄历、节气、农历、天气、星座运势 =================
 
-        // 1. 当日农历、节气与老黄历宜忌 二合一 Card (取消“当日老黄历宜忌”标题)
+        // 1. 当日农历、节气与老黄历宜忌 Card (空间紧凑压缩)
         if (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac) {
-            val combinedShape = RoundedCornerShape(20.dp)
+            val combinedShape = RoundedCornerShape(18.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .neumorphicExtruded(shape = combinedShape, elevation = 5.dp)
+                    .neumorphicExtruded(shape = combinedShape, elevation = 4.dp)
                     .background(NeumorphicBg, shape = combinedShape)
                     .clip(combinedShape)
-                    .padding(14.dp)
+                    .padding(10.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -422,7 +430,7 @@ fun HomeScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate),
-                                fontSize = 16.sp,
+                                fontSize = 14.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
                             )
@@ -433,62 +441,62 @@ fun HomeScreen(
                             SuggestionChip(
                                 onClick = {},
                                 shape = CircleShape,
-                                label = { Text("$termIcon ${todayLunar.solarTerm}", fontWeight = FontWeight.Bold, fontSize = 11.sp) }
+                                label = { Text("$termIcon ${todayLunar.solarTerm}", fontWeight = FontWeight.Bold, fontSize = 10.5.sp) }
                             )
                         }
                     }
 
                     if (homeConfig.showLunar) {
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "农历 ${todayLunar.ganZhiYear} (${todayLunar.zodiac}) 年 ${if (todayLunar.isLeapMonth) "闰" else ""}${todayLunar.lunarMonthName}${todayLunar.lunarDayName}",
-                            fontSize = 15.sp,
+                            fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = NeumorphicAccent
                         )
                     }
 
                     if (homeConfig.showAlmanac) {
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
-                        // 老黄历宜忌 (取消“当日老黄历宜忌”标题)
+                        // 老黄历宜忌
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(24.dp)
+                                    .size(20.dp)
                                     .clip(CircleShape)
                                     .background(Color(0xFF10B981)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("宜", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                                Text("宜", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
                             }
 
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
 
                             FlowRow(
                                 modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                verticalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 almanac.yiList.forEach { yiItem ->
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
+                                            .clip(RoundedCornerShape(6.dp))
                                             .background(Color(0xFF10B981).copy(alpha = 0.15f))
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
-                                        Text(yiItem, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
+                                        Text(yiItem, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
                                     }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -496,29 +504,29 @@ fun HomeScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(24.dp)
+                                    .size(20.dp)
                                     .clip(CircleShape)
                                     .background(Color(0xFF64748B)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("忌", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                                Text("忌", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
                             }
 
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
 
                             FlowRow(
                                 modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                verticalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 almanac.jiList.forEach { jiItem ->
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
+                                            .clip(RoundedCornerShape(6.dp))
                                             .background(Color(0xFF64748B).copy(alpha = 0.15f))
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
-                                        Text(jiItem, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                        Text(jiItem, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
                                     }
                                 }
                             }
@@ -527,18 +535,71 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(6.dp))
         }
 
-        // 3. 星座与运势 Card
+        // 2. 当日及未来三日天气预报 Card (已安全回复恢复)
+        if (homeConfig.showWeather) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
+                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .padding(10.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { viewModel.fetchCurrentGpsLocation(context) }
+                    ) {
+                        Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("📍 ${uiState.currentCityName} · 当地及未来三日天气推算", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        weatherList.forEach { weather ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                                    .padding(vertical = 6.dp, horizontal = 2.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(weather.dayName, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(weather.iconEmoji, fontSize = 16.sp)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(weather.condition, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("${weather.tempMin}°~${weather.tempMax}°", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+
+        // 3. 星座与运势 Card (在未滚动默认状态下，精准露出“⭐ 处女座 每日运势”标题行)
         if (homeConfig.showZodiacFortune) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                    .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
-                    .padding(14.dp)
+                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
+                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -547,29 +608,29 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) 每日运势", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) 每日运势", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
                         }
 
                         Row {
                             repeat(fortune.starRating) {
-                                Text("⭐", fontSize = 12.sp)
+                                Text("⭐", fontSize = 11.sp)
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
                         text = fortune.summary,
-                        fontSize = 13.sp,
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.Medium,
                         color = NeumorphicTextPrimary,
-                        lineHeight = 18.sp
+                        lineHeight = 17.sp
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -577,59 +638,6 @@ fun HomeScreen(
                     ) {
                         Text("幸运数字: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                         Text("幸运颜色: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        // 4. 当日及未来三日天气预报 Card
-        if (homeConfig.showWeather) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                    .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
-                    .padding(14.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { viewModel.fetchCurrentGpsLocation(context) }
-                    ) {
-                        Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("📍 ${uiState.currentCityName} · 当地及未来三日天气推算", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        weatherList.forEach { weather ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
-                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(14.dp))
-                                    .padding(vertical = 10.dp, horizontal = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(weather.dayName, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(weather.iconEmoji, fontSize = 22.sp)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(weather.condition, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text("${weather.tempMin}°~${weather.tempMax}°", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
-                                }
-                            }
-                        }
                     }
                 }
             }

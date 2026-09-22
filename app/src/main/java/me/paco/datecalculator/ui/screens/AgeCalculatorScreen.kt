@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -129,7 +130,7 @@ fun AgeCalculatorScreen(
             .verticalScroll(scrollState)
             .padding(14.dp)
     ) {
-        // 顶栏 (36dp 高度, 15sp 标题, 右上角历史记录与设置图标)
+        // 顶栏 (36dp 高度, 15sp 标题, 无括号简洁名称)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -146,7 +147,7 @@ fun AgeCalculatorScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "年龄计算 (精准到天)",
+                    text = "年龄计算",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicTextPrimary
@@ -192,11 +193,12 @@ fun AgeCalculatorScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // 1. 出生日期选择卡片
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { showBirthDatePicker = true },
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
             )
@@ -224,9 +226,10 @@ fun AgeCalculatorScreen(
                             fontSize = 11.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
+                        val birthFormatted = DateCalculatorUtils.formatDateWithWeek(birthDate)
                         Text(
-                            text = DateCalculatorUtils.formatDateWithWeek(birthDate),
-                            fontSize = 17.sp,
+                            text = birthFormatted,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -235,7 +238,7 @@ fun AgeCalculatorScreen(
 
                 Icon(
                     imageVector = Icons.Default.EditCalendar,
-                    contentDescription = "修改出生日期",
+                    contentDescription = "选择日期",
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                 )
             }
@@ -243,170 +246,186 @@ fun AgeCalculatorScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
+        // 2. 年龄计算核心结果卡片 (周岁 / 生辰 / 存活天数)
+        val resultCardShape = RoundedCornerShape(22.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .neumorphicExtruded(shape = RoundedCornerShape(22.dp), elevation = 6.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(22.dp))
-                .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(22.dp))
-                .clip(RoundedCornerShape(22.dp))
+                .neumorphicExtruded(shape = resultCardShape, elevation = 6.dp)
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = resultCardShape)
+                .border(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f), shape = resultCardShape)
+                .clip(resultCardShape)
                 .padding(16.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "精准年龄推算",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 周岁大字
                 Text(
-                    text = "当前精准年龄",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = NeumorphicAccent
+                    text = "${ageResult.years} 岁 ${ageResult.months} 个月 ${ageResult.days} 天",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = "${ageResult.years} 岁 ${ageResult.months} 个月 ${ageResult.days} 天",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = NeumorphicTextPrimary
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                SuggestionChip(
-                    onClick = {},
-                    shape = CircleShape,
-                    label = {
-                        Text(
-                            text = "🎉 距离下次生日还有 ${ageResult.daysToNextBirthday} 天 (${ageResult.nextBirthdayDate})",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        )
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
-                                .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
-                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(14.dp))
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("生存总天数", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
-                                Text("${ageResult.totalDays} 天", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
-                            }
-                        }
+                    SuggestionChip(
+                        onClick = {},
+                        shape = CircleShape,
+                        label = { Text("生肖: ${ageResult.zodiac}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    )
 
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
-                                .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
-                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(14.dp))
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("生存总周数", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
-                                Text("${ageResult.totalWeeks} 周", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
-                                .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
-                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(14.dp))
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("生肖属相", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
-                                Text("${ageResult.zodiac} 年", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
-                                .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
-                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(14.dp))
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("星座", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
-                                Text("${ageResult.constellationEmoji} ${ageResult.constellation}", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
-                            }
-                        }
-                    }
+                    SuggestionChip(
+                        onClick = {},
+                        shape = CircleShape,
+                        label = { Text("${ageResult.constellationEmoji} ${ageResult.constellation}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
+                // 四格子面板：已生活总天数、总月数、总周数、下一个生日倒计时
+                val gridShape = RoundedCornerShape(16.dp)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
-                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                        .neumorphicInset(shape = gridShape, elevation = 3.dp)
+                        .background(NeumorphicSunkenBg, shape = gridShape)
                         .padding(12.dp)
                 ) {
-                    Column {
-                        Text("✨ ${ageResult.constellation} 今日运势简评", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(fortune.summary, fontSize = 12.sp, color = NeumorphicTextPrimary, lineHeight = 16.sp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("已来到这个世界", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                Text("${ageResult.totalDays} 天", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("折合月数", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                Text("${ageResult.totalMonths} 个月", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("折合周数", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                Text("${ageResult.totalWeeks} 周", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("距离下个生日", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                Text("还有 ${ageResult.daysToNextBirthday} 天", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF10B981))
+                            }
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                val shareText = "精确年龄: ${ageResult.years}岁 ${ageResult.months}个月 ${ageResult.days}天 (共 ${ageResult.totalDays} 天) | 距离下次生日还有 ${ageResult.daysToNextBirthday} 天"
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     NeumorphicIconButton(
-                        icon = Icons.Default.Share,
-                        contentDescription = "分享年龄结果",
+                        icon = Icons.Default.ContentCopy,
                         onClick = {
-                            ShareUtils.shareText(context, shareText)
-                        }
+                            val copyText = "出生日期: ${DateCalculatorUtils.formatDate(birthDate)} | 精确年龄: ${ageResult.years}岁${ageResult.months}个月${ageResult.days}天 (共 ${ageResult.totalDays} 天) | 生肖星座: ${ageResult.zodiac}年 ${ageResult.constellationEmoji}${ageResult.constellation}"
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("AgeResult", copyText))
+                            Toast.makeText(context, "年龄计算结果已复制", Toast.LENGTH_SHORT).show()
+                        },
+                        contentDescription = "复制结果",
+                        modifier = Modifier.weight(1f)
                     )
-
-                    Spacer(modifier = Modifier.width(10.dp))
 
                     NeumorphicIconButton(
-                        icon = Icons.Default.ContentCopy,
-                        contentDescription = "复制年龄结果",
+                        icon = Icons.Default.Share,
                         onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("AgeResult", shareText)
-                            clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
-                        }
+                            val shareText = "我的年龄档案:\n出生日期: ${DateCalculatorUtils.formatDate(birthDate)}\n周岁: ${ageResult.years}岁 ${ageResult.months}个月 ${ageResult.days}天\n生肖: ${ageResult.zodiac} | 星座: ${ageResult.constellationEmoji}${ageResult.constellation}\n已陪伴这个世界: ${ageResult.totalDays} 天 (${ageResult.totalWeeks} 周)"
+                            ShareUtils.shareText(context, "我的精准年龄档案", shareText)
+                        },
+                        contentDescription = "分享长卡",
+                        modifier = Modifier.weight(1f)
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // 3. 星座专属每日运势 Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
+                .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(20.dp))
+                .padding(14.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) 专属运势", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    }
+
+                    Row {
+                        repeat(fortune.starRating) {
+                            Text("⭐", fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = fortune.summary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = NeumorphicTextPrimary,
+                    lineHeight = 18.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("幸运数字: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                    Text("幸运颜色: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                 }
             }
         }

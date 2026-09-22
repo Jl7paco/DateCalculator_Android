@@ -2,11 +2,15 @@ package me.paco.datecalculator.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import me.paco.datecalculator.data.AnniversaryItem
 import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.HomeConfig
 import me.paco.datecalculator.data.ThemeColorPreset
 import me.paco.datecalculator.data.WeekendRule
+import org.json.JSONArray
+import org.json.JSONObject
+import java.time.LocalDate
 
 object PreferenceUtils {
 
@@ -28,6 +32,9 @@ object PreferenceUtils {
     private const val KEY_HOME_LUNAR = "home_lunar"
     private const val KEY_HOME_ZODIAC = "home_zodiac"
     private const val KEY_HOME_WEATHER = "home_weather"
+
+    private const val KEY_PINNED_EVENTS = "pinned_events"
+    private const val KEY_ANNIVERSARIES_JSON = "anniversaries_json"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -140,5 +147,75 @@ object PreferenceUtils {
             showZodiacFortune = prefs.getBoolean(KEY_HOME_ZODIAC, true),
             showWeather = prefs.getBoolean(KEY_HOME_WEATHER, true)
         )
+    }
+
+    fun savePinnedEvents(context: Context, pinnedSet: Set<String>) {
+        getPrefs(context).edit().putStringSet(KEY_PINNED_EVENTS, pinnedSet).apply()
+    }
+
+    fun getPinnedEvents(context: Context): Set<String> {
+        return getPrefs(context).getStringSet(KEY_PINNED_EVENTS, emptySet()) ?: emptySet()
+    }
+
+    fun saveAnniversaries(context: Context, items: List<AnniversaryItem>) {
+        val limitedList = items.take(999)
+        val jsonArray = JSONArray()
+        limitedList.forEach { item ->
+            val obj = JSONObject().apply {
+                put("id", item.id)
+                put("title", item.title)
+                put("date", item.date.toString())
+                put("iconEmoji", item.iconEmoji)
+                put("isCheckIn", item.isCheckIn)
+                put("locationName", item.locationName)
+                put("latitude", item.latitude ?: 0.0)
+                put("longitude", item.longitude ?: 0.0)
+                put("checkInTimeStr", item.checkInTimeStr)
+                put("remark", item.remark)
+                put("isPinned", item.isPinned)
+            }
+            jsonArray.put(obj)
+        }
+        getPrefs(context).edit().putString(KEY_ANNIVERSARIES_JSON, jsonArray.toString()).apply()
+    }
+
+    fun getAnniversaries(context: Context): List<AnniversaryItem> {
+        val jsonStr = getPrefs(context).getString(KEY_ANNIVERSARIES_JSON, null) ?: return emptyList()
+        val result = mutableListOf<AnniversaryItem>()
+        try {
+            val jsonArray = JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val id = obj.optLong("id", System.currentTimeMillis())
+                val title = obj.optString("title", "纪念日")
+                val dateStr = obj.optString("date", LocalDate.now().toString())
+                val date = try { LocalDate.parse(dateStr) } catch (_: Exception) { LocalDate.now() }
+                val iconEmoji = obj.optString("iconEmoji", "❤️")
+                val isCheckIn = obj.optBoolean("isCheckIn", false)
+                val locationName = obj.optString("locationName", "")
+                val lat = obj.optDouble("latitude", 0.0)
+                val lon = obj.optDouble("longitude", 0.0)
+                val checkInTimeStr = obj.optString("checkInTimeStr", "")
+                val remark = obj.optString("remark", "")
+                val isPinned = obj.optBoolean("isPinned", false)
+
+                result.add(
+                    AnniversaryItem(
+                        id = id,
+                        title = title,
+                        date = date,
+                        iconEmoji = iconEmoji,
+                        isCheckIn = isCheckIn,
+                        locationName = locationName,
+                        latitude = if (lat != 0.0) lat else null,
+                        longitude = if (lon != 0.0) lon else null,
+                        checkInTimeStr = checkInTimeStr,
+                        remark = remark,
+                        isPinned = isPinned
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return result.take(999)
     }
 }

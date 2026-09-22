@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,8 +58,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.ui.components.DynamicCalendarWatermarkBg
 import me.paco.datecalculator.ui.screens.AgeCalculatorScreen
+import me.paco.datecalculator.ui.screens.AnniversaryScreen
 import me.paco.datecalculator.ui.screens.DateCalculationScreen
 import me.paco.datecalculator.ui.screens.DateDiffScreen
 import me.paco.datecalculator.ui.screens.HomeScreen
@@ -81,13 +85,20 @@ fun MainScreen(
 
     val showHome = uiState.homeConfig.showHomeScreen
 
-    // 底栏不保留历史或设置，全部为纯功能选项
+    val isDark = when (uiState.darkThemeMode) {
+        DarkThemeMode.SYSTEM -> isSystemInDarkTheme()
+        DarkThemeMode.ON -> true
+        DarkThemeMode.OFF -> false
+    }
+
+    // 纯功能底栏列表（包含“纪念日”页）
     val navItems = remember(showHome) {
         if (showHome) {
             listOf(
                 "首页" to Icons.Default.Home,
                 "日期计算" to Icons.Default.CalendarToday,
                 "倒数日" to Icons.Default.Event,
+                "纪念日" to Icons.Default.Favorite,
                 "农历转换" to Icons.Default.SwapHoriz,
                 "年龄计算" to Icons.Default.Cake
             )
@@ -95,6 +106,7 @@ fun MainScreen(
             listOf(
                 "日期计算" to Icons.Default.CalendarToday,
                 "倒数日" to Icons.Default.Event,
+                "纪念日" to Icons.Default.Favorite,
                 "农历转换" to Icons.Default.SwapHoriz,
                 "年龄计算" to Icons.Default.Cake
             )
@@ -104,12 +116,12 @@ fun MainScreen(
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { navItems.size })
 
     DateCalculatorTheme(
+        darkTheme = isDark,
         themePreset = uiState.themePreset,
         customPrimaryColorHex = uiState.customPrimaryColorHex
     ) {
         Scaffold(
             bottomBar = {
-                // 底栏高度降低 15% (80dp -> 68dp)
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -169,7 +181,7 @@ fun MainScreen(
                             .offset(x = indicatorOffsetX)
                             .width(tabWidth)
                             .height(68.dp)
-                            .padding(horizontal = 6.dp, vertical = 8.dp)
+                            .padding(horizontal = 4.dp, vertical = 8.dp)
                             .clip(RoundedCornerShape(18.dp))
                             .background(MaterialTheme.colorScheme.primary)
                     )
@@ -212,14 +224,14 @@ fun MainScreen(
                                     imageVector = icon,
                                     contentDescription = label,
                                     tint = textColor,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(19.dp)
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = label,
                                     color = textColor,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
+                                    fontSize = 10.5.sp
                                 )
                             }
                         }
@@ -262,15 +274,17 @@ fun MainScreen(
                                     0 -> HomeScreen(viewModel = viewModel, uiState = uiState)
                                     1 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
                                     2 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
-                                    3 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
-                                    4 -> AgeCalculatorScreen(viewModel = viewModel, uiState = uiState)
+                                    3 -> AnniversaryScreen(viewModel = viewModel, uiState = uiState)
+                                    4 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
+                                    5 -> AgeCalculatorScreen(viewModel = viewModel, uiState = uiState)
                                 }
                             } else {
                                 when (page) {
                                     0 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
                                     1 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
-                                    2 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
-                                    3 -> AgeCalculatorScreen(viewModel = viewModel, uiState = uiState)
+                                    2 -> AnniversaryScreen(viewModel = viewModel, uiState = uiState)
+                                    3 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
+                                    4 -> AgeCalculatorScreen(viewModel = viewModel, uiState = uiState)
                                 }
                             }
                         }

@@ -1,6 +1,5 @@
 package me.paco.datecalculator.ui.components
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,12 +22,13 @@ import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.WeekendRule
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import me.paco.datecalculator.util.DateCalculatorUtils
 import java.time.LocalDate
 import java.time.YearMonth
 
 /**
- * 动态根据当前实际时间与所选 HolidayRegion 独立切换的 3D 拟物月历水印背景 (仅靠纯粹配色区分，取消休/班后缀)
+ * 动态根据当前实际时间与所选 HolidayRegion 独立切换的 3D 拟物月历水印背景 (深色模式显著提升对比度与清晰度)
  */
 @Composable
 fun DynamicCalendarWatermarkBg(
@@ -38,21 +38,20 @@ fun DynamicCalendarWatermarkBg(
     holidayRegion: HolidayRegion = HolidayRegion.CHINA,
     isCurrentWeekBigWeek: Boolean = true
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = LocalDarkTheme.current
     val today = remember { LocalDate.now() }
     val yearMonth = remember(today) { YearMonth.of(today.year, today.month) }
 
-    // 透明度调整至 10% (0.10f)，清晰可辨且极具质感
-    val watermarkAlpha = 0.10f
+    // 深色模式提升水印不透明度至 28% (0.28f)，清晰可辨且沉稳高雅；浅色模式维持 12% 自然隐约效果
+    val watermarkAlpha = if (isDark) 0.28f else 0.12f
     val textColor = if (isDark) Color.White.copy(alpha = watermarkAlpha) else Color(0xFF1E293B).copy(alpha = watermarkAlpha)
-    val highlightColor = if (isDark) Color(0xFF60A5FA).copy(alpha = watermarkAlpha * 3.5f) else NeumorphicAccent.copy(alpha = watermarkAlpha * 3.5f)
-    val restDayColor = if (isDark) Color(0xFFF59E0B).copy(alpha = watermarkAlpha * 2.2f) else Color(0xFFD97706).copy(alpha = watermarkAlpha * 2.2f)
-    val shiftWorkColor = if (isDark) Color(0xFF38BDF8).copy(alpha = watermarkAlpha * 2.5f) else Color(0xFF0284C7).copy(alpha = watermarkAlpha * 2.5f)
+    val highlightColor = if (isDark) Color(0xFF60A5FA).copy(alpha = (watermarkAlpha * 2.8f).coerceAtMost(0.95f)) else NeumorphicAccent.copy(alpha = watermarkAlpha * 3.5f)
+    val restDayColor = if (isDark) Color(0xFFFBBF24).copy(alpha = (watermarkAlpha * 2.2f).coerceAtMost(0.85f)) else Color(0xFFD97706).copy(alpha = watermarkAlpha * 2.2f)
+    val shiftWorkColor = if (isDark) Color(0xFF38BDF8).copy(alpha = (watermarkAlpha * 2.5f).coerceAtMost(0.90f)) else Color(0xFF0284C7).copy(alpha = watermarkAlpha * 2.5f)
 
     val firstDayOfWeek = remember(yearMonth) { yearMonth.atDay(1).dayOfWeek.value % 7 } // 0=Sunday
     val daysInMonth = remember(yearMonth) { yearMonth.lengthOfMonth() }
 
-    // 纯粹与 holidayRegion 独立绑定、不依赖系统 Locale 语言设置的月份巨幕标语
     val monthHeaderStr = remember(today, holidayRegion) {
         DateCalculatorUtils.getWatermarkMonthHeader(today.monthValue, holidayRegion)
     }
@@ -87,7 +86,7 @@ fun DynamicCalendarWatermarkBg(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 2. 7 列表格网图水印 (纯粹通过对应颜色区别工作日/休假日/调休上班日，取消文字后缀)
+            // 2. 7 列表格网图水印
             val weekHeaders = listOf("日", "一", "二", "三", "四", "五", "六")
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -126,7 +125,6 @@ fun DynamicCalendarWatermarkBg(
                             val date = yearMonth.atDay(cellDay)
                             val isToday = (cellDay == today.dayOfMonth)
 
-                            // 精准检测调休补班与法定节假日/双休
                             val isShiftWork = RegionalHolidays.isShiftWorkday(date, holidayRegion)
                             val isStatutoryHoliday = enableHolidays && RegionalHolidays.isStatutoryHoliday(date, holidayRegion)
                             val isWeekend = weekendRule.isWeekend(date, isCurrentWeekBigWeek)
@@ -136,7 +134,7 @@ fun DynamicCalendarWatermarkBg(
                             val cellColor = when {
                                 isToday -> highlightColor       // 今日高光
                                 isShiftWork -> shiftWorkColor  // 调休补班日 (蓝色系)
-                                isRestDay -> restDayColor      // 休假/节假日/周末 (琥珀金暖色系)
+                                isRestDay -> restDayColor      // 休假/节假日/周末 (暖金/琥珀色系)
                                 else -> textColor              // 普通工作日
                             }
 

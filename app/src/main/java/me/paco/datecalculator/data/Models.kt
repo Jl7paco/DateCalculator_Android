@@ -28,7 +28,7 @@ enum class HolidayRegion(
     INDIA("IN", "印度", "India", "🇮🇳", "含印度全国及各邦法定节假日"),
     INDONESIA("ID", "印尼", "Indonesia", "🇮🇩", "含印尼全国法定公众假期 (Hari Libur)"),
     AUSTRALIA("AU", "澳大利亚", "Australia", "🇦🇺", "含澳大利亚全国及州法定公众假期"),
-    NEW_ZEALAND("NZ", "新西兰", "New Zealand", "🇳ℤ", "含新西兰全国法定公众假期"),
+    NEW_ZEALAND("NZ", "新西兰", "New Zealand", "🇳🇿", "含新西兰全国法定公众假期"),
     UNITED_STATES("US", "美国", "United States", "🇺🇸", "含联邦法定节假日 (Federal Holidays)"),
     THAILAND("TH", "泰国", "ประเทศไทย", "🇹🇭", "含泰国法定公众假期及补假")
 }
@@ -75,45 +75,28 @@ enum class DateMode(val label: String) {
     NATURAL_DAY("自然日")
 }
 
+enum class ThemeColorPreset(val label: String, val primaryColorHex: Long) {
+    SYSTEM("跟随系统", 0xFF2563EB),
+    CUSTOM("自定义色彩", 0xFF2563EB)
+}
+
 /**
- * 深色/黑暗模式选择配置
+ * 深色/黑暗模式选择配置 (更名："开启"、"关闭")
  */
 enum class DarkThemeMode(val label: String) {
     SYSTEM("跟随系统"),
-    ON("强制开启"),
-    OFF("强制关闭")
+    ON("开启"),
+    OFF("关闭")
 }
 
-data class CalculationStage(
-    val id: Long = System.nanoTime(),
-    var type: CalculationType = CalculationType.ADD,
-    var daysInput: String = "",
-    var remark: String = ""
-) {
-    val days: Long
-        get() = daysInput.toLongOrNull() ?: 15L
-}
-
-data class StageSegmentResult(
-    val stageIndex: Int,
-    val remark: String,
-    val type: CalculationType,
-    val daysCount: Long,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
-    val totalCalendarDays: Long,
-    val restDaysCount: Long
-)
-
-data class HistoryItem(
-    val id: Long = System.nanoTime(),
-    val category: String = "日期计算",
-    val title: String,
-    val detail: String,
-    val regionTag: String = "🇨🇳 中国大陆",
-    val resultDate: LocalDate? = null,
-    val resultDays: Long? = null,
-    val timestamp: Long = System.currentTimeMillis()
+data class HomeConfig(
+    val showHomeScreen: Boolean = true,
+    val showCalendar: Boolean = true,
+    val showAlmanac: Boolean = true,
+    val showSolarTerms: Boolean = true,
+    val showLunar: Boolean = true,
+    val showZodiacFortune: Boolean = true,
+    val showWeather: Boolean = true
 )
 
 data class AgeResult(
@@ -155,17 +138,59 @@ data class ZodiacFortune(
     val ji: String
 )
 
-data class HomeConfig(
-    val showHomeScreen: Boolean = true,
-    val showCalendar: Boolean = true,
-    val showAlmanac: Boolean = true,
-    val showSolarTerms: Boolean = true,
-    val showLunar: Boolean = true,
-    val showZodiacFortune: Boolean = true,
-    val showWeather: Boolean = true
+/**
+ * 重要纪念日与打卡模型 (最高存储 999 个卡片，支持记录经纬度、地点与精准打卡时间)
+ */
+data class AnniversaryItem(
+    val id: Long = System.currentTimeMillis(),
+    val title: String,
+    val date: LocalDate,
+    val iconEmoji: String = "❤️",
+    val isCheckIn: Boolean = false,
+    val locationName: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val checkInTimeStr: String = "",
+    val remark: String = "",
+    val isPinned: Boolean = false
+) {
+    fun getNextUpcomingDate(baseDate: LocalDate = LocalDate.now()): LocalDate {
+        var upcoming = date
+        while (upcoming.isBefore(baseDate)) {
+            upcoming = upcoming.plusYears(1)
+        }
+        return upcoming
+    }
+}
+
+data class CalculationStage(
+    val id: Long = System.nanoTime(),
+    var type: CalculationType = CalculationType.ADD,
+    var daysInput: String = "",
+    var remark: String = ""
+) {
+    val days: Long
+        get() = daysInput.toLongOrNull() ?: 15L
+}
+
+data class StageSegmentResult(
+    val stageIndex: Int,
+    val remark: String,
+    val type: CalculationType,
+    val daysCount: Long,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val totalCalendarDays: Long,
+    val restDaysCount: Long
 )
 
-enum class ThemeColorPreset(val label: String, val primaryColorHex: Long) {
-    SYSTEM("跟随系统", 0xFF2563EB),
-    CUSTOM("自定义调色", 0xFF2563EB)
-}
+data class HistoryItem(
+    val id: Long = System.nanoTime(),
+    val category: String = "日期计算",
+    val title: String,
+    val detail: String,
+    val regionTag: String = "🇨🇳 中国大陆",
+    val resultDate: LocalDate? = null,
+    val resultDays: Long? = null,
+    val timestamp: Long = System.currentTimeMillis()
+)

@@ -1,6 +1,5 @@
 package me.paco.datecalculator.ui.components
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -16,25 +15,26 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 
-// 明亮冰雪白底色 (还原附图)，Accent 动态跟进整机系统主题色
-val NeumorphicBg @Composable get() = if (isSystemInDarkTheme()) {
-    MaterialTheme.colorScheme.surface
+// 明亮冰雪白底色与深色背景底色，依据 LocalDarkTheme 动态感知
+val NeumorphicBg @Composable get() = if (LocalDarkTheme.current) {
+    Color(0xFF1B232A)
 } else {
     Color(0xFFF2F5FA)
 }
 
 // 凹陷按下沉降底色
-val NeumorphicSunkenBg @Composable get() = if (isSystemInDarkTheme()) {
-    MaterialTheme.colorScheme.surfaceVariant
+val NeumorphicSunkenBg @Composable get() = if (LocalDarkTheme.current) {
+    Color(0xFF151C22)
 } else {
     Color(0xFFDDE3EC)
 }
 
 val NeumorphicAccent @Composable get() = MaterialTheme.colorScheme.primary
 
-val NeumorphicTextPrimary @Composable get() = if (isSystemInDarkTheme()) {
-    MaterialTheme.colorScheme.onSurface
+val NeumorphicTextPrimary @Composable get() = if (LocalDarkTheme.current) {
+    Color(0xFFE2E8F0)
 } else {
     Color(0xFF2D3748)
 }
@@ -47,7 +47,7 @@ fun Modifier.neumorphicExtruded(
     shape: Shape = RoundedCornerShape(16.dp),
     elevation: Dp = 4.dp
 ): Modifier {
-    val isDark = isSystemInDarkTheme()
+    val isDark = LocalDarkTheme.current
     val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.55f)
     val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.50f) else Color(0xFFB0BDCC).copy(alpha = 0.45f)
 
@@ -99,7 +99,7 @@ fun Modifier.neumorphicInset(
     shape: Shape = RoundedCornerShape(16.dp),
     elevation: Dp = 4.dp
 ): Modifier {
-    val isDark = isSystemInDarkTheme()
+    val isDark = LocalDarkTheme.current
     val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.50f)
     val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.65f) else Color(0xFFA2B0C2).copy(alpha = 0.55f)
 

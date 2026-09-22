@@ -61,7 +61,6 @@ import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.util.DateCalculatorUtils
-import me.paco.datecalculator.util.LunarCalendarUtils
 import me.paco.datecalculator.util.ShareUtils
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -88,9 +87,6 @@ fun ResultCard(
     val descStr = DateCalculatorUtils.getDateDescription(resultDate)
     val isWork = DateCalculatorUtils.isWorkday(resultDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek)
 
-    val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(resultDate)
-    val fortune = LunarCalendarUtils.getDailyFortune(resultDate, constName)
-
     val titleDisplay = when (title) {
         "工作日计算结果日期" -> stringResource(R.string.label_result_title_workday)
         "自然日计算结果日期" -> stringResource(R.string.label_result_title_natural)
@@ -104,7 +100,7 @@ fun ResultCard(
     }
 
     val copyToast = stringResource(R.string.toast_copied)
-    val shareText = "$titleDisplay: $dateStr ($descStr) | 星座: $constEmoji $constName | 运势: ${fortune.summary}"
+    val shareText = "$titleDisplay: $dateStr ($descStr)"
 
     val cardShape24 = RoundedCornerShape(24.dp)
 
@@ -156,32 +152,16 @@ fun ResultCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SuggestionChip(
-                        onClick = {},
-                        shape = CircleShape,
-                        label = {
-                            Text(
-                                text = chipDisplay,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    )
-
-                    SuggestionChip(
-                        onClick = {},
-                        shape = CircleShape,
-                        label = {
-                            Text(
-                                text = "$constEmoji $constName",
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    )
-                }
+                SuggestionChip(
+                    onClick = {},
+                    shape = CircleShape,
+                    label = {
+                        Text(
+                            text = chipDisplay,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
@@ -191,16 +171,7 @@ fun ResultCard(
                     color = NeumorphicTextPrimary.copy(alpha = 0.8f)
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "✨ 运势: ${fortune.summary}",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = NeumorphicTextPrimary.copy(alpha = 0.75f)
-                )
-
-                // 直接将单段时间轴合并到计算结果卡片内部，不提供 CSV 导出
+                // 单段推算只保留总时间安排的主时间轴，取消子时间轴
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
                 Spacer(modifier = Modifier.height(10.dp))
@@ -225,7 +196,8 @@ fun ResultCard(
                     modeLabel = unitLabel,
                     regionLabel = "${holidayRegion.flagEmoji} ${holidayRegion.nativeName}",
                     showOuterCard = false,
-                    showExportButton = false
+                    showExportButton = false,
+                    showSubTimeline = false // 单段推算隐藏子时间轴，仅保留总时间安排主时间轴
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
