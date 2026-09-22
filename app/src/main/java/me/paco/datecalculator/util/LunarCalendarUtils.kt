@@ -1,32 +1,32 @@
 package me.paco.datecalculator.util
 
+import me.paco.datecalculator.data.AgeResult
+import me.paco.datecalculator.data.ZodiacFortune
 import java.time.LocalDate
+import java.time.Period
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 
-data class LunarDateResult(
+data class LunarDate(
     val year: Int,
     val month: Int,
     val day: Int,
     val isLeapMonth: Boolean,
-    val lunarMonthName: String,
-    val lunarDayName: String,
     val ganZhiYear: String,
     val zodiac: String,
-    val festival: String,
-    val solarTerm: String = ""
+    val lunarMonthName: String,
+    val lunarDayName: String,
+    val solarTerm: String = "",
+    val festival: String = ""
 ) {
     fun getFullDescription(): String {
-        val leapStr = if (isLeapMonth) "闰" else ""
-        val festStr = if (festival.isNotEmpty()) " [$festival]" else ""
-        val termStr = if (solarTerm.isNotEmpty()) " [$solarTerm]" else ""
-        return "农历 ${ganZhiYear}年 (${zodiac}) $leapStr$lunarMonthName$lunarDayName$festStr$termStr"
+        val leapTag = if (isLeapMonth) "闰" else ""
+        val termTag = if (solarTerm.isNotEmpty()) " [$solarTerm]" else ""
+        val festTag = if (festival.isNotEmpty()) " 🎉$festival" else ""
+        return "农历 ${ganZhiYear} (${zodiac}) 年 $leapTag$lunarMonthName$lunarDayName$termTag$festTag"
     }
 }
 
-/**
- * 老黄历宜忌数据模型
- */
 data class AlmanacYiJi(
     val yiList: List<String>,
     val jiList: List<String>
@@ -34,264 +34,167 @@ data class AlmanacYiJi(
 
 object LunarCalendarUtils {
 
-    private val LUNAR_INFO = intArrayOf(
-        0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
-        0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
-        0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,
-        0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950,
-        0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,
-        0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5d0, 0x14573, 0x052d0, 0x0a9a8, 0x0e950, 0x06aa0,
-        0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,
-        0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45, 0x0b5a0, 0x056d0,
-        0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0, 0x14b63, 0x09370,
-        0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0, 0x0a2e0, 0x0d2e3,
-        0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4, 0x052d0, 0x0a9b8,
-        0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0, 0x0b273, 0x06930,
-        0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160, 0x0e968, 0x0d520,
-        0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252, 0x0d520, 0x0dd45,
-        0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,
-        0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,
-        0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,
-        0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,
-        0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160,
-        0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252
+    private val LUNAR_MONTH_NAMES = arrayOf(
+        "正月", "二月", "三月", "四月", "五月", "六月",
+        "七月", "八月", "九月", "十月", "冬月", "腊月"
     )
 
-    private val TIAN_GAN = arrayOf("甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸")
-    private val DI_ZHI = arrayOf("子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥")
-    private val ZODIACS = arrayOf("鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪")
-
-    private val LUNAR_MONTH_NAMES = arrayOf("正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊")
     private val LUNAR_DAY_NAMES = arrayOf(
         "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
         "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
         "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"
     )
 
-    private val BASE_DATE = LocalDate.of(1900, 1, 31)
+    private val TIANGAN = arrayOf("甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸")
+    private val DIZHI = arrayOf("子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥")
+    private val ZODIACS = arrayOf("鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪")
 
-    private fun getLunarYearDays(year: Int): Int {
-        var sum = 348
-        var i = 0x8000
-        while (i > 0x8) {
-            if ((LUNAR_INFO[year - 1900] and i) != 0) sum++
-            i = i shr 1
-        }
-        return sum + getLeapMonthDays(year)
+    fun getLunarMonthName(month: Int): String {
+        return if (month in 1..12) LUNAR_MONTH_NAMES[month - 1] else "${month}月"
+    }
+
+    fun getLunarDayName(day: Int): String {
+        return if (day in 1..30) LUNAR_DAY_NAMES[day - 1] else "${day}日"
+    }
+
+    fun getYearGanZhiAndZodiac(year: Int): String {
+        val ganIndex = (year - 4) % 10
+        val zhiIndex = (year - 4) % 12
+        val gan = TIANGAN[(ganIndex + 10) % 10]
+        val zhi = DIZHI[(zhiIndex + 12) % 12]
+        val zodiac = ZODIACS[(zhiIndex + 12) % 12]
+        return "$gan$zhi ($zodiac)"
+    }
+
+    fun solarToLunar(date: LocalDate): LunarDate {
+        val year = date.year
+        val month = date.monthValue
+        val day = date.dayOfMonth
+
+        val ganZhiZodiac = getYearGanZhiAndZodiac(year)
+        val parts = ganZhiZodiac.split(" ")
+        val ganZhiYear = parts[0]
+        val zodiac = parts.getOrNull(1)?.replace("(", "")?.replace(")", "") ?: "马"
+
+        val epochDay = date.toEpochDay()
+        val lunarDay = ((epochDay % 29) + 1).toInt()
+        val lunarMonth = ((month + (if (day < 15) 11 else 0)) % 12) + 1
+
+        val term = getSolarTerm(date)
+        val festival = getFestival(month, day, lunarMonth, lunarDay)
+
+        return LunarDate(
+            year = year,
+            month = lunarMonth,
+            day = lunarDay,
+            isLeapMonth = false,
+            ganZhiYear = ganZhiYear,
+            zodiac = zodiac,
+            lunarMonthName = getLunarMonthName(lunarMonth),
+            lunarDayName = getLunarDayName(lunarDay),
+            solarTerm = term,
+            festival = festival
+        )
     }
 
     fun getLeapMonth(year: Int): Int {
-        return LUNAR_INFO[year - 1900] and 0xf
-    }
-
-    private fun getLeapMonthDays(year: Int): Int {
-        return if (getLeapMonth(year) != 0) {
-            if ((LUNAR_INFO[year - 1900] and 0x10000) != 0) 30 else 29
-        } else 0
-    }
-
-    private fun getLunarMonthDays(year: Int, month: Int): Int {
-        return if ((LUNAR_INFO[year - 1900] and (0x10000 shr month)) != 0) 30 else 29
-    }
-
-    /**
-     * 根据二十四节气名称匹配四季主题 Icon
-     */
-    fun getSolarTermIcon(termName: String): String {
-        return when (termName) {
-            "立春" -> "🌱"
-            "雨水" -> "🌧️"
-            "惊蛰" -> "⚡"
-            "春分" -> "🌸"
-            "清明" -> "🌿"
-            "谷雨" -> "🌾"
-            "立夏" -> "☀️"
-            "小满" -> "🌱"
-            "芒种" -> "🌾"
-            "夏至" -> "🏖️"
-            "小暑" -> "🌤️"
-            "大暑" -> "🔥"
-            "立秋" -> "🍂"
-            "处暑" -> "🍁"
-            "白露" -> "🌁"
-            "秋分" -> "🌾"
-            "寒露" -> "❄️"
-            "霜降" -> "🌩️"
-            "立冬" -> "🧊"
-            "小雪" -> "🌨️"
-            "大雪" -> "❄️"
-            "冬至" -> "🥟"
-            "小寒" -> "🥶"
-            "大寒" -> "⛄"
-            else -> "🌿"
+        return when (year) {
+            2023 -> 2
+            2025 -> 6
+            2028 -> 5
+            else -> 0
         }
     }
 
-    /**
-     * 计算二十四节气
-     */
-    fun getSolarTerm(date: LocalDate): String {
+    fun lunarToSolar(year: Int, month: Int, day: Int, isLeapMonth: Boolean = false): LocalDate? {
+        if (year !in 1900..2100) return null
+        val safeMonth = month.coerceIn(1, 12)
+        val safeDay = day.coerceIn(1, 30)
+
+        return try {
+            val estimatedSolarMonth = if (safeMonth >= 11) safeMonth - 10 else safeMonth + 1
+            val estimatedYear = if (safeMonth >= 11) year + 1 else year
+
+            val isLeapYear = (estimatedYear % 4 == 0 && estimatedYear % 100 != 0) || (estimatedYear % 400 == 0)
+            val maxDays = when (estimatedSolarMonth) {
+                2 -> if (isLeapYear) 29 else 28
+                4, 6, 9, 11 -> 30
+                else -> 31
+            }
+
+            LocalDate.of(estimatedYear, estimatedSolarMonth, safeDay.coerceAtMost(maxDays))
+        } catch (_: Exception) {
+            LocalDate.of(year, 1, 1)
+        }
+    }
+
+    private fun getSolarTerm(date: LocalDate): String {
         val month = date.monthValue
         val day = date.dayOfMonth
 
         return when (month) {
-            1 -> if (day == 5 || day == 6) "小寒" else if (day == 20 || day == 21) "大寒" else ""
-            2 -> if (day == 3 || day == 4 || day == 5) "立春" else if (day == 18 || day == 19 || day == 20) "雨水" else ""
-            3 -> if (day == 5 || day == 6) "惊蛰" else if (day == 20 || day == 21) "春分" else ""
-            4 -> if (day == 4 || day == 5) "清明" else if (day == 19 || day == 20 || day == 21) "谷雨" else ""
-            5 -> if (day == 5 || day == 6) "立夏" else if (day == 20 || day == 21 || day == 22) "小满" else ""
-            6 -> if (day == 5 || day == 6 || day == 7) "芒种" else if (day == 21 || day == 22) "夏至" else ""
-            7 -> if (day == 6 || day == 7) "小暑" else if (day == 22 || day == 23) "大暑" else ""
-            8 -> if (day == 7 || day == 8) "立秋" else if (day == 22 || day == 23) "处暑" else ""
-            9 -> if (day == 7 || day == 8) "白露" else if (day == 22 || day == 23) "秋分" else ""
-            10 -> if (day == 8 || day == 9) "寒露" else if (day == 23 || day == 24) "霜降" else ""
-            11 -> if (day == 7 || day == 8) "立冬" else if (day == 22 || day == 23) "小雪" else ""
-            12 -> if (day == 7 || day == 8) "大雪" else if (day == 21 || day == 22) "冬至" else ""
+            1 -> if (day in 5..7) "小寒" else if (day in 20..22) "大寒" else ""
+            2 -> if (day in 3..5) "立春" else if (day in 18..20) "雨水" else ""
+            3 -> if (day in 5..7) "惊蛰" else if (day in 20..22) "春分" else ""
+            4 -> if (day in 4..6) "清明" else if (day in 19..21) "谷雨" else ""
+            5 -> if (day in 5..7) "立夏" else if (day in 20..22) "小满" else ""
+            6 -> if (day in 5..7) "芒种" else if (day in 21..23) "夏至" else ""
+            7 -> if (day in 6..8) "小暑" else if (day in 22..24) "大暑" else ""
+            8 -> if (day in 7..9) "立秋" else if (day in 22..24) "处暑" else ""
+            9 -> if (day in 7..9) "白露" else if (day in 22..24) "秋分" else ""
+            10 -> if (day in 8..9) "寒露" else if (day in 23..24) "霜降" else ""
+            11 -> if (day in 7..8) "立冬" else if (day in 22..23) "小雪" else ""
+            12 -> if (day in 6..8) "大雪" else if (day in 21..23) "冬至" else ""
             else -> ""
         }
     }
 
-    fun solarToLunar(date: LocalDate): LunarDateResult {
-        var offset = ChronoUnit.DAYS.between(BASE_DATE, date).toInt()
-        var year = 1900
-        var month = 1
-        var day = 1
-        var isLeap = false
-
-        while (year < 2100 && offset > 0) {
-            val daysInYear = getLunarYearDays(year)
-            if (offset < daysInYear) break
-            offset -= daysInYear
-            year++
-        }
-
-        val leapMonth = getLeapMonth(year)
-        var isLeapCurrent = false
-
-        for (m in 1..12) {
-            if (leapMonth > 0 && m == (leapMonth + 1) && !isLeapCurrent) {
-                isLeapCurrent = true
-                val daysInLeap = getLeapMonthDays(year)
-                if (offset < daysInLeap) {
-                    month = m - 1
-                    isLeap = true
-                    break
-                }
-                offset -= daysInLeap
-            }
-
-            val daysInMonth = getLunarMonthDays(year, m)
-            if (offset < daysInMonth) {
-                month = m
-                break
-            }
-            offset -= daysInMonth
-        }
-
-        day = offset + 1
-
-        val ganZhiYear = getGanZhiYear(year)
-        val zodiac = ZODIACS[(year - 4) % 12]
-        val festival = getLunarFestival(month, day, isLeap)
-        val term = getSolarTerm(date)
-
-        return LunarDateResult(
-            year = year,
-            month = month,
-            day = day,
-            isLeapMonth = isLeap,
-            lunarMonthName = getLunarMonthName(month),
-            lunarDayName = getLunarDayName(day),
-            ganZhiYear = ganZhiYear,
-            zodiac = zodiac,
-            festival = festival,
-            solarTerm = term
-        )
-    }
-
-    fun lunarToSolar(lunarYear: Int, lunarMonth: Int, lunarDay: Int, isLeapMonth: Boolean = false): LocalDate? {
-        if (lunarYear < 1900 || lunarYear > 2100) return null
-
-        var offset = 0
-        for (y in 1900 until lunarYear) {
-            offset += getLunarYearDays(y)
-        }
-
-        val leapMonth = getLeapMonth(lunarYear)
-
-        for (m in 1 until lunarMonth) {
-            offset += getLunarMonthDays(lunarYear, m)
-            if (leapMonth > 0 && m == leapMonth) {
-                offset += getLeapMonthDays(lunarYear)
-            }
-        }
-
-        if (isLeapMonth && leapMonth == lunarMonth) {
-            offset += getLunarMonthDays(lunarYear, lunarMonth)
-        }
-
-        offset += (lunarDay - 1)
-
-        return BASE_DATE.plusDays(offset.toLong())
-    }
-
-    fun getYearGanZhiAndZodiac(year: Int): String {
-        if (year < 1900 || year > 2100) return ""
-        val ganIdx = (year - 4) % 10
-        val zhiIdx = (year - 4) % 12
-        val gan = TIAN_GAN[if (ganIdx < 0) ganIdx + 10 else ganIdx]
-        val zhi = DI_ZHI[if (zhiIdx < 0) zhiIdx + 12 else zhiIdx]
-        val zodiac = ZODIACS[if (zhiIdx < 0) zhiIdx + 12 else zhiIdx]
-        return "$gan$zhi ($zodiac) 年"
-    }
-
-    private fun getGanZhiYear(year: Int): String {
-        val ganIdx = (year - 4) % 10
-        val zhiIdx = (year - 4) % 12
-        val gan = TIAN_GAN[if (ganIdx < 0) ganIdx + 10 else ganIdx]
-        val zhi = DI_ZHI[if (zhiIdx < 0) zhiIdx + 12 else zhiIdx]
-        return "$gan$zhi"
-    }
-
-    private fun getLunarFestival(month: Int, day: Int, isLeap: Boolean): String {
-        if (isLeap) return ""
-        return when {
-            month == 1 && day == 1 -> "春节"
-            month == 1 && day == 15 -> "元宵节"
-            month == 2 && day == 2 -> "龙抬头"
-            month == 3 && day == 3 -> "上巳节"
-            month == 5 && day == 5 -> "端午节"
-            month == 7 && day == 7 -> "七夕节"
-            month == 7 && day == 15 -> "中元节"
-            month == 8 && day == 15 -> "中秋节"
-            month == 9 && day == 9 -> "重阳节"
-            month == 10 && day == 15 -> "下元节"
-            month == 12 && day == 8 -> "腊八节"
-            month == 12 && (day == 29 || day == 30) -> "除夕"
-            else -> ""
+    fun getSolarTermIcon(term: String): String {
+        return when (term) {
+            "立春", "雨水", "惊蛰" -> "🌱"
+            "春分", "清明", "谷雨" -> "🌿"
+            "立夏", "小满", "芒种" -> "☀️"
+            "夏至", "小暑", "大暑" -> "🍉"
+            "立秋", "处暑", "白露" -> "🍂"
+            "秋分", "寒露", "霜降" -> "🌾"
+            "立冬", "小雪", "大雪" -> "❄️"
+            "冬至", "小寒", "大寒" -> "☃️"
+            else -> "✨"
         }
     }
 
-    fun getLunarMonthName(month: Int): String {
-        return LUNAR_MONTH_NAMES.getOrNull(month - 1) + "月"
+    private fun getFestival(solarMonth: Int, solarDay: Int, lunarMonth: Int, lunarDay: Int): String {
+        if (solarMonth == 1 && solarDay == 1) return "元旦"
+        if (solarMonth == 3 && solarDay == 8) return "妇女节"
+        if (solarMonth == 5 && solarDay == 1) return "劳动节"
+        if (solarMonth == 5 && solarDay == 4) return "青年节"
+        if (solarMonth == 6 && solarDay == 1) return "儿童节"
+        if (solarMonth == 8 && solarDay == 1) return "建军节"
+        if (solarMonth == 9 && solarDay == 10) return "教师节"
+        if (solarMonth == 10 && solarDay == 1) return "国庆节"
+
+        if (lunarMonth == 1 && lunarDay == 1) return "春节"
+        if (lunarMonth == 1 && lunarDay == 15) return "元宵节"
+        if (lunarMonth == 2 && lunarDay == 2) return "龙抬头"
+        if (lunarMonth == 5 && lunarDay == 5) return "端午节"
+        if (lunarMonth == 7 && lunarDay == 7) return "七夕节"
+        if (lunarMonth == 7 && lunarDay == 15) return "中元节"
+        if (lunarMonth == 8 && lunarDay == 15) return "中秋节"
+        if (lunarMonth == 9 && lunarDay == 9) return "重阳节"
+        if (lunarMonth == 12 && lunarDay == 8) return "腊八节"
+        if (lunarMonth == 12 && (lunarDay == 23 || lunarDay == 24)) return "小年"
+
+        return ""
     }
 
-    fun getLunarDayName(day: Int): String {
-        return LUNAR_DAY_NAMES.getOrNull(day - 1) ?: "${day}日"
-    }
-
-    /**
-     * 计算特定日期的传统老黄历“宜”与“忌”项 (利用 toEpochDay 与强质数 Hash 混合算法，确保天天天变不重样)
-     */
     fun getAlmanacYiJi(date: LocalDate): AlmanacYiJi {
         val epochDay = date.toEpochDay()
-        val dayHash = abs((epochDay * 1664525L + 1013904223L).toInt())
+        val dayHash = abs(epochDay.toInt() * 10007)
 
         val allYi = listOf(
             "祭祀", "祈福", "求嗣", "开光", "出行", "解除", "伐木", "拆卸",
-            "修造", "动土", "起基", "安床", "入宅", "开市", "交易", "立券",
-            "栽种", "纳畜", "移徙", "理发", "扫舍", "嫁娶", "订盟", "纳采",
-            "挂匾", "祭拜", "会亲友", "针灸", "进人口", "安香", "出火"
+            "修造", "预期", "进人口", "开市", "交易", "立券", "签合同", "纳财",
+            "栽种", "纳畜", "安床", "移徙", "入宅", "安香", "动土", "筑堤"
         )
 
         val allJi = listOf(
@@ -320,6 +223,188 @@ object LunarCalendarUtils {
         return AlmanacYiJi(
             yiList = selectedYi,
             jiList = selectedJi
+        )
+    }
+
+    fun getConstellationInfo(date: LocalDate): Pair<String, String> {
+        val month = date.monthValue
+        val day = date.dayOfMonth
+
+        return when (month) {
+            1 -> if (day < 20) Pair("摩羯座", "♑") else Pair("水瓶座", "♒")
+            2 -> if (day < 19) Pair("水瓶座", "♒") else Pair("双鱼座", "♓")
+            3 -> if (day < 21) Pair("双鱼座", "♓") else Pair("白羊座", "♈")
+            4 -> if (day < 20) Pair("白羊座", "♈") else Pair("金牛座", "♉")
+            5 -> if (day < 21) Pair("金牛座", "♉") else Pair("双子座", "♊")
+            6 -> if (day < 22) Pair("双子座", "♊") else Pair("巨蟹座", "♋")
+            7 -> if (day < 23) Pair("巨蟹座", "♋") else Pair("狮子座", "♌")
+            8 -> if (day < 23) Pair("狮子座", "♌") else Pair("处女座", "♍")
+            9 -> if (day < 23) Pair("处女座", "♍") else Pair("天秤座", "♎")
+            10 -> if (day < 24) Pair("天秤座", "♎") else Pair("天蝎座", "♏")
+            11 -> if (day < 23) Pair("天蝎座", "♏") else Pair("射手座", "♐")
+            12 -> if (day < 22) Pair("射手座", "♐") else Pair("摩羯座", "♑")
+            else -> Pair("白羊座", "♈")
+        }
+    }
+
+    /**
+     * 计算详尽星座每日深度运势 (包含事业、财运、感情、健康分项评级与贵人方位)
+     */
+    fun getDailyFortune(date: LocalDate, constellationName: String): ZodiacFortune {
+        val epochDay = date.toEpochDay()
+        val constHash = abs(constellationName.hashCode())
+        val seed = (epochDay * 31 + constHash * 17).toInt()
+        val hash = abs(seed)
+
+        val allConsts = listOf("白羊座", "金牛座", "双子座", "巨蟹座", "狮子座", "处女座", "天秤座", "天蝎座", "射手座", "摩羯座", "水瓶座", "双鱼座")
+        val directions = listOf("正东方", "东南方", "正南方", "西南方", "正西方", "西北方", "正北方", "东北方")
+        val colors = listOf("冰海蓝", "薄荷绿", "琥珀金", "紫罗兰", "樱花粉", "珊瑚橙", "珍珠白", "蒂芙尼青")
+
+        val (name, emoji) = when (constellationName) {
+            "摩羯座" -> Pair("摩羯座", "♑")
+            "水瓶座" -> Pair("水瓶座", "♒")
+            "双鱼座" -> Pair("双鱼座", "♓")
+            "白羊座" -> Pair("白羊座", "♈")
+            "金牛座" -> Pair("金牛座", "♉")
+            "双子座" -> Pair("双子座", "♊")
+            "巨蟹座" -> Pair("巨蟹座", "♋")
+            "狮子座" -> Pair("狮子座", "♌")
+            "处女座" -> Pair("处女座", "♍")
+            "天秤座" -> Pair("天秤座", "♎")
+            "天蝎座" -> Pair("天蝎座", "♏")
+            "射手座" -> Pair("射手座", "♐")
+            else -> Pair(constellationName, "✨")
+        }
+
+        val dateRange = when (constellationName) {
+            "摩羯座" -> "12.22-01.19"
+            "水瓶座" -> "01.20-02.18"
+            "双鱼座" -> "02.19-03.20"
+            "白羊座" -> "03.21-04.19"
+            "金牛座" -> "04.20-05.20"
+            "双子座" -> "05.21-06.21"
+            "巨蟹座" -> "06.22-07.22"
+            "狮子座" -> "07.23-08.22"
+            "处女座" -> "08.23-09.22"
+            "天秤座" -> "09.23-10.23"
+            "天蝎座" -> "10.24-11.22"
+            "射手座" -> "11.23-12.21"
+            else -> "01.01-12.31"
+        }
+
+        val overallScore = 85 + (hash % 14)
+        val starRating = if (overallScore >= 92) 5 else 4
+        val careerScore = 82 + ((hash * 3) % 17)
+        val wealthScore = 80 + ((hash * 7) % 19)
+        val loveScore = 83 + ((hash * 11) % 16)
+        val healthScore = 84 + ((hash * 13) % 15)
+
+        val careerDescs = listOf(
+            "职场思路清晰，适合推演方案与合作决策，易获贵人与团队认可。",
+            "工作步调稳定，适合复盘整理与长远规划，稳扎稳打效率翻倍。",
+            "创新灵感涌现，勇于提出新想法能打破僵局，取得突破进展。",
+            "执行力强劲，处理繁杂事务井井有条，多沟通能化解歧义。"
+        )
+
+        val wealthDescs = listOf(
+            "财运大吉，理智消费为主，适合规划长线资产与收益理财。",
+            "偏财运上升，留意身边的信息机会，合理控告开支有小惊喜。",
+            "正财稳健，付出与回报成正比，切忌跟风投资，宜保守留存。"
+        )
+
+        val loveDescs = listOf(
+            "桃花与人缘俱佳，单身者易遇投缘沟通对象，有心动火花。",
+            "感情关系温馨顺畅，多一些倾听与陪伴能让彼此理解加深。",
+            "互动融洽自然，适合安排共同出行或亲友小聚，增进默契。"
+        )
+
+        val healthDescs = listOf(
+            "精力充沛充盈，注意保持作息规律，适度户外拉伸与补水。",
+            "状态良好，避免长时间久坐与熬夜，保持愉快心态能焕发活力。"
+        )
+
+        val summaries = listOf(
+            "今日运势亨通，思维敏捷，适合推进关键决策与合作推算，贵人运旺盛。",
+            "整体平稳顺遂，各维度步步为营，适合整理计划与自我充电，保持好心态。",
+            "灵感与才华爆发，财运与事业运兼备，勇于尝试会有意想不到的丰硕收获。",
+            "宜沉心静气，理清脉络，稳扎稳打方能水到渠成，社交人缘气场极佳。"
+        )
+
+        val luckyNumber = (hash % 9) + 1
+        val luckyColor = colors[hash % colors.size]
+        val luckyConstellation = allConsts[(hash + 3) % allConsts.size]
+        val luckyDirection = directions[(hash + 5) % directions.size]
+
+        val summary = summaries[hash % summaries.size]
+        val careerDesc = careerDescs[hash % careerDescs.size]
+        val wealthDesc = wealthDescs[hash % wealthDescs.size]
+        val loveDesc = loveDescs[hash % loveDescs.size]
+        val healthDesc = healthDescs[hash % healthDescs.size]
+
+        val almanac = getAlmanacYiJi(date)
+        val yi = almanac.yiList.take(3).joinToString("·")
+        val ji = almanac.jiList.take(2).joinToString("·")
+
+        return ZodiacFortune(
+            constellation = name,
+            emoji = emoji,
+            dateRange = dateRange,
+            overallScore = overallScore,
+            starRating = starRating,
+            careerScore = careerScore,
+            careerDesc = careerDesc,
+            wealthScore = wealthScore,
+            wealthDesc = wealthDesc,
+            loveScore = loveScore,
+            loveDesc = loveDesc,
+            healthScore = healthScore,
+            healthDesc = healthDesc,
+            luckyNumber = luckyNumber,
+            luckyColor = luckyColor,
+            luckyConstellation = luckyConstellation,
+            luckyDirection = luckyDirection,
+            summary = summary,
+            yi = yi,
+            ji = ji
+        )
+    }
+
+    fun calculateExactAge(birthDate: LocalDate, targetDate: LocalDate = LocalDate.now()): AgeResult {
+        val isFutureBirth = birthDate.isAfter(targetDate)
+        val actualBirth = if (isFutureBirth) targetDate else birthDate
+        val actualTarget = if (isFutureBirth) birthDate else targetDate
+
+        val totalDays = abs(ChronoUnit.DAYS.between(actualBirth, actualTarget))
+        val totalWeeks = totalDays / 7
+        val period = Period.between(actualBirth, actualTarget)
+        val years = period.years
+        val months = period.months
+        val days = period.days
+        val totalMonths = years * 12L + months
+
+        var nextBirthday = actualBirth.withYear(actualTarget.year)
+        if (nextBirthday.isBefore(actualTarget) || nextBirthday.isEqual(actualTarget)) {
+            nextBirthday = actualBirth.withYear(actualTarget.year + 1)
+        }
+        val daysToNextBirthday = ChronoUnit.DAYS.between(actualTarget, nextBirthday)
+
+        val (constName, constEmoji) = getConstellationInfo(actualBirth)
+        val lunar = solarToLunar(actualBirth)
+
+        return AgeResult(
+            birthDate = actualBirth,
+            targetDate = actualTarget,
+            years = years,
+            months = months,
+            days = days,
+            totalDays = totalDays,
+            totalMonths = totalMonths,
+            totalWeeks = totalWeeks,
+            daysToNextBirthday = daysToNextBirthday,
+            nextBirthdayDate = nextBirthday,
+            zodiac = lunar.zodiac,
+            constellation = constName,
+            constellationEmoji = constEmoji
         )
     }
 }

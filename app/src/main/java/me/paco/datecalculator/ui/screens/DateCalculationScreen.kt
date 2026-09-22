@@ -39,14 +39,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -75,8 +82,10 @@ import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DateMode
+import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.ui.components.DatePickerModal
+import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
@@ -86,7 +95,9 @@ import me.paco.datecalculator.ui.components.NumericCalculatorInput
 import me.paco.datecalculator.ui.components.QuickDateChips
 import me.paco.datecalculator.ui.components.RangeBreakdownCard
 import me.paco.datecalculator.ui.components.ResultCard
+import me.paco.datecalculator.ui.components.SettingsOverlayDialog
 import me.paco.datecalculator.ui.components.TimelineDiagram
+import me.paco.datecalculator.ui.components.WorkdayNaturalSwitch
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.CalcSubMode
@@ -94,9 +105,6 @@ import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
 
-/**
- * 未点击时不显示高光条带，点击聚焦时全选高亮整个 15，打字输入后替代高光并变为深色正常文字
- */
 @Composable
 fun InsertDaysTextField(
     value: String,
@@ -163,12 +171,13 @@ fun DateCalculationScreen(
     val scrollState = rememberScrollState()
     var showDatePicker by remember { mutableStateOf(false) }
     var showReverseEndDatePicker by remember { mutableStateOf(false) }
+    var showHistoryDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     val resultDate = viewModel.calculateTargetDate()
     val (multiFinalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
     val rangeBreakdown = viewModel.calculateRangeBreakdown()
 
-    // 基准日期切换时的 Pop Bounce 缩放动效
     val cardScale = remember { Animatable(1.0f) }
     val cardAlpha = remember { Animatable(1.0f) }
     var isInitialLoad by remember { mutableStateOf(true) }
@@ -188,7 +197,6 @@ fun DateCalculationScreen(
         }
     }
 
-    // 结果展开后自动平滑下滑至视口完全展示
     LaunchedEffect(uiState.showResult) {
         if (uiState.showResult) {
             delay(180)
@@ -218,22 +226,88 @@ fun DateCalculationScreen(
         )
     }
 
+    HistoryOverlayDialog(
+        visible = showHistoryDialog,
+        onDismiss = { showHistoryDialog = false },
+        viewModel = viewModel,
+        uiState = uiState
+    )
+
+    SettingsOverlayDialog(
+        visible = showSettingsDialog,
+        onDismiss = { showSettingsDialog = false },
+        viewModel = viewModel,
+        uiState = uiState
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(14.dp)
     ) {
-        // 顶部子页面选框: [ 工作日 | 自然日 ]
-        NeumorphicSegmentedRow(
-            items = listOf("工作日", stringResource(R.string.tab_natural_day)),
-            selectedIndex = if (uiState.dateMode == DateMode.WORKDAY) 0 else 1,
-            onIndexSelected = { index ->
-                viewModel.updateDateMode(if (index == 0) DateMode.WORKDAY else DateMode.NATURAL_DAY)
+        // 顶栏 (36dp 高度, 15sp 标题, 右上角历史记录与设置图标)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Calculate,
+                    contentDescription = null,
+                    tint = NeumorphicAccent,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "日期计算",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary
+                )
             }
-        )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                        .background(NeumorphicBg, shape = CircleShape)
+                        .clip(CircleShape)
+                        .clickable { showHistoryDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "查看历史记录",
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                        .background(NeumorphicBg, shape = CircleShape)
+                        .clip(CircleShape)
+                        .clickable { showSettingsDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "打开设置",
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         // 紧凑型规则说明条
         Box(
@@ -334,23 +408,40 @@ fun DateCalculationScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        QuickDateChips(
-            selectedDate = uiState.baseDate,
-            onSelectDate = { date ->
-                viewModel.updateBaseDate(date)
-                viewModel.performCalculation()
+        // 工作日和自然日切换拨动开关 (无外圈卡片，同时显示工作日与自然日，高亮选中文字)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                QuickDateChips(
+                    selectedDate = uiState.baseDate,
+                    onSelectDate = { date ->
+                        viewModel.updateBaseDate(date)
+                        viewModel.performCalculation()
+                    }
+                )
             }
-        )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            WorkdayNaturalSwitch(
+                isWorkday = uiState.dateMode == DateMode.WORKDAY,
+                onWorkdayChanged = { isWorkday ->
+                    viewModel.updateDateMode(if (isWorkday) DateMode.WORKDAY else DateMode.NATURAL_DAY)
+                },
+                modifier = Modifier.width(140.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 计算加减天数与反向拆算 Header Row (模式融合整合)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 模式二合一无缝分段选择器: [ ➕/➖ 加减天数 | ↔️ 区间拆算 ]
             NeumorphicSegmentedRow(
                 items = listOf("加减天数", "区间拆算"),
                 selectedIndex = if (uiState.calcSubMode == CalcSubMode.FORWARD_DAYS) 0 else 1,
@@ -363,7 +454,6 @@ fun DateCalculationScreen(
 
             Spacer(modifier = Modifier.width(10.dp))
 
-            // 右侧“多段模式”切换按键 (区间拆算下置灰不可用)
             val isMultiStageDisabled = (uiState.calcSubMode == CalcSubMode.REVERSE_RANGE)
 
             Box(
@@ -432,7 +522,7 @@ fun DateCalculationScreen(
             )
         }
 
-        // 2. 模式 B: 反向区间拆算输入 (选择终止日期进行精准拆分)
+        // 2. 模式 B: 反向区间拆算输入
         if (!uiState.isMultiStageExtensionEnabled && uiState.calcSubMode == CalcSubMode.REVERSE_RANGE) {
             Box(
                 modifier = Modifier
@@ -477,7 +567,7 @@ fun DateCalculationScreen(
                                 .width(56.dp)
                                 .height(52.dp)
                                 .neumorphicExtruded(shape = RoundedCornerShape(14.dp), elevation = 4.dp)
-                                .background(NeumorphicAccent, shape = RoundedCornerShape(14.dp))
+                                .background(Color(0xFFEF4444), shape = RoundedCornerShape(14.dp))
                                 .clip(RoundedCornerShape(14.dp))
                                 .clickable { viewModel.performCalculation() },
                             contentAlignment = Alignment.Center
@@ -489,7 +579,7 @@ fun DateCalculationScreen(
             }
         }
 
-        // 3. 模式 C: 高级多段计算模式（使用 Surface 配合 padding 弥散缓冲区，阴影呈现绝对 22.dp 弧形圆角，绝不变成方形）
+        // 3. 模式 C: 高级多段计算模式
         val multiStageAlpha by animateFloatAsState(
             targetValue = if (uiState.isMultiStageExtensionEnabled) 1f else 0f,
             animationSpec = tween(
@@ -522,7 +612,6 @@ fun DateCalculationScreen(
                         compositingStrategy = CompositingStrategy.Offscreen
                     }
             ) {
-                // 外层全标准圆角 22.dp 新拟物 Surface 卡片，带 4.dp 弥散缓冲区，阴影完全圆润柔软
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -547,7 +636,6 @@ fun DateCalculationScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // 生活化温馨提示语 (标准 Neumorphic Inset 凹陷输入框)
                         val sunkenShape12 = RoundedCornerShape(12.dp)
                         Box(
                             modifier = Modifier
@@ -581,7 +669,6 @@ fun DateCalculationScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // 各阶段配置项列表 (标准 16.dp 圆角新拟物 3D 卡片)
                         uiState.stages.forEachIndexed { index, stage ->
                             val numZh = when (index + 1) {
                                 1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${index + 1}"
@@ -606,15 +693,58 @@ fun DateCalculationScreen(
                                     val actionLabel = if (stage.type == CalculationType.ADD) "多段加" else "多段减"
                                     Text("${stage.remark.ifBlank { defaultRemark }} ($actionLabel)", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = NeumorphicAccent)
 
-                                    if (uiState.stages.size > 1) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (index > 0) {
+                                            Icon(
+                                                imageVector = Icons.Default.KeyboardArrowUp,
+                                                contentDescription = "向上调换",
+                                                tint = NeumorphicAccent,
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .clickable {
+                                                        viewModel.reorderCalculationStages(index, index - 1)
+                                                    }
+                                            )
+                                        }
+
+                                        if (index < uiState.stages.size - 1) {
+                                            Icon(
+                                                imageVector = Icons.Default.KeyboardArrowDown,
+                                                contentDescription = "向下调换",
+                                                tint = NeumorphicAccent,
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .clickable {
+                                                        viewModel.reorderCalculationStages(index, index + 1)
+                                                    }
+                                            )
+                                        }
+
                                         Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "删除时间段",
-                                            tint = MaterialTheme.colorScheme.error,
+                                            imageVector = Icons.Default.ContentCopy,
+                                            contentDescription = "复制阶段",
+                                            tint = NeumorphicAccent,
                                             modifier = Modifier
-                                                .size(18.dp)
-                                                .clickable { viewModel.removeCalculationStage(stage.id) }
+                                                .size(16.dp)
+                                                .clickable {
+                                                    viewModel.duplicateCalculationStage(stage.id)
+                                                    Toast.makeText(context, "已复制阶段", Toast.LENGTH_SHORT).show()
+                                                }
                                         )
+
+                                        if (uiState.stages.size > 1) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "删除时间段",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .clickable { viewModel.removeCalculationStage(stage.id) }
+                                            )
+                                        }
                                     }
                                 }
 
@@ -624,7 +754,6 @@ fun DateCalculationScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // 1. 运算符按钮：仅显示 "+" 或 "-"
                                     val opBtnShape = RoundedCornerShape(10.dp)
                                     Box(
                                         modifier = Modifier
@@ -652,7 +781,6 @@ fun DateCalculationScreen(
 
                                     Spacer(modifier = Modifier.width(8.dp))
 
-                                    // 2. 明显突出的天数数字输入框 (点击聚焦全选 15，打字自动替代)
                                     val inputShape10 = RoundedCornerShape(10.dp)
                                     Box(
                                         modifier = Modifier
@@ -680,7 +808,6 @@ fun DateCalculationScreen(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // 3. 阶段备注输入框
                                 val remarkShape10 = RoundedCornerShape(10.dp)
                                 Box(
                                     modifier = Modifier
@@ -711,7 +838,6 @@ fun DateCalculationScreen(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // 添加下一段时间按钮 与 “保存到记录” 胶囊按键
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -747,7 +873,6 @@ fun DateCalculationScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // 轴向线性示意图展示
                 TimelineDiagram(
                     baseDate = uiState.baseDate,
                     finalDate = multiFinalDate,
@@ -760,7 +885,7 @@ fun DateCalculationScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 结果卡片渲染 (根据模式 A、B 对应展示)
+        // 结果卡片与单段时间轴渲染
         if (!uiState.isMultiStageExtensionEnabled) {
             if (uiState.calcSubMode == CalcSubMode.FORWARD_DAYS) {
                 val resultTitle = if (uiState.dateMode == DateMode.WORKDAY) {
@@ -772,7 +897,11 @@ fun DateCalculationScreen(
                 ResultCard(
                     visible = uiState.showResult,
                     title = resultTitle,
+                    baseDate = uiState.baseDate,
                     resultDate = resultDate,
+                    calculationType = uiState.calculationType,
+                    daysInput = uiState.daysInput,
+                    dateMode = uiState.dateMode,
                     weekendRule = uiState.weekendRule,
                     enableHolidays = uiState.enableChineseHolidays,
                     holidayRegion = uiState.holidayRegion,

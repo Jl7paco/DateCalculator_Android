@@ -59,7 +59,7 @@ fun NumericCalculatorInput(
 
     Column(modifier = modifier.fillMaxWidth()) {
 
-        // 同一行整合: [ 天数输入框 ] + [ 运算符切换 (+/-) 等于号左边 ] + [ 等于号按键 (=) ]
+        // 同一行整合: [ 天数输入框 ] + [ 加号 (+) & 减号 (-) 同时显示 ] + [ 红色等于号按键 (=) ]
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -85,12 +85,12 @@ fun NumericCalculatorInput(
                         Text(
                             text = "输入${dayUnitLabel}天数 (如: 30)",
                             color = NeumorphicTextPrimary.copy(alpha = 0.5f),
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     },
                     textStyle = TextStyle(
-                        fontSize = 19.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = NeumorphicTextPrimary
                     ),
@@ -106,46 +106,69 @@ fun NumericCalculatorInput(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp)
+                        .padding(horizontal = 2.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
 
-            // 2. 运算符 (+/-) 切换按钮 (等于号左边)
+            // 2. 加号 (+) 按钮
+            val isAddSelected = selectedType == CalculationType.ADD
             Box(
                 modifier = Modifier
-                    .width(60.dp)
+                    .width(46.dp)
                     .height(58.dp)
                     .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
                     .background(
-                        if (selectedType == CalculationType.ADD) NeumorphicAccent else Color(0xFFEF4444),
+                        if (isAddSelected) NeumorphicAccent else NeumorphicBg,
                         shape = RoundedCornerShape(18.dp)
                     )
                     .clip(RoundedCornerShape(18.dp))
-                    .clickable {
-                        val nextType = if (selectedType == CalculationType.ADD) CalculationType.SUBTRACT else CalculationType.ADD
-                        onTypeSelected(nextType)
-                    },
+                    .clickable { onTypeSelected(CalculationType.ADD) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = selectedType.symbol,
-                    fontSize = 26.sp,
+                    text = "+",
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    color = if (isAddSelected) Color.White else NeumorphicAccent
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
 
-            // 3. 新拟物蓝色凸起等于号按键 (=)
+            // 3. 减号 (-) 按钮
+            val isSubSelected = selectedType == CalculationType.SUBTRACT
             Box(
                 modifier = Modifier
-                    .width(60.dp)
+                    .width(46.dp)
                     .height(58.dp)
                     .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
-                    .background(NeumorphicAccent, shape = RoundedCornerShape(18.dp))
+                    .background(
+                        if (isSubSelected) Color(0xFFEF4444) else NeumorphicBg,
+                        shape = RoundedCornerShape(18.dp)
+                    )
+                    .clip(RoundedCornerShape(18.dp))
+                    .clickable { onTypeSelected(CalculationType.SUBTRACT) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "-",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isSubSelected) Color.White else Color(0xFFEF4444)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            // 4. 红色等于号按键 (=)
+            Box(
+                modifier = Modifier
+                    .width(52.dp)
+                    .height(58.dp)
+                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
+                    .background(Color(0xFFEF4444), shape = RoundedCornerShape(18.dp))
                     .clip(RoundedCornerShape(18.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },

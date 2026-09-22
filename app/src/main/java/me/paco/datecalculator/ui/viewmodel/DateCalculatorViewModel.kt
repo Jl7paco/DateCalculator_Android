@@ -3,16 +3,25 @@ package me.paco.datecalculator.ui.viewmodel
 import android.content.Context
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.paco.datecalculator.data.CalculationStage
 import me.paco.datecalculator.data.CalculationType
+import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.data.DateMode
 import me.paco.datecalculator.data.HistoryItem
 import me.paco.datecalculator.data.HolidayRegion
+import me.paco.datecalculator.data.HomeConfig
 import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.StageSegmentResult
+import me.paco.datecalculator.data.ThemeColorPreset
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.DailyWeather
 import me.paco.datecalculator.util.LocationUtils
+import me.paco.datecalculator.util.WeatherUtils
 import me.paco.datecalculator.util.PreferenceUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +56,8 @@ data class CustomEventItem(
     val iconEmoji: String = "📌",
     val name: String,
     val targetDate: LocalDate,
-    val repeatMode: EventRepeatMode = EventRepeatMode.NONE
+    val repeatMode: EventRepeatMode = EventRepeatMode.NONE,
+    val isPinned: Boolean = false
 ) {
     fun getNextUpcomingDate(baseDate: LocalDate = LocalDate.now()): LocalDate {
         if (repeatMode == EventRepeatMode.NONE || !targetDate.isBefore(baseDate)) {
@@ -101,7 +111,16 @@ data class DateCalculatorUiState(
     val showResult: Boolean = false,
     val historyList: List<HistoryItem> = emptyList(),
     val customEvents: List<CustomEventItem> = emptyList(),
-    val fireworksTrigger: Int = 0
+    val fireworksTrigger: Int = 0,
+
+    // V3.0 新增状态
+    val themePreset: ThemeColorPreset = ThemeColorPreset.SYSTEM,
+    val customPrimaryColorHex: Long = 0xFF2563EB,
+    val darkThemeMode: DarkThemeMode = DarkThemeMode.SYSTEM,
+    val homeConfig: HomeConfig = HomeConfig(),
+    val selectedBirthDate: LocalDate = LocalDate.now().minusYears(25),
+    val currentCityName: String = "北京市",
+    val liveWeatherList: List<DailyWeather>? = null
 )
 
 class DateCalculatorViewModel : ViewModel() {
@@ -109,19 +128,62 @@ class DateCalculatorViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(DateCalculatorUiState())
     val uiState: StateFlow<DateCalculatorUiState> = _uiState.asStateFlow()
 
+    fun fetchCurrentGpsLocation(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val cityName = LocationUtils.getCurrentCityName(context)
+                val coords = WeatherUtils.getCityCoordinates(cityName)
+                val liveWeather = WeatherUtils.fetchRealLiveWeather(coords.first, coords.second)
+
+                withContext(Dispatchers.Main) {
+                    _uiState.value = _uiState.value.copy(
+                        currentCityName = cityName,
+                        liveWeatherList = liveWeather ?: _uiState.value.liveWeatherList
+                    )
+                }
+
+                LocationUtils.requestSingleLocationUpdate(context) { updatedCity ->
+                    if (!updatedCity.isNullOrEmpty()) {
+                        viewModelScope.launch(Dispatchers.IO) {
+                            val updatedCoords = WeatherUtils.getCityCoordinates(updatedCity)
+                            val updatedWeather = WeatherUtils.fetchRealLiveWeather(updatedCoords.first, updatedCoords.second)
+                            withContext(Dispatchers.Main) {
+                                _uiState.value = _uiState.value.copy(
+                                    currentCityName = updatedCity,
+                                    liveWeatherList = updatedWeather ?: _uiState.value.liveWeatherList
+                                )
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     fun initPreferences(context: Context) {
         val savedRegion = PreferenceUtils.getHolidayRegion(context)
         val savedRule = PreferenceUtils.getWeekendRule(context)
         val savedBigWeek = PreferenceUtils.getIsBigWeek(context)
         val savedGpsAuto = PreferenceUtils.getIsGpsAuto(context)
         val savedDisableShift = PreferenceUtils.getDisableChinaShift(context)
+        val savedPreset = PreferenceUtils.getThemePreset(context)
+        val savedCustomColor = PreferenceUtils.getCustomPrimaryColor(context)
+        val savedDarkMode = PreferenceUtils.getDarkThemeMode(context)
+        val savedHomeConfig = PreferenceUtils.getHomeConfig(context)
+
+        val cityName = LocationUtils.getCurrentCityName(context)
 
         _uiState.value = _uiState.value.copy(
             holidayRegion = savedRegion,
             weekendRule = savedRule,
             isCurrentWeekBigWeek = savedBigWeek,
             isGpsAutoDetectEnabled = savedGpsAuto,
-            disableChinaShiftWorkdays = savedDisableShift
+            disableChinaShiftWorkdays = savedDisableShift,
+            themePreset = savedPreset,
+            customPrimaryColorHex = savedCustomColor,
+            darkThemeMode = savedDarkMode,
+            homeConfig = savedHomeConfig,
+            currentCityName = cityName
         )
 
         // 启动 App 时静默同步当前地区放假安排，只同步一次且不弹 Toast
@@ -138,6 +200,36 @@ class DateCalculatorViewModel : ViewModel() {
             val regionName = "${region.flagEmoji} ${region.nativeName}"
             Toast.makeText(context, "已自动同步 $regionName 最新节假日数据", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    fun updateThemePreset(preset: ThemeColorPreset, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(themePreset = preset)
+        context?.let { PreferenceUtils.saveThemePreset(it, preset) }
+    }
+
+    fun updateDarkThemeMode(mode: DarkThemeMode, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(darkThemeMode = mode)
+        context?.let { PreferenceUtils.saveDarkThemeMode(it, mode) }
+    }
+
+    fun updateCustomPrimaryColor(colorHex: Long, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(
+            customPrimaryColorHex = colorHex,
+            themePreset = ThemeColorPreset.CUSTOM
+        )
+        context?.let {
+            PreferenceUtils.saveCustomPrimaryColor(it, colorHex)
+            PreferenceUtils.saveThemePreset(it, ThemeColorPreset.CUSTOM)
+        }
+    }
+
+    fun updateHomeConfig(config: HomeConfig, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(homeConfig = config)
+        context?.let { PreferenceUtils.saveHomeConfig(it, config) }
+    }
+
+    fun updateBirthDate(birthDate: LocalDate) {
+        _uiState.value = _uiState.value.copy(selectedBirthDate = birthDate)
     }
 
     fun updateBaseDate(date: LocalDate) {
@@ -157,10 +249,8 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun updateCalculationType(type: CalculationType) {
-        val updatedStages = _uiState.value.stages.map { it.copy(type = type) }
         _uiState.value = _uiState.value.copy(
             calculationType = type,
-            stages = updatedStages,
             showResult = false
         )
     }
@@ -229,14 +319,7 @@ class DateCalculatorViewModel : ViewModel() {
 
     fun toggleMultiStageExtension(enabled: Boolean) {
         if (enabled && _uiState.value.stages.isNotEmpty()) {
-            val mainType = _uiState.value.calculationType
-            val current = _uiState.value.stages.map {
-                it.copy(
-                    type = mainType
-                )
-            }
             _uiState.value = _uiState.value.copy(
-                stages = current,
                 isMultiStageExtensionEnabled = true,
                 showResult = false
             )
@@ -259,6 +342,29 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(stages = current, showResult = false)
     }
 
+    fun duplicateCalculationStage(stageId: Long) {
+        val current = _uiState.value.stages.toMutableList()
+        val index = current.indexOfFirst { it.id == stageId }
+        if (index != -1) {
+            val target = current[index]
+            val duplicated = target.copy(
+                id = System.nanoTime(),
+                remark = "${target.remark} (副本)"
+            )
+            current.add(index + 1, duplicated)
+            _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+        }
+    }
+
+    fun reorderCalculationStages(fromIndex: Int, toIndex: Int) {
+        if (fromIndex in _uiState.value.stages.indices && toIndex in _uiState.value.stages.indices && fromIndex != toIndex) {
+            val current = _uiState.value.stages.toMutableList()
+            val item = current.removeAt(fromIndex)
+            current.add(toIndex, item)
+            _uiState.value = _uiState.value.copy(stages = current, showResult = false)
+        }
+    }
+
     fun removeCalculationStage(stageId: Long) {
         val current = _uiState.value.stages.filterNot { it.id == stageId }
         if (current.isNotEmpty()) {
@@ -275,10 +381,11 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun updateStageType(stageId: Long, type: CalculationType) {
-        val updatedStages = _uiState.value.stages.map { it.copy(type = type) }
+        val current = _uiState.value.stages.map {
+            if (it.id == stageId) it.copy(type = type) else it
+        }
         _uiState.value = _uiState.value.copy(
-            calculationType = type,
-            stages = updatedStages,
+            stages = current,
             showResult = false
         )
     }
@@ -328,6 +435,13 @@ class DateCalculatorViewModel : ViewModel() {
             repeatMode = repeatMode
         )
         val updatedEvents = _uiState.value.customEvents + newEvent
+        _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
+    }
+
+    fun togglePinCustomEvent(event: CustomEventItem) {
+        val updatedEvents = _uiState.value.customEvents.map {
+            if (it.id == event.id) it.copy(isPinned = !it.isPinned) else it
+        }
         _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
     }
 

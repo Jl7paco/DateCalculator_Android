@@ -15,8 +15,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import me.paco.datecalculator.data.ThemeColorPreset
 
-private val BrightNeumorphicBg = Color(0xFFF2F5FA) // 明亮冰雪白底色 (还原附图)
+private val BrightNeumorphicBg = Color(0xFFF2F5FA)
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -44,19 +45,43 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun DateCalculatorTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true, // 主题色跟进系统整机 (Material You)
+    themePreset: ThemeColorPreset = ThemeColorPreset.SYSTEM,
+    customPrimaryColorHex: Long = 0xFF2563EB,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+
     val baseScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        themePreset == ThemeColorPreset.SYSTEM && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        else -> {
+            val primaryColor = if (themePreset == ThemeColorPreset.CUSTOM) {
+                Color(customPrimaryColorHex)
+            } else {
+                Color(themePreset.primaryColorHex)
+            }
+
+            if (darkTheme) {
+                DarkColorScheme.copy(
+                    primary = primaryColor,
+                    secondary = primaryColor
+                )
+            } else {
+                LightColorScheme.copy(
+                    primary = primaryColor,
+                    onPrimary = Color.White,
+                    primaryContainer = primaryColor.copy(alpha = 0.18f),
+                    onPrimaryContainer = Color(0xFF2D3748),
+                    secondary = primaryColor,
+                    onSecondary = Color.White,
+                    secondaryContainer = primaryColor.copy(alpha = 0.18f),
+                    onSecondaryContainer = Color(0xFF2D3748)
+                )
+            }
+        }
     }
 
-    // 在日间模式下强制采用明亮冰白 Neumorphism 画布底色，Accent 保持跟随系统主题色
     val colorScheme = if (!darkTheme) {
         baseScheme.copy(
             surface = BrightNeumorphicBg,

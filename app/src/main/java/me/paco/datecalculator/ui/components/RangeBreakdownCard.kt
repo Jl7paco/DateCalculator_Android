@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.ui.viewmodel.RangeBreakdownResult
+import me.paco.datecalculator.util.LunarCalendarUtils
 
 @Composable
 fun RangeBreakdownCard(
@@ -47,12 +51,19 @@ fun RangeBreakdownCard(
     val context = LocalContext.current
     val total = result.totalNaturalDays.coerceAtLeast(1L)
 
+    val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(result.endDate)
+    val fortune = LunarCalendarUtils.getDailyFortune(result.endDate, constName)
+
+    val cardShape24 = RoundedCornerShape(24.dp)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .neumorphicExtruded(shape = RoundedCornerShape(24.dp), elevation = 6.dp)
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f), shape = RoundedCornerShape(24.dp))
-            .clip(RoundedCornerShape(24.dp))
+            .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
+            .background(NeumorphicBg, shape = cardShape24)
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
+            .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = cardShape24)
+            .clip(cardShape24)
             .padding(16.dp)
     ) {
         Column(
@@ -63,7 +74,7 @@ fun RangeBreakdownCard(
                 text = "区间拆算结果",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
-                color = NeumorphicTextPrimary
+                color = NeumorphicAccent
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -71,7 +82,35 @@ fun RangeBreakdownCard(
                 text = "${result.startDate}  ➔  ${result.endDate}",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = NeumorphicAccent
+                color = NeumorphicTextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 终止日期的星座芯片与运势评级
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SuggestionChip(
+                    onClick = {},
+                    shape = CircleShape,
+                    label = {
+                        Text(
+                            text = "$constEmoji $constName",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "✨ 终止日运势: ${fortune.summary}",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = NeumorphicTextPrimary.copy(alpha = 0.75f)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -150,7 +189,7 @@ fun RangeBreakdownCard(
             HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 底部地区描述与右侧 32dp 纯复制图标按键 (无任何文字重叠)
+            // 底部地区描述与右侧 32dp 纯复制图标按键
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -173,7 +212,7 @@ fun RangeBreakdownCard(
                         .background(NeumorphicBg, shape = buttonShape)
                         .clip(buttonShape)
                         .clickable {
-                            val clipText = "区间拆算 [${result.startDate} ➔ ${result.endDate}]: 总自然日 ${result.totalNaturalDays}天 | 工作日 ${result.workdaysCount}天 | 周末双休 ${result.regularWeekendDaysCount}天 | 节假日 ${result.statutoryHolidaysCount}天"
+                            val clipText = "区间拆算 [${result.startDate} ➔ ${result.endDate}]: 总自然日 ${result.totalNaturalDays}天 | 工作日 ${result.workdaysCount}天 | 周末双休 ${result.regularWeekendDaysCount}天 | 节假日 ${result.statutoryHolidaysCount}天 | 终止日星座: $constEmoji $constName"
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText("RangeBreakdown", clipText))
                             Toast.makeText(context, "拆算结果已复制到剪贴板", Toast.LENGTH_SHORT).show()

@@ -28,7 +28,7 @@ enum class HolidayRegion(
     INDIA("IN", "印度", "India", "🇮🇳", "含印度全国及各邦法定节假日"),
     INDONESIA("ID", "印尼", "Indonesia", "🇮🇩", "含印尼全国法定公众假期 (Hari Libur)"),
     AUSTRALIA("AU", "澳大利亚", "Australia", "🇦🇺", "含澳大利亚全国及州法定公众假期"),
-    NEW_ZEALAND("NZ", "新西兰", "New Zealand", "🇳🇿", "含新西兰全国法定公众假期"),
+    NEW_ZEALAND("NZ", "新西兰", "New Zealand", "🇳ℤ", "含新西兰全国法定公众假期"),
     UNITED_STATES("US", "美国", "United States", "🇺🇸", "含联邦法定节假日 (Federal Holidays)"),
     THAILAND("TH", "泰国", "ประเทศไทย", "🇹🇭", "含泰国法定公众假期及补假")
 }
@@ -76,8 +76,14 @@ enum class DateMode(val label: String) {
 }
 
 /**
- * 链式多阶段计算阶段模型 (daysInput 默认空串以实现灰色 15 占位符，默认天数为 15L)
+ * 深色/黑暗模式选择配置
  */
+enum class DarkThemeMode(val label: String) {
+    SYSTEM("跟随系统"),
+    ON("强制开启"),
+    OFF("强制关闭")
+}
+
 data class CalculationStage(
     val id: Long = System.nanoTime(),
     var type: CalculationType = CalculationType.ADD,
@@ -88,9 +94,6 @@ data class CalculationStage(
         get() = daysInput.toLongOrNull() ?: 15L
 }
 
-/**
- * 阶段节点推算结果模型 (供线性时间轴渲染与 CSV 导出)
- */
 data class StageSegmentResult(
     val stageIndex: Int,
     val remark: String,
@@ -112,3 +115,57 @@ data class HistoryItem(
     val resultDays: Long? = null,
     val timestamp: Long = System.currentTimeMillis()
 )
+
+data class AgeResult(
+    val birthDate: LocalDate,
+    val targetDate: LocalDate = LocalDate.now(),
+    val years: Int,
+    val months: Int,
+    val days: Int,
+    val totalDays: Long,
+    val totalMonths: Long,
+    val totalWeeks: Long,
+    val daysToNextBirthday: Long,
+    val nextBirthdayDate: LocalDate,
+    val zodiac: String,
+    val constellation: String,
+    val constellationEmoji: String
+)
+
+data class ZodiacFortune(
+    val constellation: String,
+    val emoji: String,
+    val dateRange: String,
+    val overallScore: Int,
+    val starRating: Int,
+    val careerScore: Int,
+    val careerDesc: String,
+    val wealthScore: Int,
+    val wealthDesc: String,
+    val loveScore: Int,
+    val loveDesc: String,
+    val healthScore: Int,
+    val healthDesc: String,
+    val luckyNumber: Int,
+    val luckyColor: String,
+    val luckyConstellation: String,
+    val luckyDirection: String,
+    val summary: String,
+    val yi: String,
+    val ji: String
+)
+
+data class HomeConfig(
+    val showHomeScreen: Boolean = true,
+    val showCalendar: Boolean = true,
+    val showAlmanac: Boolean = true,
+    val showSolarTerms: Boolean = true,
+    val showLunar: Boolean = true,
+    val showZodiacFortune: Boolean = true,
+    val showWeather: Boolean = true
+)
+
+enum class ThemeColorPreset(val label: String, val primaryColorHex: Long) {
+    SYSTEM("跟随系统", 0xFF2563EB),
+    CUSTOM("自定义调色", 0xFF2563EB)
+}

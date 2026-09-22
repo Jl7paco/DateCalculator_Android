@@ -39,7 +39,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -75,19 +79,22 @@ import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
 import me.paco.datecalculator.ui.components.DatePickerModal
 import me.paco.datecalculator.ui.components.FireworksAnimation
+import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
-import me.paco.datecalculator.ui.components.NeumorphicCopyButton
 import me.paco.datecalculator.ui.components.NeumorphicCustomPopup
+import me.paco.datecalculator.ui.components.NeumorphicIconButton
 import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.QuickDateChips
+import me.paco.datecalculator.ui.components.SettingsOverlayDialog
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
+import me.paco.datecalculator.util.ShareUtils
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -114,6 +121,8 @@ fun LunarConverterScreen(
     val todayLunar = remember { LunarCalendarUtils.solarToLunar(LocalDate.now()) }
     var lunarRefSolarDate by remember { mutableStateOf(LocalDate.now()) }
     var showLunarRefPicker by remember { mutableStateOf(false) }
+    var showHistoryDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     var lunarYearInput by remember { mutableStateOf(todayLunar.year.toString()) }
     var lunarMonth by remember { mutableIntStateOf(todayLunar.month) }
@@ -122,7 +131,6 @@ fun LunarConverterScreen(
 
     var showLunarResult by remember { mutableStateOf(true) }
 
-    // Bounce 动效触发器：只在主动点击下方四个快捷按键时触发
     val cardScale = remember { Animatable(1.0f) }
     val cardAlpha = remember { Animatable(1.0f) }
     var triggerBounce by remember { mutableIntStateOf(0) }
@@ -177,6 +185,20 @@ fun LunarConverterScreen(
         )
     }
 
+    HistoryOverlayDialog(
+        visible = showHistoryDialog,
+        onDismiss = { showHistoryDialog = false },
+        viewModel = viewModel,
+        uiState = uiState
+    )
+
+    SettingsOverlayDialog(
+        visible = showSettingsDialog,
+        onDismiss = { showSettingsDialog = false },
+        viewModel = viewModel,
+        uiState = uiState
+    )
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -184,19 +206,65 @@ fun LunarConverterScreen(
                 .verticalScroll(scrollState)
                 .padding(14.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.SwapHoriz,
-                    contentDescription = null,
-                    tint = NeumorphicAccent
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.label_lunar_conv_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = NeumorphicTextPrimary
-                )
+            // 顶栏 (36dp 高度, 15sp 标题, 右上角历史记录与设置图标)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.label_lunar_conv_title),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeumorphicTextPrimary
+                    )
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { showHistoryDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = "查看历史记录",
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { showSettingsDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "打开设置",
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -223,14 +291,12 @@ fun LunarConverterScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 显眼放大版新拟物 Hero Card
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
                             scaleX = cardScale.value
-                            scaleY = cardScale.value
-                            alpha = cardAlpha.value
+                            scaleY = cardAlpha.value
                         }
                         .clickable { showSolarPicker = true },
                     shape = RoundedCornerShape(16.dp),
@@ -304,6 +370,10 @@ fun LunarConverterScreen(
 
                 val lunarResult = LunarCalendarUtils.solarToLunar(solarDate)
                 val almanacYiJi = LunarCalendarUtils.getAlmanacYiJi(solarDate)
+                val (solarConstName, solarConstEmoji) = LunarCalendarUtils.getConstellationInfo(solarDate)
+                val solarFortune = LunarCalendarUtils.getDailyFortune(solarDate, solarConstName)
+
+                val cardShape24 = RoundedCornerShape(24.dp)
 
                 AnimatedVisibility(
                     visible = showLunarResult,
@@ -313,9 +383,11 @@ fun LunarConverterScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .neumorphicExtruded(shape = RoundedCornerShape(24.dp), elevation = 6.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = RoundedCornerShape(24.dp))
-                            .clip(RoundedCornerShape(24.dp))
+                            .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
+                            .background(NeumorphicBg, shape = cardShape24)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
+                            .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = cardShape24)
+                            .clip(cardShape24)
                             .padding(16.dp)
                     ) {
                         Column(
@@ -326,7 +398,7 @@ fun LunarConverterScreen(
                                 text = stringResource(R.string.label_lunar_result),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                                color = NeumorphicAccent
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
@@ -336,27 +408,33 @@ fun LunarConverterScreen(
                                 text = "$leapTag${lunarResult.lunarMonthName}${lunarResult.lunarDayName}",
                                 fontSize = 30.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = NeumorphicTextPrimary
                             )
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            // 凸显干支纪年与生肖属相 (如: 丙午 (马) 年)
                             Text(
                                 text = "${lunarResult.ganZhiYear} (${lunarResult.zodiac}) 年",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = NeumorphicTextPrimary
                             )
 
-                            // 二十四节气与节日芯片 (跟随节气名称动态匹配四季主题 Icon，如 🌸 春分 / 🏖️ 夏至 / 🌾 秋分 / 🥟 冬至)
-                            Row(
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // 节气、节日与星座芯片
+                            FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
+                                SuggestionChip(
+                                    onClick = {},
+                                    shape = CircleShape,
+                                    label = { Text("$solarConstEmoji $solarConstName", fontWeight = FontWeight.Bold) }
+                                )
+
                                 if (lunarResult.solarTerm.isNotEmpty()) {
                                     val termIcon = LunarCalendarUtils.getSolarTermIcon(lunarResult.solarTerm)
-                                    Spacer(modifier = Modifier.height(6.dp))
                                     SuggestionChip(
                                         onClick = {},
                                         shape = CircleShape,
@@ -365,7 +443,6 @@ fun LunarConverterScreen(
                                 }
 
                                 if (lunarResult.festival.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(6.dp))
                                     SuggestionChip(
                                         onClick = { viewModel.triggerFireworks() },
                                         shape = CircleShape,
@@ -374,9 +451,17 @@ fun LunarConverterScreen(
                                 }
                             }
 
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = "✨ 运势: ${solarFortune.summary}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = NeumorphicTextPrimary.copy(alpha = 0.75f)
+                            )
+
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // 📜 沉降式老黄历“宜”与“忌”精致面板 (宜: 积极鲜艳亮绿; 忌: 灰暗收敛沉稳灰)
                             val almanacBoxShape = RoundedCornerShape(18.dp)
 
                             val yiBadgeBg = Color(0xFF10B981)
@@ -407,7 +492,6 @@ fun LunarConverterScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    // 1. 宜 (Auspicious) 行
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically
@@ -450,7 +534,6 @@ fun LunarConverterScreen(
 
                                     HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
 
-                                    // 2. 忌 (Inauspicious) 行
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically
@@ -493,19 +576,37 @@ fun LunarConverterScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(14.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
 
-                            NeumorphicCopyButton(
-                                text = stringResource(R.string.label_copy_lunar),
-                                onClick = {
-                                    val yiText = almanacYiJi.yiList.joinToString("·")
-                                    val jiText = almanacYiJi.jiList.joinToString("·")
-                                    val clipText = "Solar ${solarDate} ➔ ${lunarResult.getFullDescription()} | 宜: $yiText | 忌: $jiText"
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("LunarDate", clipText))
-                                    Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
-                                }
-                            )
+                            val yiText = almanacYiJi.yiList.joinToString("·")
+                            val jiText = almanacYiJi.jiList.joinToString("·")
+                            val clipText = "Solar ${solarDate} ➔ ${lunarResult.getFullDescription()} | 宜: $yiText | 忌: $jiText"
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                NeumorphicIconButton(
+                                    icon = Icons.Default.Share,
+                                    contentDescription = "分享农历转换结果",
+                                    onClick = {
+                                        ShareUtils.shareText(context, clipText)
+                                    }
+                                )
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                NeumorphicIconButton(
+                                    icon = Icons.Default.ContentCopy,
+                                    contentDescription = "复制农历转换结果",
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        clipboard.setPrimaryClip(ClipData.newPlainText("LunarDate", clipText))
+                                        Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -611,7 +712,6 @@ fun LunarConverterScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 1. 公历年份
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -649,7 +749,6 @@ fun LunarConverterScreen(
                             }
                         }
 
-                        // 2. 农历月份选择
                         var monthExpanded by remember { mutableStateOf(false) }
                         Box(modifier = Modifier.weight(1f)) {
                             Box(
@@ -709,7 +808,6 @@ fun LunarConverterScreen(
                             }
                         }
 
-                        // 3. 农历日期选择
                         var dayExpanded by remember { mutableStateOf(false) }
                         Box(modifier = Modifier.weight(1f)) {
                             Box(
@@ -833,6 +931,8 @@ fun LunarConverterScreen(
                     LunarCalendarUtils.lunarToSolar(parsedYear, lunarMonth, lunarDay, isLeapMonth)
                 } else null
 
+                val cardShape24 = RoundedCornerShape(24.dp)
+
                 AnimatedVisibility(
                     visible = showLunarResult && parsedYear != null,
                     enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
@@ -841,9 +941,11 @@ fun LunarConverterScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .neumorphicExtruded(shape = RoundedCornerShape(24.dp), elevation = 6.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = RoundedCornerShape(24.dp))
-                            .clip(RoundedCornerShape(24.dp))
+                            .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
+                            .background(NeumorphicBg, shape = cardShape24)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
+                            .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = cardShape24)
+                            .clip(cardShape24)
                             .padding(16.dp)
                     ) {
                         Column(
@@ -854,7 +956,7 @@ fun LunarConverterScreen(
                                 text = stringResource(R.string.label_solar_result),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                                color = NeumorphicAccent
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
@@ -865,12 +967,14 @@ fun LunarConverterScreen(
                                 val festivalStr = LunarCalendarUtils.solarToLunar(convertedSolarDate).festival
                                 val convertAlmanac = LunarCalendarUtils.getAlmanacYiJi(convertedSolarDate)
                                 val convertLunar = LunarCalendarUtils.solarToLunar(convertedSolarDate)
+                                val (convertConstName, convertConstEmoji) = LunarCalendarUtils.getConstellationInfo(convertedSolarDate)
+                                val convertFortune = LunarCalendarUtils.getDailyFortune(convertedSolarDate, convertConstName)
 
                                 Text(
                                     text = solarStr,
                                     fontSize = 30.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = NeumorphicTextPrimary
                                 )
 
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -879,17 +983,24 @@ fun LunarConverterScreen(
                                     text = "${convertLunar.ganZhiYear} (${convertLunar.zodiac}) 年",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                                    color = NeumorphicTextPrimary.copy(alpha = 0.9f)
                                 )
 
-                                // 二十四节气与节日芯片 (动态四季 Icon)
-                                Row(
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // 节气、节日与星座芯片 (农历转公历同样完整展示)
+                                FlowRow(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
+                                    SuggestionChip(
+                                        onClick = {},
+                                        shape = CircleShape,
+                                        label = { Text("$convertConstEmoji $convertConstName", fontWeight = FontWeight.Bold) }
+                                    )
+
                                     if (convertLunar.solarTerm.isNotEmpty()) {
                                         val termIcon = LunarCalendarUtils.getSolarTermIcon(convertLunar.solarTerm)
-                                        Spacer(modifier = Modifier.height(6.dp))
                                         SuggestionChip(
                                             onClick = {},
                                             shape = CircleShape,
@@ -898,7 +1009,6 @@ fun LunarConverterScreen(
                                     }
 
                                     if (festivalStr.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(6.dp))
                                         SuggestionChip(
                                             onClick = { viewModel.triggerFireworks() },
                                             shape = CircleShape,
@@ -907,17 +1017,25 @@ fun LunarConverterScreen(
                                     }
                                 }
 
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = "✨ 运势: ${convertFortune.summary}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = NeumorphicTextPrimary.copy(alpha = 0.75f)
+                                )
+
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 Text(
                                     text = descStr,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                    color = NeumorphicTextPrimary.copy(alpha = 0.8f)
                                 )
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                // 📜 沉降式老黄历“宜”与“忌”精致面板 (宜: 积极鲜艳亮绿; 忌: 灰暗收敛沉稳灰)
                                 val almanacBoxShape = RoundedCornerShape(18.dp)
 
                                 val convertYiBadgeBg = Color(0xFF10B981)
@@ -1032,19 +1150,37 @@ fun LunarConverterScreen(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(14.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
 
-                                NeumorphicCopyButton(
-                                    text = stringResource(R.string.label_copy_solar),
-                                    onClick = {
-                                        val yiText = convertAlmanac.yiList.joinToString("·")
-                                        val jiText = convertAlmanac.jiList.joinToString("·")
-                                        val clipText = "Lunar ${parsedYear}/${lunarMonth}/${lunarDay} ➔ Solar: $solarStr | 宜: $yiText | 忌: $jiText"
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        clipboard.setPrimaryClip(ClipData.newPlainText("SolarDate", clipText))
-                                        Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
-                                    }
-                                )
+                                val yiText = convertAlmanac.yiList.joinToString("·")
+                                val jiText = convertAlmanac.jiList.joinToString("·")
+                                val clipText = "Lunar ${parsedYear}/${lunarMonth}/${lunarDay} ➔ Solar: $solarStr | 宜: $yiText | 忌: $jiText"
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    NeumorphicIconButton(
+                                        icon = Icons.Default.Share,
+                                        contentDescription = "分享公历转换结果",
+                                        onClick = {
+                                            ShareUtils.shareText(context, clipText)
+                                        }
+                                    )
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    NeumorphicIconButton(
+                                        icon = Icons.Default.ContentCopy,
+                                        contentDescription = "复制公历转换结果",
+                                        onClick = {
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            clipboard.setPrimaryClip(ClipData.newPlainText("SolarDate", clipText))
+                                            Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                }
                             } else {
                                 Text("Invalid date range (1900-2100)", color = MaterialTheme.colorScheme.error)
                             }
@@ -1056,7 +1192,6 @@ fun LunarConverterScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // 传统节日烟花粒子图层
         FireworksAnimation(
             trigger = uiState.fireworksTrigger,
             onAnimationFinished = { viewModel.resetFireworks() }
