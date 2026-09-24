@@ -38,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.util.LanguageUtils
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 
@@ -133,11 +135,12 @@ fun NeumorphicCapsuleSwitch(
 fun SolarLunarSwitch(
     isSolar: Boolean,
     onCalendarTypeChanged: (Boolean) -> Unit,
+    language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
     NeumorphicCapsuleSwitch(
-        option1Text = "公历",
-        option2Text = "农历",
+        option1Text = LanguageUtils.getString("solar", language),
+        option2Text = LanguageUtils.getString("lunar", language),
         isOption1Selected = isSolar,
         onOptionChanged = onCalendarTypeChanged,
         modifier = modifier.width(110.dp),
@@ -152,11 +155,12 @@ fun SolarLunarSwitch(
 fun WorkdayNaturalSwitch(
     isWorkday: Boolean,
     onWorkdayChanged: (Boolean) -> Unit,
+    language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
     NeumorphicCapsuleSwitch(
-        option1Text = "工作日",
-        option2Text = "自然日",
+        option1Text = LanguageUtils.getString("workday", language),
+        option2Text = LanguageUtils.getString("natural_day", language),
         isOption1Selected = isWorkday,
         onOptionChanged = onWorkdayChanged,
         modifier = modifier.width(130.dp),

@@ -228,7 +228,7 @@ fun AgeCalculatorScreen(
                             fontSize = 11.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
-                        val birthFormatted = DateCalculatorUtils.formatDateWithWeek(birthDate)
+                        val birthFormatted = DateCalculatorUtils.formatDateWithWeek(birthDate, uiState.appLanguage)
                         Text(
                             text = birthFormatted,
                             fontSize = 16.sp,
@@ -309,7 +309,7 @@ fun AgeCalculatorScreen(
                     SuggestionChip(
                         onClick = {},
                         shape = CircleShape,
-                        label = { Text("${ageResult.constellationEmoji} ${ageResult.constellation}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                        label = { Text("${fortune.emoji} ${fortune.constellation}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                     )
                 }
 
@@ -403,13 +403,21 @@ fun AgeCalculatorScreen(
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
+                val lang = uiState.appLanguage
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val fortuneTitle = when (lang) {
+                        AppLanguage.ENGLISH -> "Horoscope"
+                        AppLanguage.JAPANESE -> "運勢"
+                        AppLanguage.KOREAN -> "운세"
+                        AppLanguage.TRADITIONAL_CHINESE -> "專屬運勢"
+                        else -> "专属运势"
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) 专属运势", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                        Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) $fortuneTitle", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
                     }
 
                     Row {
@@ -435,8 +443,10 @@ fun AgeCalculatorScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("幸运数字: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                    Text("幸运颜色: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                    val luckyNumLabel = LanguageUtils.getString("lucky_number", lang)
+                    val luckyColorLabel = LanguageUtils.getString("lucky_color", lang)
+                    Text("$luckyNumLabel: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                    Text("$luckyColorLabel: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                 }
             }
         }

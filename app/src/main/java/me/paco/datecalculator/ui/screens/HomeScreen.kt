@@ -457,10 +457,11 @@ fun HomeScreen(
 
                         if (homeConfig.showSolarTerms && todayLunar.solarTerm.isNotEmpty()) {
                             val termIcon = LunarCalendarUtils.getSolarTermIcon(todayLunar.solarTerm)
+                            val termText = LunarCalendarUtils.getLocalizedSolarTerm(todayLunar.solarTerm, uiState.appLanguage)
                             SuggestionChip(
                                 onClick = {},
                                 shape = CircleShape,
-                                label = { Text("$termIcon ${todayLunar.solarTerm}", fontWeight = FontWeight.Bold, fontSize = 10.5.sp) }
+                                label = { Text("$termIcon $termText", fontWeight = FontWeight.Bold, fontSize = 10.5.sp) }
                             )
                         }
                     }

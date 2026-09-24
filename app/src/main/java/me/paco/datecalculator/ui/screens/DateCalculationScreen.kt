@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DateMode
 import me.paco.datecalculator.data.StageSegmentResult
@@ -327,18 +328,61 @@ fun DateCalculationScreen(
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
+                val lang = uiState.appLanguage
                 val infoText = if (uiState.dateMode == DateMode.WORKDAY) {
                     val regionText = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
                     val ruleLabel = when (uiState.weekendRule) {
-                        WeekendRule.STANDARD_FIVE_DAYS -> stringResource(R.string.rule_five_days)
-                        WeekendRule.ALTERNATE_BIG_SMALL_WEEKS -> stringResource(R.string.rule_big_small_weeks)
-                        WeekendRule.SIX_DAYS_SUNDAY -> stringResource(R.string.rule_six_days_sunday)
-                        WeekendRule.SIX_DAYS_SATURDAY -> stringResource(R.string.rule_six_days_saturday)
-                        WeekendRule.SEVEN_DAYS -> stringResource(R.string.rule_seven_days)
+                        WeekendRule.STANDARD_FIVE_DAYS -> when (lang) {
+                            AppLanguage.ENGLISH -> "5-Day Workweek"
+                            AppLanguage.JAPANESE -> "完全週休2日"
+                            AppLanguage.KOREAN -> "주5일제"
+                            AppLanguage.TRADITIONAL_CHINESE -> "雙休 (周六日休息)"
+                            else -> "双休 (周六日休息)"
+                        }
+                        WeekendRule.ALTERNATE_BIG_SMALL_WEEKS -> when (lang) {
+                            AppLanguage.ENGLISH -> "Alternate Big/Small Weeks"
+                            AppLanguage.JAPANESE -> "隔週週休2日"
+                            AppLanguage.KOREAN -> "격주 휴무"
+                            AppLanguage.TRADITIONAL_CHINESE -> "大小周 (單雙休輪替)"
+                            else -> "大小周 (单双休轮替)"
+                        }
+                        WeekendRule.SIX_DAYS_SUNDAY -> when (lang) {
+                            AppLanguage.ENGLISH -> "6-Day (Sun Off)"
+                            AppLanguage.JAPANESE -> "週休1日 (日曜休)"
+                            AppLanguage.KOREAN -> "주6일 (일요일 휴무)"
+                            AppLanguage.TRADITIONAL_CHINESE -> "單休 (僅周日休息)"
+                            else -> "单休 (仅周日休息)"
+                        }
+                        WeekendRule.SIX_DAYS_SATURDAY -> when (lang) {
+                            AppLanguage.ENGLISH -> "6-Day (Sat Off)"
+                            AppLanguage.JAPANESE -> "週休1日 (土曜休)"
+                            AppLanguage.KOREAN -> "주6일 (토요일 휴무)"
+                            AppLanguage.TRADITIONAL_CHINESE -> "單休 (僅周六休息)"
+                            else -> "单休 (仅周六休息)"
+                        }
+                        WeekendRule.SEVEN_DAYS -> when (lang) {
+                            AppLanguage.ENGLISH -> "7-Day Workweek"
+                            AppLanguage.JAPANESE -> "無休 (7日勤務)"
+                            AppLanguage.KOREAN -> "무휴 (7일 근무)"
+                            AppLanguage.TRADITIONAL_CHINESE -> "無休 (七天工作)"
+                            else -> "无休 (七天工作)"
+                        }
                     }
-                    stringResource(R.string.label_rule_prefix, ruleLabel, regionText)
+                    when (lang) {
+                        AppLanguage.ENGLISH -> "Rule: $ruleLabel | Holidays: $regionText"
+                        AppLanguage.JAPANESE -> "規則: $ruleLabel | 祝日: $regionText"
+                        AppLanguage.KOREAN -> "규칙: $ruleLabel | 공휴일: $regionText"
+                        AppLanguage.TRADITIONAL_CHINESE -> "規則: $ruleLabel | 節假日: $regionText"
+                        else -> "规则: $ruleLabel | 节假日: $regionText"
+                    }
                 } else {
-                    stringResource(R.string.label_natural_mode_info)
+                    when (lang) {
+                        AppLanguage.ENGLISH -> "Natural Day Mode: Includes all consecutive calendar days"
+                        AppLanguage.JAPANESE -> "自然日モード: 祝日や週末を含むすべての暦日"
+                        AppLanguage.KOREAN -> "자연일 모드: 모든 연속 달력 일수 포함"
+                        AppLanguage.TRADITIONAL_CHINESE -> "自然日模式：包含所有連續日曆天數"
+                        else -> "自然日模式: 包含所有连续日历天数"
+                    }
                 }
 
                 Text(
@@ -433,6 +477,7 @@ fun DateCalculationScreen(
                 onWorkdayChanged = { isWorkday ->
                     viewModel.updateDateMode(if (isWorkday) DateMode.WORKDAY else DateMode.NATURAL_DAY)
                 },
+                language = uiState.appLanguage,
                 modifier = Modifier.width(140.dp)
             )
         }

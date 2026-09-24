@@ -839,19 +839,22 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            val lang = uiState.appLanguage
+
             // 2. 目标日期 Header 与同行公历/农历开关 (同行优雅呈现)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("选择目标日期", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                Text(LanguageUtils.getString("select_target_date", lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
 
                 SolarLunarSwitch(
                     isSolar = (targetCalendarType == 0),
                     onCalendarTypeChanged = { isSolar ->
                         targetCalendarType = if (isSolar) 0 else 1
-                    }
+                    },
+                    language = lang
                 )
             }
 
@@ -882,7 +885,7 @@ fun DateDiffScreen(
                                 modifier = Modifier.padding(end = 8.dp)
                             )
                             Text(
-                                text = "目标日期: ${DateCalculatorUtils.formatDate(uiState.endDate)}",
+                                text = "${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(uiState.endDate, lang)}",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = NeumorphicTextPrimary

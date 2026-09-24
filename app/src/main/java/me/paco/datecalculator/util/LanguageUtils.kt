@@ -126,7 +126,23 @@ object LanguageUtils {
             "workday_chip" to "工作日",
             "weekend_chip" to "休息日",
             "result_title_workday" to "工作日计算结果",
-            "result_title_natural" to "自然日计算结果"
+            "result_title_natural" to "自然日计算结果",
+            "cancel" to "取消",
+            "confirm" to "确定",
+            "export_csv" to "导出 CSV",
+            "close_details" to "关闭详情",
+            "edit_history_title" to "修改历史记录名称",
+            "enter_new_history_title" to "请输入新的历史记录名称:",
+            "save_title" to "保存名称",
+            "reverse_end_date_title" to "选择终止日期拆算包含的天数:",
+            "end_date_label" to "终止日期",
+            "anniversary_dialog_title" to "添加重要纪念日",
+            "check_in_dialog_title" to "精准打卡",
+            "confirm_delete_anniversary" to "确认删除纪念日？",
+            "confirm_delete_btn" to "确认删除",
+            "days_passed" to "已陪伴过去",
+            "days_upcoming" to "距离即将到来",
+            "next_anniversary_remains" to "下个周年还剩"
         )
 
         val stringsZhTw = mapOf(
@@ -204,7 +220,23 @@ object LanguageUtils {
             "workday_chip" to "工作日",
             "weekend_chip" to "休息日",
             "result_title_workday" to "工作日計算結果",
-            "result_title_natural" to "自然日計算結果"
+            "result_title_natural" to "自然日計算結果",
+            "cancel" to "取消",
+            "confirm" to "確定",
+            "export_csv" to "匯出 CSV",
+            "close_details" to "關閉詳情",
+            "edit_history_title" to "修改歷史記錄名稱",
+            "enter_new_history_title" to "請輸入新的歷史記錄名稱:",
+            "save_title" to "保存名稱",
+            "reverse_end_date_title" to "選擇終止日期拆算包含的天數:",
+            "end_date_label" to "終止日期",
+            "anniversary_dialog_title" to "添加重要紀念日",
+            "check_in_dialog_title" to "精準打卡",
+            "confirm_delete_anniversary" to "確認刪除紀念日？",
+            "confirm_delete_btn" to "確認刪除",
+            "days_passed" to "已陪伴過去",
+            "days_upcoming" to "距離即將到來",
+            "next_anniversary_remains" to "下個周年還剩"
         )
 
         val stringsEn = mapOf(
@@ -282,7 +314,23 @@ object LanguageUtils {
             "workday_chip" to "Workday",
             "weekend_chip" to "Weekend",
             "result_title_workday" to "Workday Calculation Result",
-            "result_title_natural" to "Calendar Day Calculation Result"
+            "result_title_natural" to "Calendar Day Calculation Result",
+            "cancel" to "Cancel",
+            "confirm" to "OK",
+            "export_csv" to "Export CSV",
+            "close_details" to "Close Details",
+            "edit_history_title" to "Rename History Record",
+            "enter_new_history_title" to "Enter new record title:",
+            "save_title" to "Save Title",
+            "reverse_end_date_title" to "Select end date to calculate interval breakdown:",
+            "end_date_label" to "End Date",
+            "anniversary_dialog_title" to "Add Important Anniversary",
+            "check_in_dialog_title" to "Location Check-in",
+            "confirm_delete_anniversary" to "Confirm deleting anniversary?",
+            "confirm_delete_btn" to "Delete",
+            "days_passed" to "Days Passed",
+            "days_upcoming" to "Days Upcoming",
+            "next_anniversary_remains" to "Next anniversary in"
         )
 
         val stringsJa = mapOf(
@@ -360,7 +408,23 @@ object LanguageUtils {
             "workday_chip" to "稼働日",
             "weekend_chip" to "休業日",
             "result_title_workday" to "稼働日計算結果",
-            "result_title_natural" to "自然日計算結果"
+            "result_title_natural" to "自然日計算結果",
+            "cancel" to "キャンセル",
+            "confirm" to "OK",
+            "export_csv" to "CSV出力",
+            "close_details" to "詳細を閉じる",
+            "edit_history_title" to "履歴名を変更",
+            "enter_new_history_title" to "新しい履歴名を入力してください:",
+            "save_title" to "名前を保存",
+            "reverse_end_date_title" to "期間分解用の終了日付を選択:",
+            "end_date_label" to "終了日付",
+            "anniversary_dialog_title" to "重要な記念日を追加",
+            "check_in_dialog_title" to "位置情報チェックイン",
+            "confirm_delete_anniversary" to "記念日を削除しますか？",
+            "confirm_delete_btn" to "削除",
+            "days_passed" to "経過日数",
+            "days_upcoming" to "到来まであと",
+            "next_anniversary_remains" to "次の周年まで残り"
         )
 
         val stringsKo = mapOf(
@@ -438,7 +502,23 @@ object LanguageUtils {
             "workday_chip" to "근무일",
             "weekend_chip" to "휴무일",
             "result_title_workday" to "근무일 계산 결과",
-            "result_title_natural" to "자연일 계산 결과"
+            "result_title_natural" to "자연일 계산 결과",
+            "cancel" to "취소",
+            "confirm" to "확인",
+            "export_csv" to "CSV 내보내기",
+            "close_details" to "상세 닫기",
+            "edit_history_title" to "히스토리 이름 수정",
+            "enter_new_history_title" to "새 히스토리 이름을 입력하세요:",
+            "save_title" to "이름 저장",
+            "reverse_end_date_title" to "기간 분할용 종료 날짜 선택:",
+            "end_date_label" to "종료 날짜",
+            "anniversary_dialog_title" to "중요 기념일 추가",
+            "check_in_dialog_title" to "위치 체크인",
+            "confirm_delete_anniversary" to "기념일을 삭제하시겠습니까?",
+            "confirm_delete_btn" to "삭제",
+            "days_passed" to "경과 일수",
+            "days_upcoming" to "다가오는 시간",
+            "next_anniversary_remains" to "다음 주기까지 남은 시간"
         )
 
         val map = when (language) {

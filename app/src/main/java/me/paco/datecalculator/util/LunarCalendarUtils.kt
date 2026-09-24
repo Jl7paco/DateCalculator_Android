@@ -164,6 +164,51 @@ object LunarCalendarUtils {
         }
     }
 
+    fun getLocalizedSolarTerm(term: String, language: AppLanguage): String {
+        if (term.isEmpty()) return ""
+        if (language == AppLanguage.SIMPLIFIED_CHINESE || language == AppLanguage.TRADITIONAL_CHINESE) return term
+
+        val mapEn = mapOf(
+            "立春" to "Spring Begins", "雨水" to "Rain Water", "惊蛰" to "Insects Awaken",
+            "春分" to "Vernal Equinox", "清明" to "Clear & Bright", "谷雨" to "Grain Rain",
+            "立夏" to "Summer Begins", "小满" to "Grain Buds", "芒种" to "Grain in Ear",
+            "夏至" to "Summer Solstice", "小暑" to "Minor Heat", "大暑" to "Major Heat",
+            "立秋" to "Autumn Begins", "处暑" to "Heat Stops", "白露" to "White Dew",
+            "秋分" to "Autumn Equinox", "寒露" to "Cold Dew", "霜降" to "Frost Descends",
+            "立冬" to "Winter Begins", "小雪" to "Minor Snow", "大雪" to "Major Snow",
+            "冬至" to "Winter Solstice", "小寒" to "Minor Cold", "大寒" to "Major Cold"
+        )
+
+        val mapJa = mapOf(
+            "立春" to "立春", "雨水" to "雨水", "惊蛰" to "啓蟄",
+            "春分" to "春分", "清明" to "清明", "谷雨" to "穀雨",
+            "立夏" to "立夏", "小满" to "小満", "芒种" to "芒種",
+            "夏至" to "夏至", "小暑" to "小暑", "大暑" to "大暑",
+            "立秋" to "立秋", "处暑" to "処暑", "白露" to "白露",
+            "秋分" to "秋分", "寒露" to "寒露", "霜降" to "霜降",
+            "立冬" to "立冬", "小雪" to "小雪", "大雪" to "大雪",
+            "冬至" to "冬至", "小寒" to "小寒", "大寒" to "大寒"
+        )
+
+        val mapKo = mapOf(
+            "立春" to "입춘", "雨水" to "우수", "惊蛰" to "경칩",
+            "春分" to "춘분", "清明" to "청명", "谷雨" to "곡우",
+            "立夏" to "입하", "小满" to "소만", "芒种" to "망종",
+            "夏至" to "하지", "小暑" to "소서", "大暑" to "대서",
+            "立秋" to "입추", "处暑" to "처서", "白露" to "백로",
+            "秋分" to "추분", "寒露" to "한로", "霜降" to "상강",
+            "立冬" to "입동", "小雪" to "소설", "大雪" to "대설",
+            "冬至" to "동지", "小寒" to "소한", "大寒" to "대한"
+        )
+
+        return when (language) {
+            AppLanguage.ENGLISH -> mapEn[term] ?: term
+            AppLanguage.JAPANESE -> mapJa[term] ?: term
+            AppLanguage.KOREAN -> mapKo[term] ?: term
+            else -> term
+        }
+    }
+
     private fun getFestival(solarMonth: Int, solarDay: Int, lunarMonth: Int, lunarDay: Int): String {
         if (solarMonth == 1 && solarDay == 1) return "元旦"
         if (solarMonth == 3 && solarDay == 8) return "妇女节"
