@@ -36,6 +36,7 @@ import me.paco.datecalculator.ui.screens.SettingsScreen
 import me.paco.datecalculator.ui.theme.DateCalculatorTheme
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
+import me.paco.datecalculator.util.LanguageUtils
 
 @Composable
 fun SettingsOverlayDialog(
@@ -84,7 +85,7 @@ fun SettingsOverlayDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "设置",
+                                    text = LanguageUtils.getString("settings_title", uiState.appLanguage),
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = NeumorphicTextPrimary
@@ -102,7 +103,7 @@ fun SettingsOverlayDialog(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "关闭",
+                                    contentDescription = "Close",
                                     tint = NeumorphicAccent,
                                     modifier = Modifier.size(18.dp)
                                 )

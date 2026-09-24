@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.util.LanguageUtils
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -37,7 +39,8 @@ import java.time.ZoneOffset
 fun DatePickerModal(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE
 ) {
     val initialMillis = selectedDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val datePickerState = rememberDatePickerState(
@@ -61,7 +64,7 @@ fun DatePickerModal(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 新拟物定制版 DatePicker 视觉适配 (指定 1900..2100 年份范围，修复文本输入模式光标格式卡顿)
+                // 新拟物定制版 DatePicker 视觉适配
                 DatePicker(
                     state = datePickerState,
                     colors = DatePickerDefaults.colors(
@@ -101,7 +104,7 @@ fun DatePickerModal(
                             .padding(horizontal = 20.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("取消", color = NeumorphicTextPrimary, fontWeight = FontWeight.Bold)
+                        Text(LanguageUtils.getString("cancel", language), color = NeumorphicTextPrimary, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
@@ -125,7 +128,7 @@ fun DatePickerModal(
                             .padding(horizontal = 24.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("确定", color = Color.White, fontWeight = FontWeight.ExtraBold)
+                        Text(LanguageUtils.getString("confirm", language), color = Color.White, fontWeight = FontWeight.ExtraBold)
                     }
                 }
             }

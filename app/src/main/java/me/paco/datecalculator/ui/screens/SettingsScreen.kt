@@ -118,6 +118,9 @@ fun SettingsScreen(
             .verticalScroll(scrollState)
             .padding(14.dp)
     ) {
+        val lang = uiState.appLanguage
+        val isChinese = lang.isChineseLocale
+
         // 顶栏 (36dp 高度, 15sp 标题)
         Row(
             modifier = Modifier
@@ -133,7 +136,7 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "系统设置",
+                text = LanguageUtils.getString("settings_title", lang),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = NeumorphicTextPrimary
@@ -141,9 +144,6 @@ fun SettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
-
-        val lang = uiState.appLanguage
-        val isChinese = lang.isChineseLocale
 
         // 0. 语言设置 Card
         Box(
@@ -288,7 +288,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.label_region_selection),
+                        text = LanguageUtils.getString("settings_region", lang),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = NeumorphicAccent
@@ -310,7 +310,7 @@ fun SettingsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.GpsFixed, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("GPS 自动识别所在地", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 13.sp)
+                        Text(LanguageUtils.getString("settings_gps_auto", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 13.sp)
                     }
 
                     Switch(
@@ -428,7 +428,7 @@ fun SettingsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("同步最新节假日数据", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
+                        Text(LanguageUtils.getString("settings_sync_holidays", lang), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                     }
                 }
             }
