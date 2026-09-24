@@ -43,6 +43,32 @@ object WeatherUtils {
         }
     }
 
+    fun getLocalizedLocationName(cityName: String, language: AppLanguage): String {
+        if (language == AppLanguage.SIMPLIFIED_CHINESE || language == AppLanguage.TRADITIONAL_CHINESE) {
+            return cityName
+        }
+        return when {
+            cityName.contains("深圳") -> "Shenzhen"
+            cityName.contains("北京") -> "Beijing"
+            cityName.contains("上海") -> "Shanghai"
+            cityName.contains("广州") -> "Guangzhou"
+            cityName.contains("成都") -> "Chengdu"
+            cityName.contains("杭州") -> "Hangzhou"
+            cityName.contains("武汉") -> "Wuhan"
+            cityName.contains("南京") -> "Nanjing"
+            cityName.contains("西安") -> "Xi'an"
+            cityName.contains("台北") -> "Taipei"
+            cityName.contains("香港") -> "Hong Kong"
+            cityName.contains("澳门") -> "Macau"
+            cityName.contains("新加坡") -> "Singapore"
+            cityName.contains("东京") -> "Tokyo"
+            cityName.contains("首尔") -> "Seoul"
+            cityName.contains("伦敦") -> "London"
+            cityName.contains("纽约") -> "New York"
+            else -> cityName
+        }
+    }
+
     fun getLocalizedCondition(condition: String, language: AppLanguage): String {
         return when (language) {
             AppLanguage.SIMPLIFIED_CHINESE -> condition

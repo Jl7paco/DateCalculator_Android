@@ -1,5 +1,6 @@
 package me.paco.datecalculator.util
 
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.RegionalHolidays
@@ -51,26 +52,34 @@ object DateCalculatorUtils {
 
     fun formatDate(
         date: LocalDate,
-        isChineseLocale: Boolean = Locale.getDefault().language == "zh"
+        language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE
     ): String {
-        return if (isChineseLocale) {
-            date.format(DATE_FORMATTER_ZH)
-        } else {
-            date.format(DATE_FORMATTER_EN)
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE, AppLanguage.JAPANESE -> date.format(DATE_FORMATTER_ZH)
+            AppLanguage.KOREAN -> String.format("%d년 %02d월 %02d일", date.year, date.monthValue, date.dayOfMonth)
+            AppLanguage.ENGLISH -> {
+                val mName = date.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
+                String.format("%s %02d, %d", mName, date.dayOfMonth, date.year)
+            }
         }
     }
 
     fun formatDateWithWeek(
         date: LocalDate,
-        isChineseLocale: Boolean = Locale.getDefault().language == "zh"
+        language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE
     ): String {
-        val baseDateStr = formatDate(date, isChineseLocale)
-        val weekFields = WeekFields.of(if (isChineseLocale) Locale.CHINA else Locale.US)
+        val weekFields = WeekFields.of(Locale.getDefault())
         val weekNum = date.get(weekFields.weekOfWeekBasedYear())
-        return if (isChineseLocale) {
-            "$baseDateStr (第${weekNum}周)"
-        } else {
-            "$baseDateStr (W$weekNum)"
+
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> String.format("%d年%02d月%02d日 (第%d周)", date.year, date.monthValue, date.dayOfMonth, weekNum)
+            AppLanguage.TRADITIONAL_CHINESE -> String.format("%d年%02d月%02d日 (第%d週)", date.year, date.monthValue, date.dayOfMonth, weekNum)
+            AppLanguage.ENGLISH -> {
+                val mName = date.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
+                String.format("%s %02d, %d (Wk %d)", mName, date.dayOfMonth, date.year, weekNum)
+            }
+            AppLanguage.JAPANESE -> String.format("%d年%02d月%02d日 (第%d週)", date.year, date.monthValue, date.dayOfMonth, weekNum)
+            AppLanguage.KOREAN -> String.format("%d년 %02d월 %02d일 (%d주차)", date.year, date.monthValue, date.dayOfMonth, weekNum)
         }
     }
 

@@ -382,14 +382,14 @@ fun DateCalculationScreen(
                     )
                     Column {
                         Text(
-                            text = stringResource(R.string.label_start_date_section),
+                            text = LanguageUtils.getString("select_start_date", uiState.appLanguage),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
-                        val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(uiState.baseDate)
+                        val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(uiState.baseDate, uiState.appLanguage)
                         Text(
                             text = dateFormattedWithWeek,
                             fontSize = 16.sp,
@@ -907,7 +907,8 @@ fun DateCalculationScreen(
                     weekendRule = uiState.weekendRule,
                     enableHolidays = uiState.enableChineseHolidays,
                     holidayRegion = uiState.holidayRegion,
-                    isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek
+                    isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek,
+                    appLanguage = uiState.appLanguage
                 )
             } else {
                 RangeBreakdownCard(

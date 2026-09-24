@@ -55,12 +55,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.R
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DateMode
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.ShareUtils
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -79,25 +81,17 @@ fun ResultCard(
     enableHolidays: Boolean = true,
     holidayRegion: HolidayRegion = HolidayRegion.CHINA,
     isCurrentWeekBigWeek: Boolean = true,
+    appLanguage: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val dateStr = DateCalculatorUtils.formatDate(resultDate)
+    val dateStr = DateCalculatorUtils.formatDate(resultDate, appLanguage)
     val shortDateStr = resultDate.format(DateCalculatorUtils.SHORT_DATE_FORMATTER)
-    val descStr = DateCalculatorUtils.getDateDescription(resultDate)
+    val descStr = DateCalculatorUtils.formatDateWithWeek(resultDate, appLanguage)
     val isWork = DateCalculatorUtils.isWorkday(resultDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek)
 
-    val titleDisplay = when (title) {
-        "工作日计算结果日期" -> stringResource(R.string.label_result_title_workday)
-        "自然日计算结果日期" -> stringResource(R.string.label_result_title_natural)
-        else -> title
-    }
-
-    val chipDisplay = if (isWork) {
-        stringResource(R.string.label_workday_chip)
-    } else {
-        stringResource(R.string.label_weekend_chip)
-    }
+    val titleDisplay = if (dateMode == DateMode.WORKDAY) LanguageUtils.getString("result_title_workday", appLanguage) else LanguageUtils.getString("result_title_natural", appLanguage)
+    val chipDisplay = if (isWork) LanguageUtils.getString("workday_chip", appLanguage) else LanguageUtils.getString("weekend_chip", appLanguage)
 
     val copyToast = stringResource(R.string.toast_copied)
     val shareText = "$titleDisplay: $dateStr ($descStr)"
@@ -176,7 +170,7 @@ fun ResultCard(
                 HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
                 Spacer(modifier = Modifier.height(10.dp))
 
-                val unitLabel = if (dateMode == DateMode.WORKDAY) "工作日" else "自然日"
+                val unitLabel = if (dateMode == DateMode.WORKDAY) LanguageUtils.getString("workday", appLanguage) else LanguageUtils.getString("natural_day", appLanguage)
                 val rawDays = daysInput.toLongOrNull() ?: 0L
                 val singleSegment = StageSegmentResult(
                     stageIndex = 0,

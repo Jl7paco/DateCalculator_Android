@@ -124,7 +124,7 @@ fun HomeScreen(
     val todayLunar = LunarCalendarUtils.solarToLunar(selectedCalendarDate)
     val almanac = LunarCalendarUtils.getAlmanacYiJi(selectedCalendarDate)
     val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(selectedCalendarDate)
-    val fortune = LunarCalendarUtils.getDailyFortune(selectedCalendarDate, constName)
+    val fortune = LunarCalendarUtils.getDailyFortune(selectedCalendarDate, constName, uiState.appLanguage)
     val weatherList = uiState.liveWeatherList ?: WeatherUtils.getWeatherForecast(selectedCalendarDate)
 
     HistoryOverlayDialog(

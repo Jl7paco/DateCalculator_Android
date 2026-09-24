@@ -63,6 +63,7 @@ object LanguageUtils {
             "no_history" to "暂无历史记录",
             "select_birth_date" to "选择出生日期",
             "select_start_date" to "选择起始日期",
+            "select_target_date" to "选择目标日期",
             "exact_age" to "当前精准年龄",
             "next_birthday_days" to "距离下次生日还有",
             "days_unit" to "天",
@@ -85,7 +86,11 @@ object LanguageUtils {
             "anniversary_date" to "纪念日日期",
             "dark_mode_system" to "跟随系统",
             "dark_mode_on" to "开启",
-            "dark_mode_off" to "关闭"
+            "dark_mode_off" to "关闭",
+            "workday_chip" to "工作日",
+            "weekend_chip" to "休息日",
+            "result_title_workday" to "工作日计算结果",
+            "result_title_natural" to "自然日计算结果"
         )
 
         val stringsZhTw = mapOf(
@@ -136,6 +141,7 @@ object LanguageUtils {
             "no_history" to "暫無歷史記錄",
             "select_birth_date" to "選擇出生日期",
             "select_start_date" to "選擇起始日期",
+            "select_target_date" to "選擇目標日期",
             "exact_age" to "當前精准年齡",
             "next_birthday_days" to "距離下次生日還有",
             "days_unit" to "天",
@@ -158,7 +164,11 @@ object LanguageUtils {
             "anniversary_date" to "紀念日日期",
             "dark_mode_system" to "跟隨系統",
             "dark_mode_on" to "開啟",
-            "dark_mode_off" to "關閉"
+            "dark_mode_off" to "關閉",
+            "workday_chip" to "工作日",
+            "weekend_chip" to "休息日",
+            "result_title_workday" to "工作日計算結果",
+            "result_title_natural" to "自然日計算結果"
         )
 
         val stringsEn = mapOf(
@@ -209,6 +219,7 @@ object LanguageUtils {
             "no_history" to "No history records yet",
             "select_birth_date" to "Select Birth Date",
             "select_start_date" to "Select Start Date",
+            "select_target_date" to "Select Target Date",
             "exact_age" to "Current Exact Age",
             "next_birthday_days" to "Days until next birthday",
             "days_unit" to "days",
@@ -231,7 +242,11 @@ object LanguageUtils {
             "anniversary_date" to "Anniversary Date",
             "dark_mode_system" to "Follow System",
             "dark_mode_on" to "Always On",
-            "dark_mode_off" to "Always Off"
+            "dark_mode_off" to "Always Off",
+            "workday_chip" to "Workday",
+            "weekend_chip" to "Weekend",
+            "result_title_workday" to "Workday Calculation Result",
+            "result_title_natural" to "Calendar Day Calculation Result"
         )
 
         val stringsJa = mapOf(
@@ -282,6 +297,7 @@ object LanguageUtils {
             "no_history" to "履歴がありません",
             "select_birth_date" to "生年月日を選択",
             "select_start_date" to "開始日を選択",
+            "select_target_date" to "目標日を選択",
             "exact_age" to "正確な現在の年齢",
             "next_birthday_days" to "次の誕生日まであと",
             "days_unit" to "日",
@@ -304,7 +320,11 @@ object LanguageUtils {
             "anniversary_date" to "記念日日付",
             "dark_mode_system" to "システムに従う",
             "dark_mode_on" to "常時ON",
-            "dark_mode_off" to "常時OFF"
+            "dark_mode_off" to "常時OFF",
+            "workday_chip" to "稼働日",
+            "weekend_chip" to "休業日",
+            "result_title_workday" to "稼働日計算結果",
+            "result_title_natural" to "自然日計算結果"
         )
 
         val stringsKo = mapOf(
@@ -355,6 +375,7 @@ object LanguageUtils {
             "no_history" to "히스토리 기록이 없습니다",
             "select_birth_date" to "생년월일 선택",
             "select_start_date" to "시작 날짜 선택",
+            "select_target_date" to "목표 날짜 선택",
             "exact_age" to "현재 정확한 나이",
             "next_birthday_days" to "다음 생일까지 남은 일수",
             "days_unit" to "일",
@@ -377,7 +398,11 @@ object LanguageUtils {
             "anniversary_date" to "기념일 날짜",
             "dark_mode_system" to "시스템 설정 따름",
             "dark_mode_on" to "항상 켜기",
-            "dark_mode_off" to "항상 끄기"
+            "dark_mode_off" to "항상 끄기",
+            "workday_chip" to "근무일",
+            "weekend_chip" to "휴무일",
+            "result_title_workday" to "근무일 계산 결과",
+            "result_title_natural" to "자연일 계산 결과"
         )
 
         val map = when (language) {
