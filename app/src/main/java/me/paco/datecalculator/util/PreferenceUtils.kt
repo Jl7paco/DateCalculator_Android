@@ -3,6 +3,7 @@ package me.paco.datecalculator.util
 import android.content.Context
 import android.content.SharedPreferences
 import me.paco.datecalculator.data.AnniversaryItem
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.HomeConfig
@@ -24,6 +25,7 @@ object PreferenceUtils {
     private const val KEY_THEME_PRESET = "theme_preset"
     private const val KEY_CUSTOM_PRIMARY_COLOR = "custom_primary_color"
     private const val KEY_DARK_THEME_MODE = "dark_theme_mode"
+    private const val KEY_APP_LANGUAGE = "app_language"
 
     private const val KEY_HOME_SHOW = "home_show"
     private const val KEY_HOME_CALENDAR = "home_calendar"
@@ -121,6 +123,19 @@ object PreferenceUtils {
             DarkThemeMode.valueOf(name ?: DarkThemeMode.SYSTEM.name)
         } catch (_: Exception) {
             DarkThemeMode.SYSTEM
+        }
+    }
+
+    fun saveAppLanguage(context: Context, language: AppLanguage) {
+        getPrefs(context).edit().putString(KEY_APP_LANGUAGE, language.name).apply()
+    }
+
+    fun getAppLanguage(context: Context): AppLanguage {
+        val name = getPrefs(context).getString(KEY_APP_LANGUAGE, AppLanguage.SIMPLIFIED_CHINESE.name)
+        return try {
+            AppLanguage.valueOf(name ?: AppLanguage.SIMPLIFIED_CHINESE.name)
+        } catch (_: Exception) {
+            AppLanguage.SIMPLIFIED_CHINESE
         }
     }
 

@@ -63,9 +63,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.material.icons.filled.Language
 import me.paco.datecalculator.R
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.data.HolidayRegion
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.ThemeColorPreset
 import me.paco.datecalculator.data.WeekendRule
@@ -139,6 +142,48 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        val lang = uiState.appLanguage
+        val isChinese = lang.isChineseLocale
+
+        // 0. 语言设置 Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
+                .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(20.dp))
+                .padding(14.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.Language, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(LanguageUtils.getString("settings_language", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AppLanguage.values().forEach { appLang ->
+                        val isSelected = (uiState.appLanguage == appLang)
+                        NeumorphicChip(
+                            text = appLang.nativeName,
+                            selected = isSelected,
+                            onClick = {
+                                viewModel.updateAppLanguage(appLang, context)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         // 1. 首页功能模块显隐配置 Card
         Box(
             modifier = Modifier
@@ -152,7 +197,7 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Home, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("首页功能显示与显隐设置", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(LanguageUtils.getString("settings_home_config", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -167,7 +212,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("显示首页 (Home Screen)", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = NeumorphicTextPrimary)
+                    Text(LanguageUtils.getString("home_show_screen", lang), fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = NeumorphicTextPrimary)
                     Switch(
                         checked = config.showHomeScreen,
                         onCheckedChange = { viewModel.updateHomeConfig(config.copy(showHomeScreen = it), context) },
@@ -177,17 +222,32 @@ fun SettingsScreen(
 
                 HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
 
-                // 子模块开关列表
-                val moduleSwitches = listOf(
-                    "月历 (Monthly Calendar)" to config.showCalendar,
-                    "当日黄历 (Almanac)" to config.showAlmanac,
-                    "二十四节气 (Solar Terms)" to config.showSolarTerms,
-                    "农历日期 (Lunar Date)" to config.showLunar,
-                    "星座与运势 (Zodiac & Fortune)" to config.showZodiacFortune,
-                    "当日及未来三日天气 (Weather Forecast)" to config.showWeather
-                )
+                // 子模块开关列表 (非中文环境下自动取消黄历与农历选项，并仅以当前语言文字显示)
+                val moduleList = mutableListOf<Triple<String, Boolean, (Boolean) -> Unit>>()
+                moduleList.add(Triple(LanguageUtils.getString("home_calendar", lang), config.showCalendar) { checked ->
+                    viewModel.updateHomeConfig(config.copy(showCalendar = checked), context)
+                })
+                if (isChinese) {
+                    moduleList.add(Triple(LanguageUtils.getString("home_almanac", lang), config.showAlmanac) { checked ->
+                        viewModel.updateHomeConfig(config.copy(showAlmanac = checked), context)
+                    })
+                }
+                moduleList.add(Triple(LanguageUtils.getString("home_solar_terms", lang), config.showSolarTerms) { checked ->
+                    viewModel.updateHomeConfig(config.copy(showSolarTerms = checked), context)
+                })
+                if (isChinese) {
+                    moduleList.add(Triple(LanguageUtils.getString("home_lunar", lang), config.showLunar) { checked ->
+                        viewModel.updateHomeConfig(config.copy(showLunar = checked), context)
+                    })
+                }
+                moduleList.add(Triple(LanguageUtils.getString("home_zodiac", lang), config.showZodiacFortune) { checked ->
+                    viewModel.updateHomeConfig(config.copy(showZodiacFortune = checked), context)
+                })
+                moduleList.add(Triple(LanguageUtils.getString("home_weather", lang), config.showWeather) { checked ->
+                    viewModel.updateHomeConfig(config.copy(showWeather = checked), context)
+                })
 
-                moduleSwitches.forEachIndexed { idx, (label, isChecked) ->
+                moduleList.forEach { (label, isChecked, onToggle) ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -198,17 +258,7 @@ fun SettingsScreen(
                         Text(label, fontSize = 12.sp, color = NeumorphicTextPrimary.copy(alpha = 0.85f))
                         Switch(
                             checked = isChecked,
-                            onCheckedChange = { checked ->
-                                val newConfig = when (idx) {
-                                    0 -> config.copy(showCalendar = checked)
-                                    1 -> config.copy(showAlmanac = checked)
-                                    2 -> config.copy(showSolarTerms = checked)
-                                    3 -> config.copy(showLunar = checked)
-                                    4 -> config.copy(showZodiacFortune = checked)
-                                    else -> config.copy(showWeather = checked)
-                                }
-                                viewModel.updateHomeConfig(newConfig, context)
-                            },
+                            onCheckedChange = onToggle,
                             modifier = Modifier.scale(0.72f)
                         )
                     }

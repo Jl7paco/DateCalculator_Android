@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.paco.datecalculator.data.AnniversaryItem
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationStage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DarkThemeMode
@@ -120,6 +121,7 @@ data class DateCalculatorUiState(
     val themePreset: ThemeColorPreset = ThemeColorPreset.SYSTEM,
     val customPrimaryColorHex: Long = 0xFF2563EB,
     val darkThemeMode: DarkThemeMode = DarkThemeMode.SYSTEM,
+    val appLanguage: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     val homeConfig: HomeConfig = HomeConfig(),
     val selectedBirthDate: LocalDate = LocalDate.of(2000, 1, 1),
     val currentCityName: String = "北京市",
@@ -140,6 +142,7 @@ class DateCalculatorViewModel : ViewModel() {
         val themePreset = PreferenceUtils.getThemePreset(context)
         val customColor = PreferenceUtils.getCustomPrimaryColor(context)
         val darkThemeMode = PreferenceUtils.getDarkThemeMode(context)
+        val appLanguage = PreferenceUtils.getAppLanguage(context)
         val homeConfig = PreferenceUtils.getHomeConfig(context)
         val savedPinnedSet = PreferenceUtils.getPinnedEvents(context)
         val savedAnniversaries = PreferenceUtils.getAnniversaries(context)
@@ -159,6 +162,7 @@ class DateCalculatorViewModel : ViewModel() {
             themePreset = themePreset,
             customPrimaryColorHex = customColor,
             darkThemeMode = darkThemeMode,
+            appLanguage = appLanguage,
             homeConfig = homeConfig,
             pinnedPresetHolidays = savedPinnedSet,
             customEvents = updatedCustomEvents,
@@ -234,6 +238,11 @@ class DateCalculatorViewModel : ViewModel() {
     fun updateDarkThemeMode(mode: DarkThemeMode, context: Context? = null) {
         _uiState.value = _uiState.value.copy(darkThemeMode = mode)
         context?.let { PreferenceUtils.saveDarkThemeMode(it, mode) }
+    }
+
+    fun updateAppLanguage(language: AppLanguage, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(appLanguage = language)
+        context?.let { PreferenceUtils.saveAppLanguage(it, language) }
     }
 
     fun updateCustomPrimaryColor(colorHex: Long, context: Context? = null) {

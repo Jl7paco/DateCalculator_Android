@@ -89,6 +89,25 @@ enum class DarkThemeMode(val label: String) {
     OFF("关闭")
 }
 
+/**
+ * 应用多语言支持配置
+ */
+enum class AppLanguage(
+    val code: String,
+    val label: String,
+    val nativeName: String,
+    val localeTag: String
+) {
+    SIMPLIFIED_CHINESE("zh_CN", "简体中文", "简体中文", "zh-CN"),
+    TRADITIONAL_CHINESE("zh_TW", "繁体中文", "繁體中文", "zh-TW"),
+    ENGLISH("en", "英语", "English", "en"),
+    JAPANESE("ja", "日语", "日本語", "ja"),
+    KOREAN("ko", "韩语", "한국어", "ko");
+
+    val isChineseLocale: Boolean
+        get() = this == SIMPLIFIED_CHINESE || this == TRADITIONAL_CHINESE
+}
+
 data class HomeConfig(
     val showHomeScreen: Boolean = true,
     val showCalendar: Boolean = true,

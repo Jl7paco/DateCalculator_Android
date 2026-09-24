@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -68,6 +69,7 @@ import me.paco.datecalculator.ui.screens.HomeScreen
 import me.paco.datecalculator.ui.screens.LunarConverterScreen
 import me.paco.datecalculator.ui.theme.DateCalculatorTheme
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
+import me.paco.datecalculator.util.LanguageUtils
 import kotlin.math.abs
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -84,6 +86,8 @@ fun MainScreen(
     }
 
     val showHome = uiState.homeConfig.showHomeScreen
+    val isChineseLocale = uiState.appLanguage.isChineseLocale
+    val lang = uiState.appLanguage
 
     val isDark = when (uiState.darkThemeMode) {
         DarkThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -91,26 +95,18 @@ fun MainScreen(
         DarkThemeMode.OFF -> false
     }
 
-    // 纯功能底栏列表（包含“纪念日”页）
-    val navItems = remember(showHome) {
-        if (showHome) {
-            listOf(
-                "首页" to Icons.Default.Home,
-                "日期计算" to Icons.Default.CalendarToday,
-                "倒数日" to Icons.Default.Event,
-                "纪念日" to Icons.Default.Favorite,
-                "农历转换" to Icons.Default.SwapHoriz,
-                "年龄计算" to Icons.Default.Cake
-            )
-        } else {
-            listOf(
-                "日期计算" to Icons.Default.CalendarToday,
-                "倒数日" to Icons.Default.Event,
-                "纪念日" to Icons.Default.Favorite,
-                "农历转换" to Icons.Default.SwapHoriz,
-                "年龄计算" to Icons.Default.Cake
-            )
+    // 纯功能底栏列表（非中文语言环境下自动屏蔽农历转换，且标题跟随当前语言）
+    val navItems = remember(showHome, isChineseLocale, lang) {
+        val list = mutableListOf<Pair<String, ImageVector>>()
+        if (showHome) list.add(LanguageUtils.getString("tab_home", lang) to Icons.Default.Home)
+        list.add(LanguageUtils.getString("tab_calc", lang) to Icons.Default.CalendarToday)
+        list.add(LanguageUtils.getString("tab_countdown", lang) to Icons.Default.Event)
+        list.add(LanguageUtils.getString("tab_anniversary", lang) to Icons.Default.Favorite)
+        if (isChineseLocale) {
+            list.add(LanguageUtils.getString("tab_lunar", lang) to Icons.Default.SwapHoriz)
         }
+        list.add(LanguageUtils.getString("tab_age", lang) to Icons.Default.Cake)
+        list
     }
 
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { navItems.size })
@@ -269,23 +265,15 @@ fun MainScreen(
                 ) { page ->
                     key(page) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            if (showHome) {
-                                when (page) {
-                                    0 -> HomeScreen(viewModel = viewModel, uiState = uiState)
-                                    1 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
-                                    2 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
-                                    3 -> AnniversaryScreen(viewModel = viewModel, uiState = uiState)
-                                    4 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
-                                    5 -> AgeCalculatorScreen(viewModel = viewModel, uiState = uiState)
-                                }
-                            } else {
-                                when (page) {
-                                    0 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
-                                    1 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
-                                    2 -> AnniversaryScreen(viewModel = viewModel, uiState = uiState)
-                                    3 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
-                                    4 -> AgeCalculatorScreen(viewModel = viewModel, uiState = uiState)
-                                }
+                            val navItemTitle = navItems.getOrNull(page)?.first
+                            when {
+                                navItemTitle == LanguageUtils.getString("tab_home", lang) -> HomeScreen(viewModel = viewModel, uiState = uiState)
+                                navItemTitle == LanguageUtils.getString("tab_calc", lang) -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
+                                navItemTitle == LanguageUtils.getString("tab_countdown", lang) -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
+                                navItemTitle == LanguageUtils.getString("tab_anniversary", lang) -> AnniversaryScreen(viewModel = viewModel, uiState = uiState)
+                                navItemTitle == LanguageUtils.getString("tab_lunar", lang) -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
+                                navItemTitle == LanguageUtils.getString("tab_age", lang) -> AgeCalculatorScreen(viewModel = viewModel, uiState = uiState)
+                                else -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
                             }
                         }
                     }

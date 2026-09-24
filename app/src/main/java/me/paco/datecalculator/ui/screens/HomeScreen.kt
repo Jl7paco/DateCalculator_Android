@@ -410,8 +410,10 @@ fun HomeScreen(
 
         // ================= 当日黄历、节气、农历、天气、星座运势 =================
 
-        // 1. 当日农历、节气与老黄历宜忌 Card (空间紧凑压缩)
-        if (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac) {
+        val isChinese = uiState.appLanguage.isChineseLocale
+
+        // 1. 当日农历、节气与老黄历宜忌 Card (非中文与繁体中文环境下自动隐藏黄历与农历)
+        if (homeConfig.showLunar || homeConfig.showSolarTerms || (homeConfig.showAlmanac && isChinese)) {
             val combinedShape = RoundedCornerShape(18.dp)
             Box(
                 modifier = Modifier
@@ -446,7 +448,7 @@ fun HomeScreen(
                         }
                     }
 
-                    if (homeConfig.showLunar) {
+                    if (homeConfig.showLunar && isChinese) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "农历 ${todayLunar.ganZhiYear} (${todayLunar.zodiac}) 年 ${if (todayLunar.isLeapMonth) "闰" else ""}${todayLunar.lunarMonthName}${todayLunar.lunarDayName}",
@@ -456,12 +458,12 @@ fun HomeScreen(
                         )
                     }
 
-                    if (homeConfig.showAlmanac) {
+                    if (homeConfig.showAlmanac && isChinese) {
                         Spacer(modifier = Modifier.height(6.dp))
                         HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // 老黄历宜忌
+                        // 老黄历宜忌 (仅在中文/繁体中文环境下显示)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
