@@ -367,47 +367,49 @@ object DateCalculatorUtils {
 
     fun getDateDescription(
         date: LocalDate,
-        isChineseLocale: Boolean = Locale.getDefault().language == "zh"
+        language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE
     ): String {
-        val weekDayName = if (isChineseLocale) {
-            when (date.dayOfWeek) {
-                DayOfWeek.MONDAY -> "星期一"
-                DayOfWeek.TUESDAY -> "星期二"
-                DayOfWeek.WEDNESDAY -> "星期三"
-                DayOfWeek.THURSDAY -> "星期四"
-                DayOfWeek.FRIDAY -> "星期五"
-                DayOfWeek.SATURDAY -> "星期六"
-                DayOfWeek.SUNDAY -> "星期日"
+        val weekDayName = when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> when (date.dayOfWeek) {
+                DayOfWeek.MONDAY -> "星期一"; DayOfWeek.TUESDAY -> "星期二"; DayOfWeek.WEDNESDAY -> "星期三"
+                DayOfWeek.THURSDAY -> "星期四"; DayOfWeek.FRIDAY -> "星期五"; DayOfWeek.SATURDAY -> "星期六"; DayOfWeek.SUNDAY -> "星期日"
             }
-        } else {
-            when (date.dayOfWeek) {
-                DayOfWeek.MONDAY -> "Monday"
-                DayOfWeek.TUESDAY -> "Tuesday"
-                DayOfWeek.WEDNESDAY -> "Wednesday"
-                DayOfWeek.THURSDAY -> "Thursday"
-                DayOfWeek.FRIDAY -> "Friday"
-                DayOfWeek.SATURDAY -> "Saturday"
-                DayOfWeek.SUNDAY -> "Sunday"
+            AppLanguage.TRADITIONAL_CHINESE -> when (date.dayOfWeek) {
+                DayOfWeek.MONDAY -> "星期一"; DayOfWeek.TUESDAY -> "星期二"; DayOfWeek.WEDNESDAY -> "星期三"
+                DayOfWeek.THURSDAY -> "星期四"; DayOfWeek.FRIDAY -> "星期五"; DayOfWeek.SATURDAY -> "星期六"; DayOfWeek.SUNDAY -> "星期日"
+            }
+            AppLanguage.JAPANESE -> when (date.dayOfWeek) {
+                DayOfWeek.MONDAY -> "月曜日"; DayOfWeek.TUESDAY -> "火曜日"; DayOfWeek.WEDNESDAY -> "水曜日"
+                DayOfWeek.THURSDAY -> "木曜日"; DayOfWeek.FRIDAY -> "金曜日"; DayOfWeek.SATURDAY -> "土曜日"; DayOfWeek.SUNDAY -> "日曜日"
+            }
+            AppLanguage.KOREAN -> when (date.dayOfWeek) {
+                DayOfWeek.MONDAY -> "월요일"; DayOfWeek.TUESDAY -> "화요일"; DayOfWeek.WEDNESDAY -> "수요일"
+                DayOfWeek.THURSDAY -> "목요일"; DayOfWeek.FRIDAY -> "금요일"; DayOfWeek.SATURDAY -> "토요일"; DayOfWeek.SUNDAY -> "일요일"
+            }
+            AppLanguage.ENGLISH -> when (date.dayOfWeek) {
+                DayOfWeek.MONDAY -> "Monday"; DayOfWeek.TUESDAY -> "Tuesday"; DayOfWeek.WEDNESDAY -> "Wednesday"
+                DayOfWeek.THURSDAY -> "Thursday"; DayOfWeek.FRIDAY -> "Friday"; DayOfWeek.SATURDAY -> "Saturday"; DayOfWeek.SUNDAY -> "Sunday"
             }
         }
+
         val dayOfYear = date.dayOfYear
         val totalDaysInYear = date.lengthOfYear()
-        val weekOfWeekBasedYear = date.get(WeekFields.of(if (isChineseLocale) Locale.CHINA else Locale.US).weekOfWeekBasedYear())
+        val weekOfWeekBasedYear = date.get(WeekFields.of(Locale.getDefault()).weekOfWeekBasedYear())
         val isLeap = date.isLeapYear
 
-        return if (isChineseLocale) {
-            "$weekDayName | 当年第 ${dayOfYear}/${totalDaysInYear} 天 | 第 $weekOfWeekBasedYear 周" +
-                    if (isLeap) " (闰年)" else ""
-        } else {
-            "$weekDayName | Day ${dayOfYear}/${totalDaysInYear} | Week $weekOfWeekBasedYear" +
-                    if (isLeap) " (Leap Year)" else ""
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> "$weekDayName | 当年第 ${dayOfYear}/${totalDaysInYear} 天 | 第 $weekOfWeekBasedYear 周" + if (isLeap) " (闰年)" else ""
+            AppLanguage.TRADITIONAL_CHINESE -> "$weekDayName | 當年第 ${dayOfYear}/${totalDaysInYear} 天 | 第 $weekOfWeekBasedYear 週" + if (isLeap) " (閏年)" else ""
+            AppLanguage.JAPANESE -> "$weekDayName | 通算 $dayOfYear/${totalDaysInYear} 日 | 第 $weekOfWeekBasedYear 週" + if (isLeap) " (閏年)" else ""
+            AppLanguage.KOREAN -> "$weekDayName | 연중 $dayOfYear/${totalDaysInYear} 일 | $weekOfWeekBasedYear 주차" + if (isLeap) " (윤년)" else ""
+            AppLanguage.ENGLISH -> "$weekDayName | Day $dayOfYear/$totalDaysInYear | Wk $weekOfWeekBasedYear" + if (isLeap) " (Leap Year)" else ""
         }
     }
 
     fun formatPeriod(
         startDate: LocalDate,
         endDate: LocalDate,
-        isChineseLocale: Boolean = Locale.getDefault().language == "zh"
+        language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE
     ): String {
         val start = if (startDate.isBefore(endDate)) startDate else endDate
         val end = if (startDate.isBefore(endDate)) endDate else startDate
@@ -418,16 +420,37 @@ object DateCalculatorUtils {
         val days = period.days
 
         val parts = mutableListOf<String>()
-        if (isChineseLocale) {
-            if (years > 0) parts.add("${years}年")
-            if (months > 0) parts.add("${months}个月")
-            if (days > 0 || parts.isEmpty()) parts.add("${days}天")
-            return parts.joinToString("")
-        } else {
-            if (years > 0) parts.add("$years Year${if (years > 1) "s" else ""}")
-            if (months > 0) parts.add("$months Month${if (months > 1) "s" else ""}")
-            if (days > 0 || parts.isEmpty()) parts.add("$days Day${if (days > 1) "s" else ""}")
-            return parts.joinToString(" ")
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> {
+                if (years > 0) parts.add("${years}年")
+                if (months > 0) parts.add("${months}个月")
+                if (days > 0 || parts.isEmpty()) parts.add("${days}天")
+                parts.joinToString("")
+            }
+            AppLanguage.TRADITIONAL_CHINESE -> {
+                if (years > 0) parts.add("${years}年")
+                if (months > 0) parts.add("${months}個月")
+                if (days > 0 || parts.isEmpty()) parts.add("${days}天")
+                parts.joinToString("")
+            }
+            AppLanguage.JAPANESE -> {
+                if (years > 0) parts.add("${years}年")
+                if (months > 0) parts.add("${months}ヶ月")
+                if (days > 0 || parts.isEmpty()) parts.add("${days}日")
+                parts.joinToString("")
+            }
+            AppLanguage.KOREAN -> {
+                if (years > 0) parts.add("${years}년")
+                if (months > 0) parts.add("${months}개월")
+                if (days > 0 || parts.isEmpty()) parts.add("${days}일")
+                parts.joinToString(" ")
+            }
+            AppLanguage.ENGLISH -> {
+                if (years > 0) parts.add("$years yr${if (years > 1) "s" else ""}")
+                if (months > 0) parts.add("$months mo${if (months > 1) "s" else ""}")
+                if (days > 0 || parts.isEmpty()) parts.add("$days day${if (days > 1) "s" else ""}")
+                parts.joinToString(" ")
+            }
         }
     }
 }

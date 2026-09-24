@@ -210,6 +210,8 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
+        val isChinese = uiState.appLanguage.isChineseLocale
+
         // ================= 月历视图 (高度扩展至 44dp 单元格，文字绝对清晰完整) =================
         if (homeConfig.showCalendar) {
             Box(
@@ -394,21 +396,23 @@ fun HomeScreen(
                                                     softWrap = false
                                                 )
 
-                                                if (isStatutory) {
+                                                if (isStatutory && isChinese) {
                                                     Text(" 休", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFFEF4444))
-                                                } else if (isShift) {
+                                                } else if (isShift && isChinese) {
                                                     Text(" 班", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFF10B981))
                                                 }
                                             }
 
-                                            Text(
-                                                text = lunarText,
-                                                fontSize = 9.sp,
-                                                color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
-                                                maxLines = 1,
-                                                softWrap = false,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                            if (isChinese) {
+                                                Text(
+                                                    text = lunarText,
+                                                    fontSize = 9.sp,
+                                                    color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 } else {
@@ -424,8 +428,6 @@ fun HomeScreen(
         }
 
         // ================= 当日黄历、节气、农历、天气、星座运势 =================
-
-        val isChinese = uiState.appLanguage.isChineseLocale
 
         // 1. 当日农历、节气与老黄历宜忌 Card (非中文与繁体中文环境下自动隐藏黄历与农历)
         if (homeConfig.showLunar || homeConfig.showSolarTerms || (homeConfig.showAlmanac && isChinese)) {
