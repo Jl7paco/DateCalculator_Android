@@ -594,6 +594,13 @@ fun HomeScreen(
                                 "后天" -> when (uiState.appLanguage) {
                                     AppLanguage.ENGLISH -> "Day After"; AppLanguage.JAPANESE -> "明後日"; AppLanguage.KOREAN -> "모레"; else -> "后天"
                                 }
+                                "周一" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[1]
+                                "周二" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[2]
+                                "周三" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[3]
+                                "周四" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[4]
+                                "周五" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[5]
+                                "周六" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[6]
+                                "周日" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[0]
                                 else -> weather.dayName
                             }
                             val condLabel = WeatherUtils.getLocalizedCondition(weather.condition, uiState.appLanguage)

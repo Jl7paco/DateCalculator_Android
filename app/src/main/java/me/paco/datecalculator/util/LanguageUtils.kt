@@ -14,6 +14,42 @@ object LanguageUtils {
         }
     }
 
+    fun getLocalizedHolidayName(label: String, language: AppLanguage): String {
+        val cleanLabel = label.replace("🇨🇳 ", "").replace("🇹🇼 ", "").replace("🎆 ", "").replace("🧧 ", "").replace("🌿 ", "").replace("🛠️ ", "").replace("🎏 ", "").replace("📚 ", "").replace("🥮 ", "").trim()
+        val icon = when {
+            label.contains("国庆") -> "🇨🇳"
+            label.contains("元旦") -> "🎆"
+            label.contains("春节") -> "🧧"
+            label.contains("清明") -> "🌿"
+            label.contains("劳动") -> "🛠️"
+            label.contains("端午") -> "🎏"
+            label.contains("高考") || label.contains("中考") -> "📚"
+            label.contains("中秋") -> "🥮"
+            else -> "📌"
+        }
+
+        val name = when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> cleanLabel
+            AppLanguage.TRADITIONAL_CHINESE -> when (cleanLabel) {
+                "国庆节" -> "國慶節"; "元旦" -> "元旦"; "春节" -> "春節"; "清明节" -> "清明節"
+                "五一劳动节" -> "五一勞動節"; "端午节" -> "端午節"; "高考" -> "高考"; "中考" -> "中考"; "中秋节" -> "中秋節"; else -> cleanLabel
+            }
+            AppLanguage.ENGLISH -> when (cleanLabel) {
+                "国庆节" -> "National Day"; "元旦" -> "New Year's Day"; "春节" -> "Spring Festival"; "清明节" -> "Tomb Sweeping Day"
+                "五一劳动节" -> "Labor Day"; "端午节" -> "Dragon Boat Festival"; "高考" -> "College Entrance Exam"; "中考" -> "High School Exam"; "中秋节" -> "Mid-Autumn Festival"; else -> cleanLabel
+            }
+            AppLanguage.JAPANESE -> when (cleanLabel) {
+                "国庆节" -> "国慶節"; "元旦" -> "元日"; "春节" -> "春節"; "清明节" -> "清明節"
+                "五一劳动节" -> "メーデー"; "端午节" -> "端午節"; "高考" -> "大学入試"; "中考" -> "高校入試"; "中秋节" -> "中秋節"; else -> cleanLabel
+            }
+            AppLanguage.KOREAN -> when (cleanLabel) {
+                "国庆节" -> "국경절"; "元旦" -> "신정"; "春节" -> "설날"; "清明节" -> "청명절"
+                "五一劳动节" -> "노동절"; "端午节" -> "단오절"; "高考" -> "수능"; "中考" -> "고입시험"; "中秋节" -> "추석"; else -> cleanLabel
+            }
+        }
+        return "$icon $name"
+    }
+
     fun getString(key: String, language: AppLanguage): String {
         val stringsZhCn = mapOf(
             "app_title" to "日期计算器",

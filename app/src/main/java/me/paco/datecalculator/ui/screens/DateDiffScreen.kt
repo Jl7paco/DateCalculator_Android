@@ -1103,7 +1103,8 @@ fun DateDiffScreen(
                 presetCountdowns.forEach { (label, targetDate) ->
                     val isPinned = uiState.pinnedPresetHolidays.contains(label)
                     val isSelected = resultCardList.firstOrNull()?.eventName == label
-                    val displayLabel = if (isPinned) "📌 $label" else label
+                    val localizedLabel = LanguageUtils.getLocalizedHolidayName(label, uiState.appLanguage)
+                    val displayLabel = if (isPinned) "📌 $localizedLabel" else localizedLabel
 
                     Box(
                         modifier = Modifier
