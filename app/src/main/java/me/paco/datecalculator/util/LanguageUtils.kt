@@ -27,6 +27,9 @@ object LanguageUtils {
             "settings_theme" to "主题配色方案",
             "settings_dark_mode" to "深色模式",
             "settings_home_config" to "首页功能显示与显隐设置",
+            "settings_region" to "选择国家/地区",
+            "settings_gps_auto" to "GPS 自动识别所在地",
+            "settings_sync_holidays" to "同步最新节假日数据",
             "home_show_screen" to "显示首页",
             "home_calendar" to "月历",
             "home_almanac" to "当日黄历",
@@ -59,6 +62,7 @@ object LanguageUtils {
             "clear_history" to "清空历史",
             "no_history" to "暂无历史记录",
             "select_birth_date" to "选择出生日期",
+            "select_start_date" to "选择起始日期",
             "exact_age" to "当前精准年龄",
             "next_birthday_days" to "距离下次生日还有",
             "days_unit" to "天",
@@ -68,7 +72,20 @@ object LanguageUtils {
             "total_days" to "生存总天数",
             "total_weeks" to "生存总周数",
             "zodiac_sign" to "生肖属相",
-            "constellation" to "星座"
+            "constellation" to "星座",
+            "days_until_prefix" to "距离",
+            "days_until_suffix" to "还有",
+            "lucky_number" to "幸运数字",
+            "lucky_color" to "幸运颜色",
+            "forecast_title" to "当地及未来三日天气推算",
+            "add_anniversary" to "+ 新增纪念日",
+            "check_in" to "📍 精准打卡",
+            "save_anniversary" to "保存纪念日",
+            "anniversary_name" to "纪念日名称",
+            "anniversary_date" to "纪念日日期",
+            "dark_mode_system" to "跟随系统",
+            "dark_mode_on" to "开启",
+            "dark_mode_off" to "关闭"
         )
 
         val stringsZhTw = mapOf(
@@ -83,6 +100,9 @@ object LanguageUtils {
             "settings_theme" to "主題配色方案",
             "settings_dark_mode" to "深色模式",
             "settings_home_config" to "首頁功能顯示與顯隱設定",
+            "settings_region" to "選擇國家/地區",
+            "settings_gps_auto" to "GPS 自動識別所在地",
+            "settings_sync_holidays" to "同步最新節假日數據",
             "home_show_screen" to "顯示首頁",
             "home_calendar" to "月曆",
             "home_almanac" to "當日黃曆",
@@ -115,6 +135,7 @@ object LanguageUtils {
             "clear_history" to "清空歷史",
             "no_history" to "暫無歷史記錄",
             "select_birth_date" to "選擇出生日期",
+            "select_start_date" to "選擇起始日期",
             "exact_age" to "當前精准年齡",
             "next_birthday_days" to "距離下次生日還有",
             "days_unit" to "天",
@@ -124,7 +145,20 @@ object LanguageUtils {
             "total_days" to "生存總天數",
             "total_weeks" to "生存總周數",
             "zodiac_sign" to "生肖屬相",
-            "constellation" to "星座"
+            "constellation" to "星座",
+            "days_until_prefix" to "距離",
+            "days_until_suffix" to "還有",
+            "lucky_number" to "幸運數字",
+            "lucky_color" to "幸運顏色",
+            "forecast_title" to "當地及未來三日天氣推算",
+            "add_anniversary" to "+ 新增紀念日",
+            "check_in" to "📍 精準打卡",
+            "save_anniversary" to "保存紀念日",
+            "anniversary_name" to "紀念日名稱",
+            "anniversary_date" to "紀念日日期",
+            "dark_mode_system" to "跟隨系統",
+            "dark_mode_on" to "開啟",
+            "dark_mode_off" to "關閉"
         )
 
         val stringsEn = mapOf(
@@ -139,6 +173,9 @@ object LanguageUtils {
             "settings_theme" to "Theme Color Scheme",
             "settings_dark_mode" to "Dark Mode",
             "settings_home_config" to "Home Screen Display Items",
+            "settings_region" to "Country / Region",
+            "settings_gps_auto" to "GPS Auto Location Detection",
+            "settings_sync_holidays" to "Sync Holiday Data",
             "home_show_screen" to "Show Home Screen",
             "home_calendar" to "Monthly Calendar",
             "home_almanac" to "Almanac",
@@ -171,6 +208,7 @@ object LanguageUtils {
             "clear_history" to "Clear History",
             "no_history" to "No history records yet",
             "select_birth_date" to "Select Birth Date",
+            "select_start_date" to "Select Start Date",
             "exact_age" to "Current Exact Age",
             "next_birthday_days" to "Days until next birthday",
             "days_unit" to "days",
@@ -180,7 +218,20 @@ object LanguageUtils {
             "total_days" to "Total Days Lived",
             "total_weeks" to "Total Weeks Lived",
             "zodiac_sign" to "Zodiac Animal",
-            "constellation" to "Constellation"
+            "constellation" to "Constellation",
+            "days_until_prefix" to "Days until",
+            "days_until_suffix" to "",
+            "lucky_number" to "Lucky No",
+            "lucky_color" to "Lucky Color",
+            "forecast_title" to "Local & 3-Day Weather Forecast",
+            "add_anniversary" to "+ Add Anniversary",
+            "check_in" to "📍 Location Check-in",
+            "save_anniversary" to "Save Anniversary",
+            "anniversary_name" to "Anniversary Name",
+            "anniversary_date" to "Anniversary Date",
+            "dark_mode_system" to "Follow System",
+            "dark_mode_on" to "Always On",
+            "dark_mode_off" to "Always Off"
         )
 
         val stringsJa = mapOf(
@@ -195,6 +246,9 @@ object LanguageUtils {
             "settings_theme" to "テーマ配色",
             "settings_dark_mode" to "ダークモード",
             "settings_home_config" to "ホーム表示項目設定",
+            "settings_region" to "国・地域選択",
+            "settings_gps_auto" to "GPS自動位置識別",
+            "settings_sync_holidays" to "祝日データを同期",
             "home_show_screen" to "ホーム画面を表示",
             "home_calendar" to "月カレンダー",
             "home_almanac" to "暦宜忌",
@@ -227,6 +281,7 @@ object LanguageUtils {
             "clear_history" to "履歴消去",
             "no_history" to "履歴がありません",
             "select_birth_date" to "生年月日を選択",
+            "select_start_date" to "開始日を選択",
             "exact_age" to "正確な現在の年齢",
             "next_birthday_days" to "次の誕生日まであと",
             "days_unit" to "日",
@@ -236,7 +291,20 @@ object LanguageUtils {
             "total_days" to "通算生存日数",
             "total_weeks" to "通算生存週数",
             "zodiac_sign" to "干支",
-            "constellation" to "星座"
+            "constellation" to "星座",
+            "days_until_prefix" to "",
+            "days_until_suffix" to "まであと",
+            "lucky_number" to "ラッキー数字",
+            "lucky_color" to "ラッキーカラー",
+            "forecast_title" to "当地および今後3日間の天気予報",
+            "add_anniversary" to "+ 記念日追加",
+            "check_in" to "📍 位置情報チェックイン",
+            "save_anniversary" to "記念日を保存",
+            "anniversary_name" to "記念日名称",
+            "anniversary_date" to "記念日日付",
+            "dark_mode_system" to "システムに従う",
+            "dark_mode_on" to "常時ON",
+            "dark_mode_off" to "常時OFF"
         )
 
         val stringsKo = mapOf(
@@ -251,6 +319,9 @@ object LanguageUtils {
             "settings_theme" to "테마 색상",
             "settings_dark_mode" to "다크 모드",
             "settings_home_config" to "홈 화면 표시 항목 설정",
+            "settings_region" to "국가 / 지역 선택",
+            "settings_gps_auto" to "GPS 자동 위치 감지",
+            "settings_sync_holidays" to "공휴일 데이터 동기화",
             "home_show_screen" to "홈 화면 표시",
             "home_calendar" to "달력",
             "home_almanac" to "황력",
@@ -283,6 +354,7 @@ object LanguageUtils {
             "clear_history" to "히스토리 삭제",
             "no_history" to "히스토리 기록이 없습니다",
             "select_birth_date" to "생년월일 선택",
+            "select_start_date" to "시작 날짜 선택",
             "exact_age" to "현재 정확한 나이",
             "next_birthday_days" to "다음 생일까지 남은 일수",
             "days_unit" to "일",
@@ -292,7 +364,20 @@ object LanguageUtils {
             "total_days" to "총 생존 일수",
             "total_weeks" to "총 생존 주수",
             "zodiac_sign" to "띠",
-            "constellation" to "별자리"
+            "constellation" to "별자리",
+            "days_until_prefix" to "",
+            "days_until_suffix" to "까지 남은 시간",
+            "lucky_number" to "행운의 숫자",
+            "lucky_color" to "행운의 색상",
+            "forecast_title" to "현지 및 향후 3일 날씨 예보",
+            "add_anniversary" to "+ 기념일 추가",
+            "check_in" to "📍 위치 체크인",
+            "save_anniversary" to "기념일 저장",
+            "anniversary_name" to "기념일 이름",
+            "anniversary_date" to "기념일 날짜",
+            "dark_mode_system" to "시스템 설정 따름",
+            "dark_mode_on" to "항상 켜기",
+            "dark_mode_off" to "항상 끄기"
         )
 
         val map = when (language) {

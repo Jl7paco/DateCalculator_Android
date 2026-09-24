@@ -158,6 +158,7 @@ fun DateDiffScreen(
     var targetIsLeapMonth by remember { mutableStateOf(false) }
 
     var currentTargetEventName by remember { mutableStateOf("") }
+    var showReminderDialog by remember { mutableStateOf(false) }
 
     // 多结果卡片推栈数据结构 (未固定的卡片顶替当前结果，固定的卡片不被顶掉，新卡片排在最前面)
     var resultCardList by remember { mutableStateOf<List<CountdownCardData>>(emptyList()) }
@@ -1258,27 +1259,39 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. 多卡片推栈倒计时结果展示层 (精准重构放置在“常用倒数日”快捷图标正下方!)
+            // 4. 多卡片推栈倒计时结果展示层 (精简二合一卡片，高亮双胶囊放同一行，取消下部列表)
             if (resultCardList.isNotEmpty()) {
+                val lang = uiState.appLanguage
+                val prefix = LanguageUtils.getString("days_until_prefix", lang)
+                val suffix = LanguageUtils.getString("days_until_suffix", lang)
+
                 resultCardList.forEachIndexed { cardIdx, cardData ->
                     val natDays = DateCalculatorUtils.naturalDaysBetween(cardData.baseDate, cardData.targetDate)
                     val workDays = DateCalculatorUtils.workdaysBetween(
                         cardData.baseDate, cardData.targetDate, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays
                     )
-                    val isPast = cardData.targetDate.isBefore(cardData.baseDate)
                     val cardIsPinned = uiState.customEvents.any { (it.name == cardData.eventName || it.name.contains(cardData.eventName)) && it.isPinned } ||
                                        uiState.pinnedPresetHolidays.contains(cardData.eventName)
 
+                    val cardBgColor = cardColorPalette[cardIdx % cardColorPalette.size]
                     val resultCardShape = RoundedCornerShape(22.dp)
+
+                    val titleText = if (prefix.isNotBlank()) {
+                        if (suffix.isNotBlank()) "$prefix ${cardData.eventName} $suffix" else "$prefix ${cardData.eventName}"
+                    } else {
+                        "${cardData.eventName} $suffix"
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp)
                             .neumorphicExtruded(shape = resultCardShape, elevation = 6.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = resultCardShape)
-                            .border(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f), shape = resultCardShape)
+                            .background(NeumorphicBg, shape = resultCardShape)
+                            .background(cardBgColor, shape = resultCardShape)
+                            .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = resultCardShape)
                             .clip(resultCardShape)
-                            .padding(16.dp)
+                            .padding(14.dp)
                     ) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
@@ -1289,120 +1302,137 @@ fun DateDiffScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.EventRepeat, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = cardData.eventName,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                                    )
-                                }
+                                Text(
+                                    text = titleText,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeumorphicAccent
+                                )
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    // 固定按键 (📌 状态变更与内存持久化)
-                                    Icon(
-                                        imageVector = Icons.Default.PushPin,
-                                        contentDescription = if (cardIsPinned) "取消固定" else "固定倒数日",
-                                        tint = if (cardIsPinned) NeumorphicAccent else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f),
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clickable {
-                                                viewModel.togglePinPresetHoliday(cardData.eventName, context)
-                                                Toast.makeText(context, if (cardIsPinned) "已取消固定" else "已固定倒数日", Toast.LENGTH_SHORT).show()
-                                            }
-                                    )
-
-                                    // 关闭删除该卡片
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "关闭卡片",
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clickable {
-                                                resultCardList = resultCardList.filterNot { it.id == cardData.id }
-                                            }
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "关闭卡片",
+                                    tint = NeumorphicTextPrimary.copy(alpha = 0.6f),
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .clickable {
+                                            resultCardList = resultCardList.filterNot { it.id == cardData.id }
+                                        }
+                                )
                             }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Text(
-                                text = "${abs(natDays)} 天",
-                                fontSize = 34.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            SuggestionChip(
-                                onClick = {},
-                                shape = CircleShape,
-                                label = {
-                                    Text(
-                                        text = if (isPast) "已过去 ${abs(natDays)} 天" else "相当于 ${abs(workDays)} 工作日",
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            )
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "${abs(natDays)}",
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = NeumorphicTextPrimary
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = LanguageUtils.getString("days_unit", lang),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeumorphicAccent,
+                                    modifier = Modifier.padding(bottom = 6.dp)
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            Text(
-                                text = "起始: ${cardData.baseDate}  ➔  目标: ${cardData.targetDate}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                            )
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
+                            // 左右并列双胶囊 (同一行显示：相差自然日 与 相差工作日)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                NeumorphicIconButton(
-                                    icon = Icons.Default.NotificationsActive,
-                                    onClick = {
-                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                    },
-                                    contentDescription = "提醒",
-                                    modifier = Modifier.weight(1f)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(38.dp)
+                                        .neumorphicInset(shape = CircleShape, elevation = 2.dp)
+                                        .background(NeumorphicSunkenBg, shape = CircleShape)
+                                        .clip(CircleShape)
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("${LanguageUtils.getString("diff_natural", lang)}: ", fontSize = 11.5.sp, color = NeumorphicTextPrimary.copy(alpha = 0.75f))
+                                        Text("${abs(natDays)}${LanguageUtils.getString("days_unit", lang)}", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
+                                    }
+                                }
 
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(38.dp)
+                                        .neumorphicInset(shape = CircleShape, elevation = 2.dp)
+                                        .background(NeumorphicSunkenBg, shape = CircleShape)
+                                        .clip(CircleShape)
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("${LanguageUtils.getString("diff_workday", lang)}: ", fontSize = 11.5.sp, color = NeumorphicAccent)
+                                        Text("${abs(workDays)}${LanguageUtils.getString("days_unit", lang)}", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+                            HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // 右下角圆形纯图标按钮组 (提醒、固定、分享、复制)
+                            val cardClipText = "$titleText: ${abs(natDays)}${LanguageUtils.getString("days_unit", lang)} (${abs(workDays)} ${LanguageUtils.getString("workday", lang)})"
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 NeumorphicIconButton(
                                     icon = Icons.Default.Alarm,
+                                    contentDescription = "提醒",
                                     onClick = {
-                                        NotificationUtils.openSystemClockAlarm(context)
-                                        Toast.makeText(context, "正在跳转系统闹钟设置...", Toast.LENGTH_SHORT).show()
-                                    },
-                                    contentDescription = "闹钟",
-                                    modifier = Modifier.weight(1f)
+                                        currentTargetEventName = cardData.eventName
+                                        showReminderDialog = true
+                                    }
                                 )
 
+                                Spacer(modifier = Modifier.width(8.dp))
+
                                 NeumorphicIconButton(
-                                    icon = Icons.Default.ContentCopy,
+                                    icon = Icons.Default.PushPin,
+                                    contentDescription = if (cardIsPinned) "取消固定" else "固定倒数日",
                                     onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("CountdownResult", "距离 ${cardData.eventName} (${cardData.targetDate}) 还有 ${abs(natDays)} 天 (${abs(workDays)} 工作日)")
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, "倒数日计算结果已复制！", Toast.LENGTH_SHORT).show()
-                                    },
-                                    contentDescription = "复制",
-                                    modifier = Modifier.weight(1f)
+                                        viewModel.togglePinPresetHoliday(cardData.eventName, context)
+                                        Toast.makeText(context, if (cardIsPinned) "已取消固定" else "已固定倒数日", Toast.LENGTH_SHORT).show()
+                                    }
                                 )
+
+                                Spacer(modifier = Modifier.width(8.dp))
 
                                 NeumorphicIconButton(
                                     icon = Icons.Default.Share,
-                                    onClick = {
-                                        val shareText = "【倒数日分享】\n距离 ${cardData.eventName} (${cardData.targetDate})\n还有 ${abs(natDays)} 天 (${abs(workDays)} 工作日)\n基准起点: ${cardData.baseDate}"
-                                        ShareUtils.shareText(context, "倒数日分享", shareText)
-                                    },
                                     contentDescription = "分享",
-                                    modifier = Modifier.weight(1f)
+                                    onClick = { ShareUtils.shareText(context, cardClipText) }
+                                )
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                NeumorphicIconButton(
+                                    icon = Icons.Default.ContentCopy,
+                                    contentDescription = "复制",
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        clipboard.setPrimaryClip(ClipData.newPlainText("DateDiff", cardClipText))
+                                        Toast.makeText(context, context.getString(R.string.toast_copied), Toast.LENGTH_SHORT).show()
+                                    }
                                 )
                             }
                         }
