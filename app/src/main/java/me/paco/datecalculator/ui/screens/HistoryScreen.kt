@@ -259,7 +259,8 @@ fun HistoryScreen(
                         modeLabel = unitLabel,
                         regionLabel = item.regionTag,
                         showOuterCard = false,
-                        showExportButton = false
+                        showExportButton = false,
+                        language = uiState.appLanguage
                     )
                 }
             },

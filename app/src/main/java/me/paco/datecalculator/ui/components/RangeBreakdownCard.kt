@@ -36,7 +36,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.ui.viewmodel.RangeBreakdownResult
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
 
 @Composable
@@ -44,6 +46,7 @@ fun RangeBreakdownCard(
     visible: Boolean,
     result: RangeBreakdownResult,
     regionLabel: String,
+    language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
     if (!visible) return
@@ -52,9 +55,35 @@ fun RangeBreakdownCard(
     val total = result.totalNaturalDays.coerceAtLeast(1L)
 
     val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(result.endDate)
-    val fortune = LunarCalendarUtils.getDailyFortune(result.endDate, constName)
+    val fortune = LunarCalendarUtils.getDailyFortune(result.endDate, constName, language)
 
     val cardShape24 = RoundedCornerShape(24.dp)
+    val daysUnit = LanguageUtils.getString("days_unit", language)
+
+    val breakdownTitle = when (language) {
+        AppLanguage.ENGLISH -> "Interval Breakdown Result"
+        AppLanguage.JAPANESE -> "期間分解結果"
+        AppLanguage.KOREAN -> "기간 분할 결과"
+        AppLanguage.TRADITIONAL_CHINESE -> "區間拆算結果"
+        else -> "区间拆算结果"
+    }
+
+    val totalNatLabel = LanguageUtils.getString("diff_natural", language)
+    val workdayLabel = LanguageUtils.getString("diff_workday", language)
+    val weekendLabel = when (language) {
+        AppLanguage.ENGLISH -> "Weekend"
+        AppLanguage.JAPANESE -> "週末"
+        AppLanguage.KOREAN -> "주말"
+        AppLanguage.TRADITIONAL_CHINESE -> "週末雙休"
+        else -> "周末双休"
+    }
+    val holidayLabel = when (language) {
+        AppLanguage.ENGLISH -> "Holidays"
+        AppLanguage.JAPANESE -> "祝日"
+        AppLanguage.KOREAN -> "공휴일"
+        AppLanguage.TRADITIONAL_CHINESE -> "節假日"
+        else -> "节假日"
+    }
 
     Box(
         modifier = modifier
@@ -71,7 +100,7 @@ fun RangeBreakdownCard(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "区间拆算结果",
+                text = breakdownTitle,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = NeumorphicAccent
@@ -107,7 +136,7 @@ fun RangeBreakdownCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "✨ 终止日运势: ${fortune.summary}",
+                text = "✨ ${fortune.summary}",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = NeumorphicTextPrimary.copy(alpha = 0.75f)
@@ -122,27 +151,27 @@ fun RangeBreakdownCard(
             ) {
                 // 1. 自然日
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("总自然日", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
-                    Text("${result.totalNaturalDays} 天", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
+                    Text(totalNatLabel, fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
+                    Text("${result.totalNaturalDays} $daysUnit", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
                 }
 
                 // 2. 工作日
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("💼 工作日", fontSize = 11.sp, color = NeumorphicAccent)
-                    Text("${result.workdaysCount} 天", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                    Text("💼 $workdayLabel", fontSize = 11.sp, color = NeumorphicAccent)
+                    Text("${result.workdaysCount} $daysUnit", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                 }
 
                 // 3. 周末双休
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("☕ 周末双休", fontSize = 11.sp, color = Color(0xFFD97706))
-                    Text("${result.regularWeekendDaysCount} 天", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD97706))
+                    Text("☕ $weekendLabel", fontSize = 11.sp, color = Color(0xFFD97706))
+                    Text("${result.regularWeekendDaysCount} $daysUnit", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD97706))
                 }
 
                 // 4. 法定节假日
                 if (result.statutoryHolidaysCount > 0) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🎉 节假日", fontSize = 11.sp, color = Color(0xFFEF4444))
-                        Text("${result.statutoryHolidaysCount} 天", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFEF4444))
+                        Text("🎉 $holidayLabel", fontSize = 11.sp, color = Color(0xFFEF4444))
+                        Text("${result.statutoryHolidaysCount} $daysUnit", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFEF4444))
                     }
                 }
             }
@@ -195,8 +224,16 @@ fun RangeBreakdownCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val stdLabel = when (language) {
+                    AppLanguage.ENGLISH -> "Holiday Standard: $regionLabel"
+                    AppLanguage.JAPANESE -> "祝日基準: $regionLabel"
+                    AppLanguage.KOREAN -> "공휴일 기준: $regionLabel"
+                    AppLanguage.TRADITIONAL_CHINESE -> "節假日標準: $regionLabel"
+                    else -> "节假日标准: $regionLabel"
+                }
+
                 Text(
-                    text = "节假日标准: $regionLabel",
+                    text = stdLabel,
                     fontSize = 11.sp,
                     color = NeumorphicTextPrimary.copy(alpha = 0.7f),
                     modifier = Modifier
@@ -212,16 +249,16 @@ fun RangeBreakdownCard(
                         .background(NeumorphicBg, shape = buttonShape)
                         .clip(buttonShape)
                         .clickable {
-                            val clipText = "区间拆算 [${result.startDate} ➔ ${result.endDate}]: 总自然日 ${result.totalNaturalDays}天 | 工作日 ${result.workdaysCount}天 | 周末双休 ${result.regularWeekendDaysCount}天 | 节假日 ${result.statutoryHolidaysCount}天 | 终止日星座: $constEmoji $constName"
+                            val clipText = "[$breakdownTitle ${result.startDate} ➔ ${result.endDate}]: $totalNatLabel ${result.totalNaturalDays}$daysUnit | $workdayLabel ${result.workdaysCount}$daysUnit | $weekendLabel ${result.regularWeekendDaysCount}$daysUnit"
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText("RangeBreakdown", clipText))
-                            Toast.makeText(context, "拆算结果已复制到剪贴板", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Copied!", Toast.LENGTH_SHORT).show()
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "复制拆算结果",
+                        contentDescription = "Copy",
                         tint = NeumorphicAccent,
                         modifier = Modifier.size(16.dp)
                     )

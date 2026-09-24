@@ -34,10 +34,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.util.CsvExporter
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.TimelineBlockType
 import java.time.LocalDate
 
@@ -49,6 +51,7 @@ fun TimelineDiagram(
     segments: List<StageSegmentResult>,
     modeLabel: String,
     regionLabel: String,
+    language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier,
     showOuterCard: Boolean = true,
     showExportButton: Boolean = true,
@@ -56,7 +59,6 @@ fun TimelineDiagram(
 ) {
     val context = LocalContext.current
 
-    // 精准拆解全量阶段的时间轴 Block 序列 (按时间先后顺序)
     val allChronologicalBlocks = segments.flatMap { seg ->
         DateCalculatorUtils.decomposeChronologicalBlocks(
             startDate = seg.startDate,
@@ -72,6 +74,22 @@ fun TimelineDiagram(
     val hasFuturePrediction = finalDate.year >= 2027
     val isSubtractMode = segments.firstOrNull()?.type == CalculationType.SUBTRACT
 
+    val overviewTitle = when (language) {
+        AppLanguage.ENGLISH -> "Schedule Overview"
+        AppLanguage.JAPANESE -> "スケジュール概要"
+        AppLanguage.KOREAN -> "일정 개요"
+        AppLanguage.TRADITIONAL_CHINESE -> "總時間安排示意"
+        else -> "总时间安排示意"
+    }
+
+    val totalDurationLabel = when (language) {
+        AppLanguage.ENGLISH -> "Total: $grandTotalCalendarDays Days"
+        AppLanguage.JAPANESE -> "総所要: $grandTotalCalendarDays 日"
+        AppLanguage.KOREAN -> "총 기간: $grandTotalCalendarDays 일"
+        AppLanguage.TRADITIONAL_CHINESE -> "總歷時: $grandTotalCalendarDays 自然日"
+        else -> "总历时: $grandTotalCalendarDays 自然日"
+    }
+
     val diagramContent = @Composable {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -82,7 +100,7 @@ fun TimelineDiagram(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Timeline, contentDescription = null, tint = NeumorphicAccent)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("总时间安排示意", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(overviewTitle, fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
 
                 // 📊 导出 CSV 表格按键
@@ -109,7 +127,7 @@ fun TimelineDiagram(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("导出 CSV", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                            Text(LanguageUtils.getString("export_csv", language), fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -126,26 +144,26 @@ fun TimelineDiagram(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(NeumorphicAccent))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("工作日: $totalWorkdaysCount 天", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                    Text("${LanguageUtils.getString("workday", language)}: $totalWorkdaysCount ${LanguageUtils.getString("days_unit", language)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                 }
 
                 if (totalWeekendDaysCount > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("周末双休: $totalWeekendDaysCount 天", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                        Text("${LanguageUtils.getString("weekend_chip", language)}: $totalWeekendDaysCount ${LanguageUtils.getString("days_unit", language)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                     }
                 }
 
-                if (totalStatutoryDaysCount > 0) {
+                if (totalStatutoryDaysCount > 0 && language.isChineseLocale) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFEF4444)))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("🎉 法定节假日: $totalStatutoryDaysCount 天", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
+                        Text("🎉 节假日: $totalStatutoryDaysCount ${LanguageUtils.getString("days_unit", language)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
                     }
                 }
 
-                Text("总历时: $grandTotalCalendarDays 自然日", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
+                Text(totalDurationLabel, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -176,7 +194,7 @@ fun TimelineDiagram(
             }
 
             // 远期预测提示横幅
-            if (hasFuturePrediction) {
+            if (hasFuturePrediction && language.isChineseLocale) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
@@ -201,13 +219,16 @@ fun TimelineDiagram(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 segments.forEachIndexed { index, seg ->
-                    val numZh = when (index + 1) {
-                        1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${index + 1}"
+                    val stageTitleText = if (seg.remark.isNotBlank()) seg.remark else when (language) {
+                        AppLanguage.ENGLISH -> "Stage ${index + 1}"
+                        AppLanguage.JAPANESE -> "第${index + 1}段階"
+                        AppLanguage.KOREAN -> "${index + 1}단계"
+                        AppLanguage.TRADITIONAL_CHINESE -> "第${index + 1}階段"
+                        else -> "第${index + 1}段时间"
                     }
-                    val defaultTitle = "第${numZh}段时间"
-                    val stageTitle = seg.remark.ifBlank { defaultTitle }
+
                     val isAdd = (seg.type == CalculationType.ADD)
-                    val stageActionLabel = if (isAdd) "多段加" else "多段减"
+                    val stageActionLabel = if (isAdd) "+ Add" else "- Sub"
                     val symbol = if (isAdd) "+" else "-"
 
                     val stageBlocks = DateCalculatorUtils.decomposeChronologicalBlocks(seg.startDate, seg.endDate)
@@ -256,7 +277,7 @@ fun TimelineDiagram(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(stageTitle, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 13.sp)
+                                            Text(stageTitleText, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 13.sp)
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Box(
                                                 modifier = Modifier
@@ -304,6 +325,13 @@ fun TimelineDiagram(
 
                             if (seg.restDaysCount > 0) {
                                 Spacer(modifier = Modifier.height(6.dp))
+                                val restNotice = when (language) {
+                                    AppLanguage.ENGLISH -> "☕ Rest days included: ${seg.restDaysCount} days"
+                                    AppLanguage.JAPANESE -> "☕ 休日含む: ${seg.restDaysCount} 日"
+                                    AppLanguage.KOREAN -> "☕ 휴무일 포함: ${seg.restDaysCount} 일"
+                                    AppLanguage.TRADITIONAL_CHINESE -> "☕ 包含休假/雙休: ${seg.restDaysCount} 天"
+                                    else -> "☕ 包含休假/双休: ${seg.restDaysCount} 天"
+                                }
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -311,7 +339,7 @@ fun TimelineDiagram(
                                         .background(Color(0xFFFEF3C7))
                                         .padding(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
-                                    Text("☕ 包含休假/双休: ${seg.restDaysCount} 天", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
+                                    Text(restNotice, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
                                 }
                             }
 

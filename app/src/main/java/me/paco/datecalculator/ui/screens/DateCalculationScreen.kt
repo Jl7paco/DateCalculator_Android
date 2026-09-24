@@ -502,6 +502,7 @@ fun DateCalculationScreen(
             Spacer(modifier = Modifier.width(10.dp))
 
             val isMultiStageDisabled = (uiState.calcSubMode == CalcSubMode.REVERSE_RANGE)
+            val lang = uiState.appLanguage
 
             Box(
                 modifier = Modifier
@@ -519,7 +520,14 @@ fun DateCalculationScreen(
                     .clip(CircleShape)
                     .clickable {
                         if (isMultiStageDisabled) {
-                            Toast.makeText(context, "区间拆算模式下多段模式不可操作", Toast.LENGTH_SHORT).show()
+                            val disabledToast = when (lang) {
+                                AppLanguage.ENGLISH -> "Multi-Stage is disabled in Date Interval mode"
+                                AppLanguage.JAPANESE -> "期間計算モードでは複数段階は使用できません"
+                                AppLanguage.KOREAN -> "기간 계산 모드에서는 다단계 모드를 사용할 수 없습니다"
+                                AppLanguage.TRADITIONAL_CHINESE -> "區間拆算模式下多段模式不可操作"
+                                else -> "区间拆算模式下多段模式不可操作"
+                            }
+                            Toast.makeText(context, disabledToast, Toast.LENGTH_SHORT).show()
                         } else {
                             viewModel.toggleMultiStageExtension(!uiState.isMultiStageExtensionEnabled)
                         }
@@ -675,14 +683,30 @@ fun DateCalculationScreen(
                             .fillMaxWidth()
                             .padding(16.dp)
                     ) {
+                        val lang = uiState.appLanguage
+                        val multiStageHeaderTitle = when (lang) {
+                            AppLanguage.ENGLISH -> "Multi-Stage Schedule"
+                            AppLanguage.JAPANESE -> "複数段階計算"
+                            AppLanguage.KOREAN -> "다단계 일정 산출"
+                            AppLanguage.TRADITIONAL_CHINESE -> "多段模式"
+                            else -> "多段模式"
+                        }
                         Text(
-                            text = "多段模式",
+                            text = multiStageHeaderTitle,
                             fontWeight = FontWeight.ExtraBold,
                             color = NeumorphicAccent,
                             fontSize = 15.sp
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
+
+                        val planPlaceholder = when (lang) {
+                            AppLanguage.ENGLISH -> "Name this plan (e.g. Vacation / Renovation)"
+                            AppLanguage.JAPANESE -> "プラン名を入力 (例: 旅行計画 / リフォーム)"
+                            AppLanguage.KOREAN -> "일정 이름 입력 (예: 졸업 여행 / 리모델링)"
+                            AppLanguage.TRADITIONAL_CHINESE -> "給這段安排起個名字 (如: 畢業旅行 / 裝修進度)"
+                            else -> "给这段安排起个名字 (如: 毕业旅行 / 装修进度 / 减脂计划)"
+                        }
 
                         val sunkenShape12 = RoundedCornerShape(12.dp)
                         Box(
@@ -697,7 +721,7 @@ fun DateCalculationScreen(
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (uiState.multiStagePlanTitle.isEmpty()) {
-                                Text("给这段安排起个名字 (如: 毕业旅行 / 装修进度 / 减脂计划)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f))
+                                Text(planPlaceholder, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f))
                             }
                             BasicTextField(
                                 value = uiState.multiStagePlanTitle,
@@ -709,8 +733,16 @@ fun DateCalculationScreen(
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
+
+                        val planSubtitle = when (lang) {
+                            AppLanguage.ENGLISH -> "Set days and notes for each stage to calculate milestone dates:"
+                            AppLanguage.JAPANESE -> "各段階の日数とノートを設定してマイルストーン日程を算定:"
+                            AppLanguage.KOREAN -> "각 단계별 일수와 메모를 설정하여 마일스톤 날짜 산출:"
+                            AppLanguage.TRADITIONAL_CHINESE -> "設置不同時間段的天數與想法，為你智能推算各個節點日期:"
+                            else -> "设置不同时间段的天数与想法，为你智能推算各个节点日期:"
+                        }
                         Text(
-                            text = "设置不同时间段的天数与想法，为你智能推算各个节点日期:",
+                            text = planSubtitle,
                             fontSize = 11.sp,
                             color = NeumorphicTextPrimary.copy(alpha = 0.7f)
                         )
@@ -913,7 +945,7 @@ fun DateCalculationScreen(
                                     .clickable { viewModel.performCalculation() },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("保存到记录", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                                Text(LanguageUtils.getString("save_record", uiState.appLanguage), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             }
                         }
                     }
@@ -926,7 +958,8 @@ fun DateCalculationScreen(
                     finalDate = multiFinalDate,
                     segments = multiSegments,
                     modeLabel = unitLabel,
-                    regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+                    regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}",
+                    language = uiState.appLanguage
                 )
             }
         }
@@ -960,7 +993,8 @@ fun DateCalculationScreen(
                 RangeBreakdownCard(
                     visible = uiState.showResult,
                     result = rangeBreakdown,
-                    regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+                    regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}",
+                    language = uiState.appLanguage
                 )
             }
         }
