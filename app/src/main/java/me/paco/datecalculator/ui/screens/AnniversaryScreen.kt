@@ -154,12 +154,35 @@ fun AnniversaryScreen(
     // 常规添加纪念日 Dialog (支持图标选择，参考自定义倒数日界面)
     if (showAddDialog) {
         val dialogBg = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg
+        val lang = uiState.appLanguage
+        val selectEmojiLabel = when (lang) {
+            AppLanguage.ENGLISH -> "Select Emoji"
+            AppLanguage.JAPANESE -> "アイコン選択"
+            AppLanguage.KOREAN -> "아이콘 선택"
+            AppLanguage.TRADITIONAL_CHINESE -> "選擇圖標 Emoji"
+            else -> "选择图标 Emoji"
+        }
+        val remarkLabel = when (lang) {
+            AppLanguage.ENGLISH -> "Notes & Remarks"
+            AppLanguage.JAPANESE -> "メモ"
+            AppLanguage.KOREAN -> "메모"
+            AppLanguage.TRADITIONAL_CHINESE -> "備註與想說的話"
+            else -> "备注与想说的话"
+        }
+        val syncLabel = when (lang) {
+            AppLanguage.ENGLISH -> "Pin & Sync to Countdown"
+            AppLanguage.JAPANESE -> "カウントダウンに固定同期"
+            AppLanguage.KOREAN -> "디데이에 고정 동기화"
+            AppLanguage.TRADITIONAL_CHINESE -> "聯動固定到自定義紀念日與倒數日"
+            else -> "联动固定到自定义纪念日与倒数日"
+        }
+
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("添加重要纪念日", fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary) },
+            title = { Text(LanguageUtils.getString("anniversary_dialog_title", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("选择图标 Emoji", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    Text(selectEmojiLabel, fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     val emojiOptions = listOf("❤️", "💍", "🎂", "🎉", "✈️", "🎓", "🎮", "🚗", "🏠", "📚", "🏆", "📌")
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -180,7 +203,7 @@ fun AnniversaryScreen(
                         }
                     }
 
-                    Text("纪念日名称", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    Text(LanguageUtils.getString("anniversary_name", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -199,7 +222,7 @@ fun AnniversaryScreen(
                         )
                     }
 
-                    Text("纪念日日期", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    Text(LanguageUtils.getString("anniversary_date", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -211,10 +234,10 @@ fun AnniversaryScreen(
                             .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        Text(DateCalculatorUtils.formatDate(dateInput), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                        Text(DateCalculatorUtils.formatDate(dateInput, lang), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                     }
 
-                    Text("备注与想说的话", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    Text(remarkLabel, fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -238,7 +261,7 @@ fun AnniversaryScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("联动固定到自定义纪念日与倒数日", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                        Text(syncLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                         Switch(
                             checked = linkToCountdown,
                             onCheckedChange = { linkToCountdown = it },
@@ -260,7 +283,6 @@ fun AnniversaryScreen(
                             )
                             viewModel.addAnniversary(newItem, context)
 
-                            // 100% 自动联动添加至自定义纪念日/倒数日快捷按钮
                             val fullName = "$selectedEmoji $titleInput"
                             viewModel.addCustomEvent(
                                 name = fullName,
@@ -268,21 +290,18 @@ fun AnniversaryScreen(
                                 iconEmoji = selectedEmoji
                             )
 
-                            Toast.makeText(context, "纪念日保存成功，已同步联动至自定义纪念日！", Toast.LENGTH_SHORT).show()
                             showAddDialog = false
                             titleInput = ""
                             remarkInput = ""
-                        } else {
-                            Toast.makeText(context, "请输入纪念日名称", Toast.LENGTH_SHORT).show()
                         }
                     }
                 ) {
-                    Text("保存纪念日", fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                    Text(LanguageUtils.getString("save_anniversary", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddDialog = false }) {
-                    Text("取消", color = NeumorphicTextPrimary.copy(alpha = 0.7f))
+                    Text(LanguageUtils.getString("cancel", lang), color = NeumorphicTextPrimary.copy(alpha = 0.7f))
                 }
             },
             containerColor = dialogBg,
