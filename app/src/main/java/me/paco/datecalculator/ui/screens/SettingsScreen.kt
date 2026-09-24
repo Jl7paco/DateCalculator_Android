@@ -30,9 +30,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.DarkMode
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Home
-import me.paco.datecalculator.ui.components.NeumorphicCustomPopup
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
@@ -54,7 +55,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -63,25 +63,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.compose.material.icons.filled.Language
-import me.paco.datecalculator.R
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.data.HolidayRegion
-import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.ThemeColorPreset
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicChip
+import me.paco.datecalculator.ui.components.NeumorphicCustomPopup
 import me.paco.datecalculator.ui.components.NeumorphicRadioButton
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
-import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LocationUtils
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -94,6 +92,8 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val isDark = LocalDarkTheme.current
+    val lang = uiState.appLanguage
+    val isChinese = lang.isChineseLocale
 
     var regionMenuExpanded by remember { mutableStateOf(false) }
 
@@ -118,9 +118,6 @@ fun SettingsScreen(
             .verticalScroll(scrollState)
             .padding(14.dp)
     ) {
-        val lang = uiState.appLanguage
-        val isChinese = lang.isChineseLocale
-
         // 顶栏 (36dp 高度, 15sp 标题)
         Row(
             modifier = Modifier
@@ -449,16 +446,8 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Celebration, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("常用倒数日节日配置", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(LanguageUtils.getString("common_countdown", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "点击节日按钮切换在“倒数日”页面的显示或隐藏配置:",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 12.sp,
-                    color = NeumorphicTextPrimary.copy(alpha = 0.7f)
-                )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -471,8 +460,9 @@ fun SettingsScreen(
                 ) {
                     allPresets.forEach { holidayName ->
                         val isEnabled = !uiState.disabledPresetHolidays.contains(holidayName)
+                        val localizedName = LanguageUtils.getLocalizedHolidayName(holidayName, lang)
                         NeumorphicChip(
-                            text = if (isEnabled) holidayName else "$holidayName (已隐藏)",
+                            text = if (isEnabled) localizedName else "$localizedName (OFF)",
                             selected = isEnabled,
                             onClick = { viewModel.togglePresetHolidayEnabled(holidayName) }
                         )
@@ -494,7 +484,7 @@ fun SettingsScreen(
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = stringResource(R.string.label_weekend_mode),
+                    text = LanguageUtils.getString("rule_weekend_title", lang),
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicAccent,
                     fontSize = 14.sp
@@ -507,18 +497,18 @@ fun SettingsScreen(
                 ) {
                     WeekendRule.entries.forEach { rule ->
                         val ruleLabel = when (rule) {
-                            WeekendRule.STANDARD_FIVE_DAYS -> stringResource(R.string.rule_five_days)
-                            WeekendRule.ALTERNATE_BIG_SMALL_WEEKS -> stringResource(R.string.rule_big_small_weeks)
-                            WeekendRule.SIX_DAYS_SUNDAY -> stringResource(R.string.rule_six_days_sunday)
-                            WeekendRule.SIX_DAYS_SATURDAY -> stringResource(R.string.rule_six_days_saturday)
-                            WeekendRule.SEVEN_DAYS -> stringResource(R.string.rule_seven_days)
+                            WeekendRule.STANDARD_FIVE_DAYS -> LanguageUtils.getString("rule_five_days", lang)
+                            WeekendRule.ALTERNATE_BIG_SMALL_WEEKS -> LanguageUtils.getString("rule_big_small_weeks", lang)
+                            WeekendRule.SIX_DAYS_SUNDAY -> LanguageUtils.getString("rule_six_days_sunday", lang)
+                            WeekendRule.SIX_DAYS_SATURDAY -> LanguageUtils.getString("rule_six_days_saturday", lang)
+                            WeekendRule.SEVEN_DAYS -> LanguageUtils.getString("rule_seven_days", lang)
                         }
                         val ruleDesc = when (rule) {
-                            WeekendRule.STANDARD_FIVE_DAYS -> stringResource(R.string.rule_five_days_desc)
-                            WeekendRule.ALTERNATE_BIG_SMALL_WEEKS -> stringResource(R.string.rule_big_small_weeks_desc)
-                            WeekendRule.SIX_DAYS_SUNDAY -> stringResource(R.string.rule_six_days_sunday_desc)
-                            WeekendRule.SIX_DAYS_SATURDAY -> stringResource(R.string.rule_six_days_saturday_desc)
-                            WeekendRule.SEVEN_DAYS -> stringResource(R.string.rule_seven_days_desc)
+                            WeekendRule.STANDARD_FIVE_DAYS -> LanguageUtils.getString("rule_five_days_desc", lang)
+                            WeekendRule.ALTERNATE_BIG_SMALL_WEEKS -> LanguageUtils.getString("rule_big_small_weeks_desc", lang)
+                            WeekendRule.SIX_DAYS_SUNDAY -> LanguageUtils.getString("rule_six_days_sunday_desc", lang)
+                            WeekendRule.SIX_DAYS_SATURDAY -> LanguageUtils.getString("rule_six_days_saturday_desc", lang)
+                            WeekendRule.SEVEN_DAYS -> LanguageUtils.getString("rule_seven_days_desc", lang)
                         }
 
                         val isSelected = (rule == uiState.weekendRule)
@@ -562,25 +552,6 @@ fun SettingsScreen(
                                     }
                                 }
                             }
-
-                            if (isSelected && rule == WeekendRule.ALTERNATE_BIG_SMALL_WEEKS) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
-                                    modifier = Modifier
-                                        .padding(start = 32.dp)
-                                        .fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("本周状态: ", fontSize = 12.sp, color = NeumorphicTextPrimary)
-                                    NeumorphicChip(
-                                        text = if (uiState.isCurrentWeekBigWeek) "大周 (双休)" else "小周 (单休)",
-                                        selected = true,
-                                        onClick = {
-                                            viewModel.updateIsBigWeek(!uiState.isCurrentWeekBigWeek, context)
-                                        }
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -589,7 +560,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 5. Material 3 主题配色与调色盘设置 Card (遵照用户指令：放置在周末休息模式 Card 正下方，更名为“深色模式”)
+        // 5. Material 3 主题配色与调色盘设置 Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -602,11 +573,8 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Palette, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("主题配色方案", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(LanguageUtils.getString("settings_theme", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
-
-                Spacer(modifier = Modifier.height(6.dp))
-                Text("根据喜好选择主题调色方案或通过 14 款精选调色盘自由设定:", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -617,8 +585,9 @@ fun SettingsScreen(
                 ) {
                     listOf(ThemeColorPreset.SYSTEM, ThemeColorPreset.CUSTOM).forEach { preset ->
                         val isSelected = (uiState.themePreset == preset)
+                        val labelText = if (preset == ThemeColorPreset.SYSTEM) LanguageUtils.getString("dark_mode_system", lang) else preset.label
                         NeumorphicChip(
-                            text = preset.label,
+                            text = labelText,
                             selected = isSelected,
                             onClick = {
                                 viewModel.updateThemePreset(preset, context)
@@ -627,9 +596,9 @@ fun SettingsScreen(
                     }
                 }
 
-                // 调色盘 Picker (14 款精美调色盘选择，无右侧橙色条)
+                // 调色盘 Picker (14 款精美调色盘选择)
                 Spacer(modifier = Modifier.height(10.dp))
-                Text("调色盘 (14 款精选主色调):", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                Text("调色盘 (14):", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val customPaletteColors = listOf(
@@ -672,7 +641,7 @@ fun SettingsScreen(
                                 .clip(CircleShape)
                                 .clickable {
                                     viewModel.updateCustomPrimaryColor(colorHex, context)
-                                    Toast.makeText(context, "已切换主色调: $colorName", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Color: $colorName", Toast.LENGTH_SHORT).show()
                                 }
                         )
                     }
@@ -685,7 +654,7 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.DarkMode, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("深色模式", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(LanguageUtils.getString("settings_dark_mode", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -697,8 +666,13 @@ fun SettingsScreen(
                 ) {
                     DarkThemeMode.entries.forEach { mode ->
                         val isSelected = (uiState.darkThemeMode == mode)
+                        val modeText = when (mode) {
+                            DarkThemeMode.SYSTEM -> LanguageUtils.getString("dark_mode_system", lang)
+                            DarkThemeMode.ON -> LanguageUtils.getString("dark_mode_on", lang)
+                            DarkThemeMode.OFF -> LanguageUtils.getString("dark_mode_off", lang)
+                        }
                         NeumorphicChip(
-                            text = mode.label,
+                            text = modeText,
                             selected = isSelected,
                             onClick = {
                                 viewModel.updateDarkThemeMode(mode, context)

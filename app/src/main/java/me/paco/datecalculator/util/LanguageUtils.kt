@@ -14,6 +14,42 @@ object LanguageUtils {
         }
     }
 
+    fun getWeatherCondition(condition: String, language: AppLanguage): String {
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> condition
+            AppLanguage.TRADITIONAL_CHINESE -> when (condition) {
+                "晴朗" -> "晴朗"; "阴天" -> "陰天"; "小雨" -> "小雨"; "雷阵雨" -> "雷陣雨"; "多云" -> "多雲"; else -> condition
+            }
+            AppLanguage.ENGLISH -> when (condition) {
+                "晴朗" -> "Sunny"; "阴天" -> "Overcast"; "小雨" -> "Light Rain"; "雷阵雨" -> "Thunderstorm"; "多云" -> "Cloudy"; else -> condition
+            }
+            AppLanguage.JAPANESE -> when (condition) {
+                "晴朗" -> "快晴"; "阴天" -> "曇り"; "小雨" -> "小雨"; "雷阵雨" -> "雷雨"; "多云" -> "晴れのち曇り"; else -> condition
+            }
+            AppLanguage.KOREAN -> when (condition) {
+                "晴朗" -> "맑음"; "阴天" -> "흐림"; "小雨" -> "가랑비"; "雷阵雨" -> "뇌우"; "多云" -> "구름조금"; else -> condition
+            }
+        }
+    }
+
+    fun getDayName(dayName: String, language: AppLanguage): String {
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> dayName
+            AppLanguage.TRADITIONAL_CHINESE -> when (dayName) {
+                "今天" -> "今天"; "明天" -> "明天"; "后天" -> "後天"; else -> dayName
+            }
+            AppLanguage.ENGLISH -> when (dayName) {
+                "今天" -> "Today"; "明天" -> "Tomorrow"; "后天" -> "Day After"; else -> dayName
+            }
+            AppLanguage.JAPANESE -> when (dayName) {
+                "今天" -> "今日"; "明天" -> "明日"; "后天" -> "明後日"; else -> dayName
+            }
+            AppLanguage.KOREAN -> when (dayName) {
+                "今天" -> "오늘"; "明天" -> "내일"; "后天" -> "모레"; else -> dayName
+            }
+        }
+    }
+
     fun getLocalizedHolidayName(label: String, language: AppLanguage): String {
         val cleanLabel = label.replace("🇨🇳 ", "").replace("🇹🇼 ", "").replace("🎆 ", "").replace("🧧 ", "").replace("🌿 ", "").replace("🛠️ ", "").replace("🎏 ", "").replace("📚 ", "").replace("🥮 ", "").trim()
         val icon = when {
@@ -163,7 +199,14 @@ object LanguageUtils {
             "rule_six_days_saturday_desc" to "每周日及周一至周五为工作日，仅周六休息",
             "rule_seven_days_desc" to "一周七天均为工作日，不计周末",
             "no_anniversary_record" to "❤️ 暂无记录的重要纪念日",
-            "add_anniversary_hint" to "点击上方“添加纪念日”或“📍 打卡”保存美好时刻"
+            "add_anniversary_hint" to "点击上方“添加纪念日”或“📍 打卡”保存美好时刻",
+            "fortune_suffix" to "每日运势",
+            "custom_btn" to "+ 自定义",
+            "yi_label" to "宜",
+            "ji_label" to "忌",
+            "lunar_to_solar_title" to "公历 ➔ 农历",
+            "solar_to_lunar_title" to "农历 ➔ 公历",
+            "lunar_convert_title" to "农历与公历转换"
         )
 
         val stringsZhTw = mapOf(
@@ -216,7 +259,7 @@ object LanguageUtils {
             "select_birth_date" to "選擇出生日期",
             "select_start_date" to "選擇起始日期",
             "select_target_date" to "選擇目標日期",
-            "exact_age" to "當前精准年齡",
+            "exact_age" to "當前准確年齡",
             "next_birthday_days" to "距離下次生日還有",
             "days_unit" to "天",
             "weeks_unit" to "周",
@@ -278,7 +321,14 @@ object LanguageUtils {
             "rule_six_days_saturday_desc" to "每周日及周一至周五為工作日，僅周六休息",
             "rule_seven_days_desc" to "一周七天均為工作日，不計周末",
             "no_anniversary_record" to "❤️ 暫無記錄的重要紀念日",
-            "add_anniversary_hint" to "點擊上方“添加紀念日”或“📍 打卡”保存美好時刻"
+            "add_anniversary_hint" to "點擊上方“添加紀念日”或“📍 打卡”保存美好時刻",
+            "fortune_suffix" to "每日運勢",
+            "custom_btn" to "+ 自定義",
+            "yi_label" to "宜",
+            "ji_label" to "忌",
+            "lunar_to_solar_title" to "公曆 ➔ 農曆",
+            "solar_to_lunar_title" to "農曆 ➔ 公曆",
+            "lunar_convert_title" to "農曆與公曆轉換"
         )
 
         val stringsEn = mapOf(
@@ -393,7 +443,14 @@ object LanguageUtils {
             "rule_six_days_saturday_desc" to "Sun-Fri workdays, Sat rest",
             "rule_seven_days_desc" to "All 7 days workdays, no weekend rest",
             "no_anniversary_record" to "❤️ No Anniversaries Saved",
-            "add_anniversary_hint" to "Click 'Add Anniversary' or '📍 Check-in' to record special moments"
+            "add_anniversary_hint" to "Click 'Add Anniversary' or '📍 Check-in' to record special moments",
+            "fortune_suffix" to "Daily Horoscope",
+            "custom_btn" to "+ Custom",
+            "yi_label" to "Good",
+            "ji_label" to "Avoid",
+            "lunar_to_solar_title" to "Solar ➔ Lunar",
+            "solar_to_lunar_title" to "Lunar ➔ Solar",
+            "lunar_convert_title" to "Lunar & Solar Converter"
         )
 
         val stringsJa = mapOf(
@@ -411,13 +468,13 @@ object LanguageUtils {
             "settings_region" to "国・地域選択",
             "settings_gps_auto" to "GPS位置自動判定",
             "settings_sync_holidays" to "最新祝日データを同期",
-            "home_show_screen" to "ホーム画面を表示",
-            "home_calendar" to "カレンダー",
-            "home_almanac" to "今日の暦",
-            "home_solar_terms" to "二十四節気",
-            "home_lunar" to "旧暦日付",
-            "home_zodiac" to "星座と運勢",
-            "home_weather" to "天気予報",
+            "home_show_screen" to "ホーム画面を表示 (Home Screen)",
+            "home_calendar" to "カレンダー (Monthly Calendar)",
+            "home_almanac" to "今日の暦 (Almanac)",
+            "home_solar_terms" to "二十四節気 (Solar Terms)",
+            "home_lunar" to "旧暦日付 (Lunar Date)",
+            "home_zodiac" to "星座と運勢 (Zodiac & Fortune)",
+            "home_weather" to "天気予報 (Weather Forecast)",
             "workday" to "平日",
             "natural_day" to "日数",
             "solar" to "新暦",
@@ -508,7 +565,14 @@ object LanguageUtils {
             "rule_six_days_saturday_desc" to "日曜・月〜金勤務、土曜日休み",
             "rule_seven_days_desc" to "毎日勤務、週末休みなし",
             "no_anniversary_record" to "❤️ 保存された記念日はありません",
-            "add_anniversary_hint" to "「記念日追加」または「📍 チェックイン」をクリック"
+            "add_anniversary_hint" to "「記念日追加」または「📍 チェックイン」をクリック",
+            "fortune_suffix" to "今日の運勢",
+            "custom_btn" to "+ カスタム",
+            "yi_label" to "吉",
+            "ji_label" to "凶",
+            "lunar_to_solar_title" to "新暦 ➔ 旧暦",
+            "solar_to_lunar_title" to "旧暦 ➔ 新暦",
+            "lunar_convert_title" to "旧暦と新暦の相互変換"
         )
 
         val stringsKo = mapOf(
@@ -526,14 +590,14 @@ object LanguageUtils {
             "settings_region" to "국가/지역 선택",
             "settings_gps_auto" to "GPS 위치 자동 인식",
             "settings_sync_holidays" to "최신 공휴일 데이터 동기화",
-            "home_show_screen" to "홈 화면 표시",
-            "home_calendar" to "달력",
-            "home_almanac" to "오늘의 운세",
-            "home_solar_terms" to "24절기",
-            "home_lunar" to "음력 날짜",
-            "home_zodiac" to "별자리 및 운세",
-            "home_weather" to "날씨 예보",
-            "workday" to "평일",
+            "home_show_screen" to "홈 화면 표시 (Home Screen)",
+            "home_calendar" to "달력 (Monthly Calendar)",
+            "home_almanac" to "오늘의 운세 (Almanac)",
+            "home_solar_terms" to "24절기 (Solar Terms)",
+            "home_lunar" to "음력 날짜 (Lunar Date)",
+            "home_zodiac" to "별자리 및 운세 (Zodiac & Fortune)",
+            "home_weather" to "날씨 예보 (Weather Forecast)",
+            "workday" to "근무일",
             "natural_day" to "일수",
             "solar" to "양력",
             "lunar" to "음력",
@@ -623,7 +687,14 @@ object LanguageUtils {
             "rule_six_days_saturday_desc" to "일/월~금 근무, 토요일 휴무",
             "rule_seven_days_desc" to "매일 근무, 주말 휴무 없음",
             "no_anniversary_record" to "❤️ 저장된 기념일이 없습니다",
-            "add_anniversary_hint" to "'기념일 추가' 또는 '📍 체크인'을 클릭하세요"
+            "add_anniversary_hint" to "'기념일 추가' 또는 '📍 체크인'을 클릭하세요",
+            "fortune_suffix" to "오늘의 운세",
+            "custom_btn" to "+ 커스텀",
+            "yi_label" to "길",
+            "ji_label" to "흉",
+            "lunar_to_solar_title" to "양력 ➔ 음력",
+            "solar_to_lunar_title" to "음력 ➔ 양력",
+            "lunar_convert_title" to "음력/양력 상호 변환"
         )
 
         return when (language) {

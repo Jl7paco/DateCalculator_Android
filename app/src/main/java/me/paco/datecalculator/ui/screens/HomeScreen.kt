@@ -55,7 +55,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
@@ -84,6 +83,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val homeConfig = uiState.homeConfig
+    val lang = uiState.appLanguage
 
     var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
     var selectedCalendarDate by remember { mutableStateOf(LocalDate.now()) }
@@ -124,7 +124,7 @@ fun HomeScreen(
     val todayLunar = LunarCalendarUtils.solarToLunar(selectedCalendarDate)
     val almanac = LunarCalendarUtils.getAlmanacYiJi(selectedCalendarDate)
     val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(selectedCalendarDate)
-    val fortune = LunarCalendarUtils.getDailyFortune(selectedCalendarDate, constName, uiState.appLanguage)
+    val fortune = LunarCalendarUtils.getDailyFortune(selectedCalendarDate, constName, lang)
     val weatherList = uiState.liveWeatherList ?: WeatherUtils.getWeatherForecast(selectedCalendarDate)
 
     HistoryOverlayDialog(
@@ -147,7 +147,7 @@ fun HomeScreen(
             .verticalScroll(scrollState)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        // 顶栏 (36dp 高度, 15sp 标题，删掉冗余词样“首页”)
+        // 顶栏 (36dp 高度, 15sp 标题，跟随语言设置动态翻译)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -164,7 +164,7 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = LanguageUtils.getString("app_title", uiState.appLanguage),
+                    text = LanguageUtils.getString("app_title", lang),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicTextPrimary
@@ -183,7 +183,7 @@ fun HomeScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.History,
-                        contentDescription = "查看历史记录",
+                        contentDescription = LanguageUtils.getString("history_title", lang),
                         tint = NeumorphicAccent,
                         modifier = Modifier.size(16.dp)
                     )
@@ -200,7 +200,7 @@ fun HomeScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
-                        contentDescription = "打开设置",
+                        contentDescription = LanguageUtils.getString("settings_title", lang),
                         tint = NeumorphicAccent,
                         modifier = Modifier.size(16.dp)
                     )
@@ -209,8 +209,6 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(4.dp))
-
-        val isChinese = uiState.appLanguage.isChineseLocale
 
         // ================= 月历视图 (高度扩展至 44dp 单元格，文字绝对清晰完整) =================
         if (homeConfig.showCalendar) {
@@ -233,16 +231,8 @@ fun HomeScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            val monthTitle = when (uiState.appLanguage) {
-                                AppLanguage.ENGLISH -> {
-                                    val mName = currentYearMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }
-                                    "$mName ${currentYearMonth.year}"
-                                }
-                                AppLanguage.KOREAN -> "${currentYearMonth.year}년 ${currentYearMonth.monthValue}월"
-                                else -> "${currentYearMonth.year}年 ${currentYearMonth.monthValue}月"
-                            }
                             Text(
-                                text = monthTitle,
+                                text = "${currentYearMonth.year}年 ${currentYearMonth.monthValue}月",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
@@ -277,12 +267,7 @@ fun HomeScreen(
                                     .padding(horizontal = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = LanguageUtils.getString("today", uiState.appLanguage),
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
+                                Text(LanguageUtils.getString("today", lang), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
 
                             Box(
@@ -303,7 +288,7 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    val weekTitles = LanguageUtils.getWeekHeaders(uiState.appLanguage)
+                    val weekTitles = LanguageUtils.getWeekHeaders(lang)
                     Row(modifier = Modifier.fillMaxWidth()) {
                         weekTitles.forEachIndexed { idx, w ->
                             val isWeekendCol = (idx == 0 || idx == 6)
@@ -396,23 +381,21 @@ fun HomeScreen(
                                                     softWrap = false
                                                 )
 
-                                                if (isStatutory && isChinese) {
+                                                if (isStatutory) {
                                                     Text(" 休", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFFEF4444))
-                                                } else if (isShift && isChinese) {
+                                                } else if (isShift) {
                                                     Text(" 班", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFF10B981))
                                                 }
                                             }
 
-                                            if (isChinese) {
-                                                Text(
-                                                    text = lunarText,
-                                                    fontSize = 9.sp,
-                                                    color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
-                                                    maxLines = 1,
-                                                    softWrap = false,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
+                                            Text(
+                                                text = lunarText,
+                                                fontSize = 9.sp,
+                                                color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
                                         }
                                     }
                                 } else {
@@ -429,8 +412,8 @@ fun HomeScreen(
 
         // ================= 当日黄历、节气、农历、天气、星座运势 =================
 
-        // 1. 当日农历、节气与老黄历宜忌 Card (非中文与繁体中文环境下自动隐藏黄历与农历)
-        if (homeConfig.showLunar || homeConfig.showSolarTerms || (homeConfig.showAlmanac && isChinese)) {
+        // 1. 当日农历、节气与老黄历宜忌 Card (空间紧凑压缩)
+        if (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac) {
             val combinedShape = RoundedCornerShape(18.dp)
             Box(
                 modifier = Modifier
@@ -448,7 +431,7 @@ fun HomeScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate, uiState.appLanguage),
+                                text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate),
                                 fontSize = 14.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
@@ -457,16 +440,15 @@ fun HomeScreen(
 
                         if (homeConfig.showSolarTerms && todayLunar.solarTerm.isNotEmpty()) {
                             val termIcon = LunarCalendarUtils.getSolarTermIcon(todayLunar.solarTerm)
-                            val termText = LunarCalendarUtils.getLocalizedSolarTerm(todayLunar.solarTerm, uiState.appLanguage)
                             SuggestionChip(
                                 onClick = {},
                                 shape = CircleShape,
-                                label = { Text("$termIcon $termText", fontWeight = FontWeight.Bold, fontSize = 10.5.sp) }
+                                label = { Text("$termIcon ${todayLunar.solarTerm}", fontWeight = FontWeight.Bold, fontSize = 10.5.sp) }
                             )
                         }
                     }
 
-                    if (homeConfig.showLunar && isChinese) {
+                    if (homeConfig.showLunar) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "农历 ${todayLunar.ganZhiYear} (${todayLunar.zodiac}) 年 ${if (todayLunar.isLeapMonth) "闰" else ""}${todayLunar.lunarMonthName}${todayLunar.lunarDayName}",
@@ -476,12 +458,12 @@ fun HomeScreen(
                         )
                     }
 
-                    if (homeConfig.showAlmanac && isChinese) {
+                    if (homeConfig.showAlmanac) {
                         Spacer(modifier = Modifier.height(6.dp))
                         HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // 老黄历宜忌 (仅在中文/繁体中文环境下显示)
+                        // 老黄历宜忌
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -493,7 +475,7 @@ fun HomeScreen(
                                     .background(Color(0xFF10B981)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("宜", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
+                                Text(LanguageUtils.getString("yi_label", lang), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
                             }
 
                             Spacer(modifier = Modifier.width(6.dp))
@@ -529,7 +511,7 @@ fun HomeScreen(
                                     .background(Color(0xFF64748B)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("忌", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
+                                Text(LanguageUtils.getString("ji_label", lang), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
                             }
 
                             Spacer(modifier = Modifier.width(6.dp))
@@ -558,7 +540,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(6.dp))
         }
 
-        // 2. 当日及未来三日天气预报 Card (已安全回复恢复)
+        // 2. 当日及未来三日天气预报 Card
         if (homeConfig.showWeather) {
             Box(
                 modifier = Modifier
@@ -575,9 +557,7 @@ fun HomeScreen(
                     ) {
                         Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        val locName = WeatherUtils.getLocalizedLocationName(uiState.currentCityName, uiState.appLanguage)
-                        val titleStr = LanguageUtils.getString("forecast_title", uiState.appLanguage)
-                        Text("📍 $locName · $titleStr", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
+                        Text("📍 ${uiState.currentCityName} · ${LanguageUtils.getString("forecast_title", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -587,25 +567,6 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         weatherList.forEach { weather ->
-                            val dayLabel = when (weather.dayName) {
-                                "今天" -> LanguageUtils.getString("today", uiState.appLanguage)
-                                "明天" -> when (uiState.appLanguage) {
-                                    AppLanguage.ENGLISH -> "Tomorrow"; AppLanguage.JAPANESE -> "明日"; AppLanguage.KOREAN -> "내일"; else -> "明天"
-                                }
-                                "后天" -> when (uiState.appLanguage) {
-                                    AppLanguage.ENGLISH -> "Day After"; AppLanguage.JAPANESE -> "明後日"; AppLanguage.KOREAN -> "모레"; else -> "后天"
-                                }
-                                "周一" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[1]
-                                "周二" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[2]
-                                "周三" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[3]
-                                "周四" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[4]
-                                "周五" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[5]
-                                "周六" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[6]
-                                "周日" -> LanguageUtils.getWeekHeaders(uiState.appLanguage)[0]
-                                else -> weather.dayName
-                            }
-                            val condLabel = WeatherUtils.getLocalizedCondition(weather.condition, uiState.appLanguage)
-
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -615,11 +576,11 @@ fun HomeScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(dayLabel, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                                    Text(LanguageUtils.getDayName(weather.dayName, lang), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(weather.iconEmoji, fontSize = 16.sp)
                                     Spacer(modifier = Modifier.height(2.dp))
-                                    Text(condLabel, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
+                                    Text(LanguageUtils.getWeatherCondition(weather.condition, lang), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text("${weather.tempMin}°~${weather.tempMax}°", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                                 }
@@ -632,7 +593,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(6.dp))
         }
 
-        // 3. 星座与运势 Card (在未滚动默认状态下，精准露出“⭐ 处女座 每日运势”标题行)
+        // 3. 星座与运势 Card (在未滚动默认状态下，精准露出标题行)
         if (homeConfig.showZodiacFortune) {
             Box(
                 modifier = Modifier
@@ -651,14 +612,7 @@ fun HomeScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            val dailyFortuneLabel = when (uiState.appLanguage) {
-                                AppLanguage.ENGLISH -> "Daily Horoscope"
-                                AppLanguage.JAPANESE -> "本日の運勢"
-                                AppLanguage.KOREAN -> "오늘의 운세"
-                                AppLanguage.TRADITIONAL_CHINESE -> "每日運勢"
-                                else -> "每日运势"
-                            }
-                            Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) $dailyFortuneLabel", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
+                            Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) ${LanguageUtils.getString("fortune_suffix", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
                         }
 
                         Row {
@@ -684,10 +638,8 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val luckyNumLabel = LanguageUtils.getString("lucky_number", uiState.appLanguage)
-                        val luckyColorLabel = LanguageUtils.getString("lucky_color", uiState.appLanguage)
-                        Text("$luckyNumLabel: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                        Text("$luckyColorLabel: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                        Text("${LanguageUtils.getString("lucky_number", lang)}: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                        Text("${LanguageUtils.getString("lucky_color", lang)}: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                     }
                 }
             }
