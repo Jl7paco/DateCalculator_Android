@@ -5,7 +5,7 @@
 [![Material 3](https://img.shields.io/badge/Material%203-Neumorphic-purple.svg)](https://m3.material.io)
 [![Android SDK](https://img.shields.io/badge/API-26%2B%20(Android%208.0%2B)-orange.svg)](https://developer.android.com)
 [![Version](https://img.shields.io/badge/Version-v3.0.1-brightgreen.svg)](CHANGELOG.md)
-[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENStE)
 
 **日期计算器** 是一款基于 **Kotlin** 与 **Jetpack Compose** 打造的高颜值、全功能 Android 日期算法应用。界面采用新拟物 (Neumorphism) 3D 光影设计，内置工作日计算、多段推算、建除十二神正统老黄历、星体行运每日运势、倒数日推算、重要纪念日与 GPS 精准打卡、农历公历双向转换及年龄精准推算等功能。
 

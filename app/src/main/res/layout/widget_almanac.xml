@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg_rounded"
+    android:padding="12dp"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/widget_almanac_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📜 今日黄历"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#2563EB" />
+
+    <TextView
+        android:id="@+id/widget_solar_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="2026年09月22日 星期二"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#1E293B"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:id="@+id/widget_lunar_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="农历 丙午(马)年 九月十二"
+        android:textSize="12sp"
+        android:textColor="#2563EB"
+        android:layout_marginTop="2dp" />
+
+    <TextView
+        android:id="@+id/widget_yi_ji"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="宜: 祭祀·祈福 | 忌: 词讼·安葬"
+        android:textSize="11sp"
+        android:textColor="#047857"
+        android:layout_marginTop="4dp" />
+</LinearLayout>

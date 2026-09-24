@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/widget_bg_rounded"
+    android:padding="12dp"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/widget_calc_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="📅 日期快速计算器"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#2563EB" />
+
+    <TextView
+        android:id="@+id/widget_calc_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="立即计算 ➔"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:background="#2563EB"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp" />
+</LinearLayout>

@@ -81,6 +81,8 @@ fun HistoryScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lang = uiState.appLanguage
+
     var showClearDialog by remember { mutableStateOf(false) }
     var itemToEditTitle by remember { mutableStateOf<HistoryItem?>(null) }
     var itemToViewDetail by remember { mutableStateOf<HistoryItem?>(null) }
@@ -105,7 +107,7 @@ fun HistoryScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.label_clear_dialog_title),
+                        text = LanguageUtils.getString("clear_history", lang),
                         fontWeight = FontWeight.ExtraBold,
                         color = NeumorphicTextPrimary,
                         fontSize = 16.sp
@@ -114,7 +116,7 @@ fun HistoryScreen(
             },
             text = {
                 Text(
-                    text = stringResource(R.string.label_clear_dialog_msg),
+                    text = LanguageUtils.getString("clear_history_confirm", lang),
                     color = NeumorphicTextPrimary.copy(alpha = 0.85f),
                     fontSize = 14.sp,
                     lineHeight = 20.sp
@@ -136,7 +138,7 @@ fun HistoryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = stringResource(R.string.label_clear_confirm),
+                        text = LanguageUtils.getString("confirm", lang),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
@@ -155,7 +157,7 @@ fun HistoryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = stringResource(R.string.label_cancel),
+                        text = LanguageUtils.getString("cancel", lang),
                         color = NeumorphicTextPrimary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
@@ -165,7 +167,7 @@ fun HistoryScreen(
         )
     }
 
-    // 多段排期历史记录详情弹窗 (宽度扩展至 92% 全屏宽展现，极为舒展)
+    // 多段排期历史记录详情弹窗 (宽度扩展至 92% 全屏宽展现)
     itemToViewDetail?.let { item ->
         AlertDialog(
             onDismissRequest = { itemToViewDetail = null },
@@ -181,20 +183,15 @@ fun HistoryScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Timeline,
-                            contentDescription = null,
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Timeline, contentDescription = null, tint = NeumorphicAccent)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(item.title, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, fontSize = 16.sp)
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = NeumorphicTextPrimary
+                        )
                     }
 
                     Box(
@@ -204,16 +201,17 @@ fun HistoryScreen(
                             .background(NeumorphicBg, shape = CircleShape)
                             .clip(CircleShape)
                             .clickable {
-                                val (multiFinalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
-                                val unitLabel = if (uiState.dateMode == DateMode.WORKDAY) "工作日" else "自然日"
-                                val regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+                                val results = viewModel.computeMultiStageSequence()
+                                val base = uiState.baseDate
+                                val finalDate = results.lastOrNull()?.endDate ?: base
+                                val unitLabel = if (uiState.dateMode == DateMode.WORKDAY) LanguageUtils.getString("workday", lang) else LanguageUtils.getString("natural_day", lang)
                                 CsvExporter.exportStagesToCsv(
                                     context = context,
-                                    baseDate = uiState.baseDate,
-                                    finalDate = multiFinalDate,
-                                    segments = multiSegments,
+                                    baseDate = base,
+                                    finalDate = finalDate,
+                                    segments = results,
                                     modeLabel = unitLabel,
-                                    regionLabel = regionLabel
+                                    regionLabel = item.regionTag
                                 )
                             }
                             .padding(horizontal = 10.dp),
@@ -222,7 +220,7 @@ fun HistoryScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("导出 CSV", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                            Text(LanguageUtils.getString("export_csv", lang), fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -231,36 +229,29 @@ fun HistoryScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
-                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
-                            .padding(12.dp)
-                    ) {
-                        Column {
-                            Text("排期明细概览", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(item.detail, fontSize = 13.sp, color = NeumorphicTextPrimary, lineHeight = 18.sp)
-                        }
-                    }
+                    Text(
+                        text = item.detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
-                    val (multiFinalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
-                    val unitLabel = if (uiState.dateMode == DateMode.WORKDAY) "工作日" else "自然日"
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // 直接渲染图表，不加第二层带边框卡片
+                    val results = viewModel.computeMultiStageSequence()
+                    val base = uiState.baseDate
+                    val finalDate = results.lastOrNull()?.endDate ?: base
+                    val unitLabel = if (uiState.dateMode == DateMode.WORKDAY) LanguageUtils.getString("workday", lang) else LanguageUtils.getString("natural_day", lang)
+
                     TimelineDiagram(
-                        baseDate = uiState.baseDate,
-                        finalDate = multiFinalDate,
-                        segments = multiSegments,
+                        baseDate = base,
+                        finalDate = finalDate,
+                        segments = results,
                         modeLabel = unitLabel,
                         regionLabel = item.regionTag,
                         showOuterCard = false,
-                        showExportButton = false,
-                        language = uiState.appLanguage
+                        showExportButton = false
                     )
                 }
             },
@@ -275,13 +266,13 @@ fun HistoryScreen(
                         .padding(horizontal = 20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("关闭详情", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(LanguageUtils.getString("close_details", lang), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         )
     }
 
-    // 修改历史记录名称弹窗
+    // 重命名标题弹窗
     itemToEditTitle?.let { item ->
         AlertDialog(
             onDismissRequest = { itemToEditTitle = null },
@@ -289,25 +280,29 @@ fun HistoryScreen(
             containerColor = NeumorphicBg,
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = null,
-                        tint = NeumorphicAccent,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = null, tint = NeumorphicAccent)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("修改历史记录名称", fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, fontSize = 16.sp)
+                    Text(
+                        text = LanguageUtils.getString("edit_history_title", lang),
+                        fontWeight = FontWeight.Bold,
+                        color = NeumorphicTextPrimary,
+                        fontSize = 16.sp
+                    )
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("请输入新的历史记录名称:", fontSize = 13.sp, color = NeumorphicTextPrimary)
+                Column {
+                    Text(
+                        text = LanguageUtils.getString("enter_new_history_title", lang),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
-                            .neumorphicInset(shape = RoundedCornerShape(12.dp))
-                            .border(1.5.dp, NeumorphicAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(12.dp))
+                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
                             .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
                             .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.CenterStart
@@ -316,7 +311,11 @@ fun HistoryScreen(
                             value = editedTitleText,
                             onValueChange = { editedTitleText = it },
                             singleLine = true,
-                            textStyle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                            textStyle = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeumorphicTextPrimary
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -331,15 +330,15 @@ fun HistoryScreen(
                         .clip(CircleShape)
                         .clickable {
                             if (editedTitleText.isNotBlank()) {
-                                viewModel.updateHistoryItemTitle(item.id, editedTitleText.trim())
-                                Toast.makeText(context, "已重命名历史记录名称", Toast.LENGTH_SHORT).show()
+                                viewModel.renameHistoryItem(item.id, editedTitleText)
+                                itemToEditTitle = null
+                                Toast.makeText(context, "已修改历史名称", Toast.LENGTH_SHORT).show()
                             }
-                            itemToEditTitle = null
                         }
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("保存名称", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(LanguageUtils.getString("save_title", lang), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             },
             dismissButton = {
@@ -353,20 +352,21 @@ fun HistoryScreen(
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("取消", color = NeumorphicTextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(LanguageUtils.getString("cancel", lang), color = NeumorphicTextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         )
     }
 
     Column(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
-        // 对齐规则设置页面的 36dp 统一小标题高度与样式
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(36.dp),
+                .padding(vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -374,14 +374,13 @@ fun HistoryScreen(
                 Icon(
                     imageVector = Icons.Default.History,
                     contentDescription = null,
-                    tint = NeumorphicAccent,
-                    modifier = Modifier.size(18.dp)
+                    tint = NeumorphicAccent
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.label_history_count_fmt, uiState.historyList.size),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
+                    text = LanguageUtils.getString("history_title", lang),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
                     color = NeumorphicTextPrimary
                 )
             }
@@ -389,8 +388,8 @@ fun HistoryScreen(
             if (uiState.historyList.isNotEmpty()) {
                 Box(
                     modifier = Modifier
-                        .height(32.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                        .height(36.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
                         .background(NeumorphicBg, shape = CircleShape)
                         .clip(CircleShape)
                         .clickable { showClearDialog = true }
@@ -398,56 +397,75 @@ fun HistoryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.DeleteSweep, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep,
+                            contentDescription = "清空历史",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(LanguageUtils.getString("clear_history", uiState.appLanguage), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(
+                            text = LanguageUtils.getString("clear_history", lang),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (uiState.historyList.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(24.dp)
+                    .neumorphicInset(shape = RoundedCornerShape(24.dp), elevation = 4.dp)
+                    .background(NeumorphicBg, shape = RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         imageVector = Icons.Default.History,
                         contentDescription = null,
-                        tint = NeumorphicTextPrimary.copy(alpha = 0.5f),
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(48.dp),
+                        tint = NeumorphicTextPrimary.copy(alpha = 0.35f)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(LanguageUtils.getString("no_history", uiState.appLanguage), color = NeumorphicTextPrimary.copy(alpha = 0.6f), fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = LanguageUtils.getString("no_history", lang),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = NeumorphicTextPrimary.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(uiState.historyList, key = { it.id }) { item ->
-                    val sdf = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
-                    val timeStr = sdf.format(Date(item.timestamp))
-                    val cardShape = RoundedCornerShape(18.dp)
+                    val isMultiStage = item.title.contains("多段") || item.detail.contains("多段")
+                    val cardShape = RoundedCornerShape(20.dp)
 
-                    // 改回原版优雅的标准新拟物凸起卡片 (不加额外描边线)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 4.dp)
                             .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
                             .background(NeumorphicBg, shape = cardShape)
+                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.2f), shape = cardShape)
                             .clip(cardShape)
                             .clickable {
-                                if (item.category == "多段加减") {
+                                if (isMultiStage) {
                                     itemToViewDetail = item
                                 }
                             }
-                            .padding(16.dp)
+                            .padding(14.dp)
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
@@ -455,119 +473,82 @@ fun HistoryScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // 1. 分类 Pill 胶囊标签
-                                val categoryBg = when (item.category) {
-                                    "日期计算" -> NeumorphicAccent
-                                    "日期倒计时" -> Color(0xFF8B5CF6)
-                                    else -> Color(0xFF10B981)
-                                }
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Box(
                                         modifier = Modifier
                                             .clip(CircleShape)
-                                            .background(categoryBg)
-                                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                                        contentAlignment = Alignment.Center
+                                            .background(NeumorphicAccent.copy(alpha = 0.15f))
+                                            .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
                                         Text(
                                             text = item.category,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = NeumorphicAccent,
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
 
-                                    if (item.category == "多段加减") {
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "点击查看详情",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = NeumorphicTextPrimary.copy(alpha = 0.5f)
-                                        )
-                                    }
-                                }
+                                    Spacer(modifier = Modifier.width(8.dp))
 
-                                // 右侧编辑、复制与删除按键
-                                val buttonShape = RoundedCornerShape(10.dp)
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    // ✏️ 重命名历史记录名称按键
-                                    Box(
+                                    Text(
+                                        text = item.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NeumorphicTextPrimary,
+                                        maxLines = 1
+                                    )
+
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "修改标题",
+                                        tint = NeumorphicTextPrimary.copy(alpha = 0.5f),
                                         modifier = Modifier
-                                            .size(32.dp)
-                                            .neumorphicExtruded(shape = buttonShape, elevation = 3.dp)
-                                            .background(NeumorphicBg, shape = buttonShape)
-                                            .clip(buttonShape)
+                                            .padding(start = 6.dp)
+                                            .size(16.dp)
                                             .clickable {
                                                 itemToEditTitle = item
                                                 editedTitleText = item.title
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Edit, contentDescription = "重命名记录", tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
-                                    }
+                                            }
+                                    )
+                                }
 
-                                    // 📋 复制记录
-                                    Box(
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .neumorphicExtruded(shape = buttonShape, elevation = 3.dp)
-                                            .background(NeumorphicBg, shape = buttonShape)
-                                            .clip(buttonShape)
-                                            .clickable {
-                                                val clipText = "[${item.category}] ${item.title} (${item.detail})"
-                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                                clipboard.setPrimaryClip(ClipData.newPlainText("HistoryItem", clipText))
-                                                Toast.makeText(context, copiedToast, Toast.LENGTH_SHORT).show()
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "复制记录", tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
-                                    }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = formatTime(item.timestamp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 11.sp,
+                                        color = NeumorphicTextPrimary.copy(alpha = 0.5f)
+                                    )
 
-                                    // 🗑️ 删除记录
-                                    Box(
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "删除记录",
+                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                                         modifier = Modifier
-                                            .size(32.dp)
-                                            .neumorphicExtruded(shape = buttonShape, elevation = 3.dp)
-                                            .background(NeumorphicBg, shape = buttonShape)
-                                            .clip(buttonShape)
+                                            .size(18.dp)
                                             .clickable {
                                                 viewModel.deleteHistoryItem(item)
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Delete, contentDescription = "删除记录", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
-                                    }
+                                            }
+                                    )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                            // 2. 突出展示核心计算结果或自定义方案大字
-                            Text(
-                                text = item.title,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 18.sp,
-                                color = NeumorphicTextPrimary
-                            )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            // 3. 结构化计算过程
                             Text(
                                 text = item.detail,
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontSize = 13.sp,
-                                color = NeumorphicTextPrimary.copy(alpha = 0.8f)
+                                color = NeumorphicTextPrimary.copy(alpha = 0.85f),
+                                fontSize = 13.sp
                             )
 
-                            Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // 4. 底部地区标识与记录生成时间
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -575,16 +556,44 @@ fun HistoryScreen(
                             ) {
                                 Text(
                                     text = item.regionTag,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = NeumorphicAccent
-                                )
-                                Text(
-                                    text = timeStr,
                                     style = MaterialTheme.typography.bodySmall,
                                     fontSize = 11.sp,
-                                    color = NeumorphicTextPrimary.copy(alpha = 0.5f)
+                                    color = NeumorphicAccent,
+                                    fontWeight = FontWeight.Bold
                                 )
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (isMultiStage) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(CircleShape)
+                                                .background(NeumorphicAccent.copy(alpha = 0.15f))
+                                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = "📊 排期示意图",
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = NeumorphicAccent
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                    }
+
+                                    Icon(
+                                        imageVector = Icons.Default.ContentCopy,
+                                        contentDescription = "复制条目",
+                                        tint = NeumorphicAccent,
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .clickable {
+                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                                val clip = ClipData.newPlainText("HistoryItem", "${item.title}: ${item.detail}")
+                                                clipboard.setPrimaryClip(clip)
+                                                Toast.makeText(context, copiedToast, Toast.LENGTH_SHORT).show()
+                                            }
+                                    )
+                                }
                             }
                         }
                     }
@@ -592,4 +601,9 @@ fun HistoryScreen(
             }
         }
     }
+}
+
+private fun formatTime(timestamp: Long): String {
+    val sdf = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
+    return sdf.format(Date(timestamp))
 }

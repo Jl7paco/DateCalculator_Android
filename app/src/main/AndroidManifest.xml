@@ -28,6 +28,67 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 桌面小组件 (AppWidgets) 注册 -->
+        <receiver
+            android:name="me.paco.datecalculator.widget.CountdownWidgetProvider"
+            android:exported="true"
+            android:label="倒数日桌面小组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_countdown_info" />
+        </receiver>
+
+        <receiver
+            android:name="me.paco.datecalculator.widget.AlmanacWidgetProvider"
+            android:exported="true"
+            android:label="今日黄历桌面小组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_almanac_info" />
+        </receiver>
+
+        <receiver
+            android:name="me.paco.datecalculator.widget.AnniversaryWidgetProvider"
+            android:exported="true"
+            android:label="重要纪念日桌面小组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_anniversary_info" />
+        </receiver>
+
+        <receiver
+            android:name="me.paco.datecalculator.widget.CheckInWidgetProvider"
+            android:exported="true"
+            android:label="纪念日打卡桌面小组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_checkin_info" />
+        </receiver>
+
+        <receiver
+            android:name="me.paco.datecalculator.widget.QuickCalcWidgetProvider"
+            android:exported="true"
+            android:label="日期快速计算桌面小组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_calc_info" />
+        </receiver>
     </application>
 
 </manifest>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg_rounded"
+    android:padding="12dp"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/widget_anniversary_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="❤️ 重要纪念日"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#EC4899" />
+
+    <TextView
+        android:id="@+id/widget_anniversary_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="相识相伴"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="#1E293B"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:id="@+id/widget_anniversary_days"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="520 天"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:textColor="#EC4899"
+        android:layout_marginTop="2dp" />
+
+    <TextView
+        android:id="@+id/widget_anniversary_sub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="下个周年还剩 145 天"
+        android:textSize="11sp"
+        android:textColor="#64748B"
+        android:layout_marginTop="2dp" />
+</LinearLayout>
