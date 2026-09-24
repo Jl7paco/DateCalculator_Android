@@ -30,7 +30,51 @@ enum class HolidayRegion(
     AUSTRALIA("AU", "澳大利亚", "Australia", "🇦🇺", "含澳大利亚全国及州法定公众假期"),
     NEW_ZEALAND("NZ", "新西兰", "New Zealand", "🇳🇿", "含新西兰全国法定公众假期"),
     UNITED_STATES("US", "美国", "United States", "🇺🇸", "含联邦法定节假日 (Federal Holidays)"),
-    THAILAND("TH", "泰国", "ประเทศไทย", "🇹🇭", "含泰国法定公众假期及补假")
+    THAILAND("TH", "泰国", "ประเทศไทย", "🇹🇭", "含泰国法定公众假期及补假");
+
+    fun getLocalizedName(language: AppLanguage): String {
+        if (language == AppLanguage.SIMPLIFIED_CHINESE) return label
+        if (language == AppLanguage.TRADITIONAL_CHINESE) {
+            return when (this) {
+                CHINA -> "中國大陸"
+                TAIWAN -> "台灣（中國）"
+                HONG_KONG -> "中國香港"
+                MACAO -> "中國澳門"
+                SINGAPORE -> "新加坡"
+                JAPAN -> "日本"
+                SOUTH_KOREA -> "韓國"
+                UNITED_STATES -> "美國"
+                UNITED_KINGDOM -> "英國"
+                GERMANY -> "德國"
+                FRANCE -> "法國"
+                ITALY -> "義大利"
+                AUSTRALIA -> "澳大利亞"
+                NEW_ZEALAND -> "紐西蘭"
+                else -> label
+            }
+        }
+        return when (this) {
+            CHINA -> "Mainland China"
+            TAIWAN -> "Taiwan"
+            HONG_KONG -> "Hong Kong"
+            MACAO -> "Macau"
+            SINGAPORE -> "Singapore"
+            MALAYSIA -> "Malaysia"
+            VIETNAM -> "Vietnam"
+            JAPAN -> "Japan"
+            SOUTH_KOREA -> "South Korea"
+            UNITED_KINGDOM -> "United Kingdom"
+            GERMANY -> "Germany"
+            FRANCE -> "France"
+            ITALY -> "Italy"
+            INDIA -> "India"
+            INDONESIA -> "Indonesia"
+            AUSTRALIA -> "Australia"
+            NEW_ZEALAND -> "New Zealand"
+            UNITED_STATES -> "United States"
+            THAILAND -> "Thailand"
+        }
+    }
 }
 
 enum class WeekendRule(val label: String, val description: String) {

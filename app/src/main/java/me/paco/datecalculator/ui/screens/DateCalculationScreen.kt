@@ -330,7 +330,8 @@ fun DateCalculationScreen(
                 Spacer(modifier = Modifier.width(6.dp))
                 val lang = uiState.appLanguage
                 val infoText = if (uiState.dateMode == DateMode.WORKDAY) {
-                    val regionText = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.nativeName}"
+                    val regionName = uiState.holidayRegion.getLocalizedName(lang)
+                    val regionText = "${uiState.holidayRegion.flagEmoji} $regionName"
                     val ruleLabel = when (uiState.weekendRule) {
                         WeekendRule.STANDARD_FIVE_DAYS -> when (lang) {
                             AppLanguage.ENGLISH -> "5-Day Workweek"
