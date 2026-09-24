@@ -93,6 +93,7 @@ import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
 import me.paco.datecalculator.util.ShareUtils
 import java.time.LocalDate
@@ -147,6 +148,8 @@ fun LunarConverterScreen(
             }
         }
     }
+
+    val lang = uiState.appLanguage
 
     if (showSolarPicker) {
         DatePickerModal(
@@ -320,14 +323,14 @@ fun LunarConverterScreen(
                             )
                             Column {
                                 Text(
-                                    text = "选择公历日期",
+                                    text = LanguageUtils.getString("select_start_date", lang),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
-                                val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(solarDate)
+                                val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(solarDate, lang)
                                 Text(
                                     text = dateFormattedWithWeek,
                                     fontSize = 16.sp,
@@ -363,7 +366,8 @@ fun LunarConverterScreen(
                             title = "${lunarResult.lunarMonthName}${lunarResult.lunarDayName}",
                             detail = "公历 ${date} ➔ ${lunarResult.getFullDescription()} | 宜: $yiStr | 忌: $jiStr"
                         )
-                    }
+                    },
+                    language = lang
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
