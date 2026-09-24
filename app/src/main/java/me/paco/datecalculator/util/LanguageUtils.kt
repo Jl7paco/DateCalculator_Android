@@ -4,6 +4,16 @@ import me.paco.datecalculator.data.AppLanguage
 
 object LanguageUtils {
 
+    fun getWeekHeaders(language: AppLanguage): List<String> {
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> listOf("日", "一", "二", "三", "四", "五", "六")
+            AppLanguage.TRADITIONAL_CHINESE -> listOf("日", "一", "二", "三", "四", "五", "六")
+            AppLanguage.ENGLISH -> listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+            AppLanguage.JAPANESE -> listOf("日", "月", "火", "水", "木", "金", "土")
+            AppLanguage.KOREAN -> listOf("일", "월", "화", "수", "목", "금", "토")
+        }
+    }
+
     fun getString(key: String, language: AppLanguage): String {
         val stringsZhCn = mapOf(
             "app_title" to "日期计算器",
@@ -34,7 +44,31 @@ object LanguageUtils {
             "history_title" to "历史记录",
             "add_countdown" to "+ 新增倒数日",
             "common_countdown" to "常用倒数日",
-            "fixed_countdown" to "固定倒数日"
+            "fixed_countdown" to "固定倒数日",
+            "today" to "今天",
+            "yesterday" to "昨天",
+            "plus_1w" to "+1周",
+            "minus_1w" to "-1周",
+            "mode_forward" to "加减天数",
+            "mode_reverse" to "区间拆算",
+            "multi_stage_btn" to "多段模式",
+            "add_stage_btn" to "添加下一段时间",
+            "save_record" to "保存到记录",
+            "diff_natural" to "相差自然日",
+            "diff_workday" to "相差工作日",
+            "clear_history" to "清空历史",
+            "no_history" to "暂无历史记录",
+            "select_birth_date" to "选择出生日期",
+            "exact_age" to "当前精准年龄",
+            "next_birthday_days" to "距离下次生日还有",
+            "days_unit" to "天",
+            "weeks_unit" to "周",
+            "months_unit" to "个月",
+            "years_unit" to "岁",
+            "total_days" to "生存总天数",
+            "total_weeks" to "生存总周数",
+            "zodiac_sign" to "生肖属相",
+            "constellation" to "星座"
         )
 
         val stringsZhTw = mapOf(
@@ -66,7 +100,31 @@ object LanguageUtils {
             "history_title" to "歷史記錄",
             "add_countdown" to "+ 新增倒數日",
             "common_countdown" to "常用倒數日",
-            "fixed_countdown" to "固定倒數日"
+            "fixed_countdown" to "固定倒數日",
+            "today" to "今天",
+            "yesterday" to "昨天",
+            "plus_1w" to "+1周",
+            "minus_1w" to "-1周",
+            "mode_forward" to "加減天數",
+            "mode_reverse" to "區間拆算",
+            "multi_stage_btn" to "多段模式",
+            "add_stage_btn" to "添加下一段時間",
+            "save_record" to "保存到記錄",
+            "diff_natural" to "相差自然日",
+            "diff_workday" to "相差工作日",
+            "clear_history" to "清空歷史",
+            "no_history" to "暫無歷史記錄",
+            "select_birth_date" to "選擇出生日期",
+            "exact_age" to "當前精准年齡",
+            "next_birthday_days" to "距離下次生日還有",
+            "days_unit" to "天",
+            "weeks_unit" to "周",
+            "months_unit" to "個月",
+            "years_unit" to "歲",
+            "total_days" to "生存總天數",
+            "total_weeks" to "生存總周數",
+            "zodiac_sign" to "生肖屬相",
+            "constellation" to "星座"
         )
 
         val stringsEn = mapOf(
@@ -98,7 +156,31 @@ object LanguageUtils {
             "history_title" to "History",
             "add_countdown" to "+ Add Countdown",
             "common_countdown" to "Preset Countdowns",
-            "fixed_countdown" to "Pinned Countdowns"
+            "fixed_countdown" to "Pinned Countdowns",
+            "today" to "Today",
+            "yesterday" to "Yesterday",
+            "plus_1w" to "+1 Wk",
+            "minus_1w" to "-1 Wk",
+            "mode_forward" to "Add/Sub Days",
+            "mode_reverse" to "Date Interval",
+            "multi_stage_btn" to "Multi-Stage",
+            "add_stage_btn" to "Add Next Stage",
+            "save_record" to "Save Record",
+            "diff_natural" to "Calendar Days",
+            "diff_workday" to "Workdays",
+            "clear_history" to "Clear History",
+            "no_history" to "No history records yet",
+            "select_birth_date" to "Select Birth Date",
+            "exact_age" to "Current Exact Age",
+            "next_birthday_days" to "Days until next birthday",
+            "days_unit" to "days",
+            "weeks_unit" to "weeks",
+            "months_unit" to "months",
+            "years_unit" to "yrs",
+            "total_days" to "Total Days Lived",
+            "total_weeks" to "Total Weeks Lived",
+            "zodiac_sign" to "Zodiac Animal",
+            "constellation" to "Constellation"
         )
 
         val stringsJa = mapOf(
@@ -130,7 +212,31 @@ object LanguageUtils {
             "history_title" to "履歴",
             "add_countdown" to "+ カウントダウン追加",
             "common_countdown" to "プリセット",
-            "fixed_countdown" to "固定カウントダウン"
+            "fixed_countdown" to "固定カウントダウン",
+            "today" to "今日",
+            "yesterday" to "昨日",
+            "plus_1w" to "+1週",
+            "minus_1w" to "-1週",
+            "mode_forward" to "日数加減",
+            "mode_reverse" to "期間計算",
+            "multi_stage_btn" to "複数段階",
+            "add_stage_btn" to "次の段階を追加",
+            "save_record" to "記録を保存",
+            "diff_natural" to "自然日数差",
+            "diff_workday" to "稼働日数差",
+            "clear_history" to "履歴消去",
+            "no_history" to "履歴がありません",
+            "select_birth_date" to "生年月日を選択",
+            "exact_age" to "正確な現在の年齢",
+            "next_birthday_days" to "次の誕生日まであと",
+            "days_unit" to "日",
+            "weeks_unit" to "週間",
+            "months_unit" to "ヶ月",
+            "years_unit" to "歳",
+            "total_days" to "通算生存日数",
+            "total_weeks" to "通算生存週数",
+            "zodiac_sign" to "干支",
+            "constellation" to "星座"
         )
 
         val stringsKo = mapOf(
@@ -162,7 +268,31 @@ object LanguageUtils {
             "history_title" to "히스토리",
             "add_countdown" to "+ 디데이 추가",
             "common_countdown" to "추천 디데이",
-            "fixed_countdown" to "고정 디데이"
+            "fixed_countdown" to "고정 디데이",
+            "today" to "오늘",
+            "yesterday" to "어제",
+            "plus_1w" to "+1주",
+            "minus_1w" to "-1주",
+            "mode_forward" to "일수 가감",
+            "mode_reverse" to "기간 계산",
+            "multi_stage_btn" to "다단계 모드",
+            "add_stage_btn" to "다음 단계 추가",
+            "save_record" to "기록 저장",
+            "diff_natural" to "자연일 차이",
+            "diff_workday" to "근무일 차이",
+            "clear_history" to "히스토리 삭제",
+            "no_history" to "히스토리 기록이 없습니다",
+            "select_birth_date" to "생년월일 선택",
+            "exact_age" to "현재 정확한 나이",
+            "next_birthday_days" to "다음 생일까지 남은 일수",
+            "days_unit" to "일",
+            "weeks_unit" to "주",
+            "months_unit" to "개월",
+            "years_unit" to "세",
+            "total_days" to "총 생존 일수",
+            "total_weeks" to "총 생존 주수",
+            "zodiac_sign" to "띠",
+            "constellation" to "별자리"
         )
 
         val map = when (language) {

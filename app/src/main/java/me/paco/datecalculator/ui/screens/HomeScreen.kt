@@ -67,6 +67,7 @@ import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
 import me.paco.datecalculator.util.WeatherUtils
 import java.time.LocalDate
@@ -162,7 +163,7 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "日期计算器",
+                    text = LanguageUtils.getString("app_title", uiState.appLanguage),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicTextPrimary
@@ -265,7 +266,12 @@ fun HomeScreen(
                                     .padding(horizontal = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("今天", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text(
+                                    text = LanguageUtils.getString("today", uiState.appLanguage),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                )
                             }
 
                             Box(
@@ -286,7 +292,7 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    val weekTitles = listOf("日", "一", "二", "三", "四", "五", "六")
+                    val weekTitles = LanguageUtils.getWeekHeaders(uiState.appLanguage)
                     Row(modifier = Modifier.fillMaxWidth()) {
                         weekTitles.forEachIndexed { idx, w ->
                             val isWeekendCol = (idx == 0 || idx == 6)
