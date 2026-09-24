@@ -81,6 +81,7 @@ import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LocationUtils
 import me.paco.datecalculator.util.ShareUtils
 import me.paco.datecalculator.util.WeatherUtils
@@ -459,7 +460,7 @@ fun AnniversaryScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "重要纪念日 (${uiState.anniversaryList.size}/999)",
+                        text = "${LanguageUtils.getString("tab_anniversary", uiState.appLanguage)} (${uiState.anniversaryList.size})",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = NeumorphicTextPrimary

@@ -65,6 +65,7 @@ import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
 import me.paco.datecalculator.util.ShareUtils
 import java.time.LocalDate
@@ -147,7 +148,7 @@ fun AgeCalculatorScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "年龄计算",
+                    text = LanguageUtils.getString("tab_age", uiState.appLanguage),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicTextPrimary
@@ -219,7 +220,7 @@ fun AgeCalculatorScreen(
                     )
                     Column {
                         Text(
-                            text = "选择出生日期",
+                            text = LanguageUtils.getString("select_birth_date", uiState.appLanguage),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,

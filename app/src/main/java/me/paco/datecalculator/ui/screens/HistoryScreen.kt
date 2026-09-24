@@ -69,6 +69,7 @@ import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.CsvExporter
+import me.paco.datecalculator.util.LanguageUtils
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -398,7 +399,7 @@ fun HistoryScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.DeleteSweep, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.label_clear), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(LanguageUtils.getString("clear_history", uiState.appLanguage), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
@@ -419,7 +420,7 @@ fun HistoryScreen(
                         modifier = Modifier.size(48.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(stringResource(R.string.label_empty_history), color = NeumorphicTextPrimary.copy(alpha = 0.6f), fontSize = 14.sp)
+                    Text(LanguageUtils.getString("no_history", uiState.appLanguage), color = NeumorphicTextPrimary.copy(alpha = 0.6f), fontSize = 14.sp)
                 }
             }
         } else {

@@ -107,6 +107,7 @@ import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.ui.viewmodel.EventRepeatMode
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
 import me.paco.datecalculator.util.NotificationUtils
 import me.paco.datecalculator.util.ShareUtils
@@ -438,7 +439,7 @@ fun DateDiffScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "目标倒数日推算",
+                        text = LanguageUtils.getString("tab_countdown", uiState.appLanguage),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = NeumorphicTextPrimary
@@ -495,7 +496,7 @@ fun DateDiffScreen(
             )
 
             if (pinnedEvents.isNotEmpty()) {
-                Text("固定倒数日", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NeumorphicAccent)
+                Text(LanguageUtils.getString("fixed_countdown", uiState.appLanguage), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NeumorphicAccent)
                 Spacer(modifier = Modifier.height(6.dp))
 
                 pinnedEvents.forEachIndexed { pIdx, pinned ->
@@ -1061,7 +1062,7 @@ fun DateDiffScreen(
 
             // 3. 常用倒数日功能区 (快捷按键固定后只用 📌 图标标注，不另外生成按钮)
             Text(
-                text = "常用倒数日",
+                text = LanguageUtils.getString("common_countdown", uiState.appLanguage),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = NeumorphicTextPrimary

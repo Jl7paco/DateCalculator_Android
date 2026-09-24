@@ -104,6 +104,7 @@ import me.paco.datecalculator.ui.viewmodel.CalcSubMode
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LanguageUtils
 
 @Composable
 fun InsertDaysTextField(
@@ -263,7 +264,7 @@ fun DateCalculationScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "日期计算",
+                    text = LanguageUtils.getString("tab_calc", uiState.appLanguage),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicTextPrimary
@@ -443,7 +444,7 @@ fun DateCalculationScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             NeumorphicSegmentedRow(
-                items = listOf("加减天数", "区间拆算"),
+                items = listOf(LanguageUtils.getString("mode_forward", uiState.appLanguage), LanguageUtils.getString("mode_reverse", uiState.appLanguage)),
                 selectedIndex = if (uiState.calcSubMode == CalcSubMode.FORWARD_DAYS) 0 else 1,
                 onIndexSelected = { idx ->
                     val mode = if (idx == 0) CalcSubMode.FORWARD_DAYS else CalcSubMode.REVERSE_RANGE
@@ -491,7 +492,7 @@ fun DateCalculationScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "多段模式",
+                        text = LanguageUtils.getString("multi_stage_btn", uiState.appLanguage),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = if (isMultiStageDisabled) NeumorphicTextPrimary.copy(alpha = 0.35f)
