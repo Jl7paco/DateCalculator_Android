@@ -23,18 +23,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import me.paco.datecalculator.R
+import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.util.LanguageUtils
 import java.time.LocalDate
 
 @Composable
 fun QuickDateChips(
     selectedDate: LocalDate = LocalDate.now(),
     onSelectDate: (LocalDate) -> Unit,
+    language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
     val today = LocalDate.now()
@@ -42,7 +43,6 @@ fun QuickDateChips(
     val plus1Week = today.plusDays(7)
     val minus1Week = today.minusDays(7)
 
-    // 新拟物胶囊按键：未选中 3D 凸起，选中亮蓝色高亮 (完全对齐附图)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -51,10 +51,10 @@ fun QuickDateChips(
         verticalAlignment = Alignment.CenterVertically
     ) {
         val dates = listOf(
-            stringResource(R.string.label_today) to today,
-            stringResource(R.string.label_yesterday) to yesterday,
-            stringResource(R.string.label_plus_1_week) to plus1Week,
-            "-1周" to minus1Week
+            LanguageUtils.getString("today", language) to today,
+            LanguageUtils.getString("yesterday", language) to yesterday,
+            LanguageUtils.getString("plus_1w", language) to plus1Week,
+            LanguageUtils.getString("minus_1w", language) to minus1Week
         )
 
         dates.forEach { (label, targetDate) ->
@@ -68,12 +68,10 @@ fun QuickDateChips(
             )
 
             val shadowModifier = if (isSelected) {
-                // 选中态：亮蓝色高亮胶囊 (NeumorphicAccent)
                 Modifier
                     .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
                     .background(NeumorphicAccent, shape = CircleShape)
             } else {
-                // 未选中态：3D 凸起 (NeumorphicBg)
                 Modifier
                     .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
                     .background(NeumorphicBg, shape = CircleShape)

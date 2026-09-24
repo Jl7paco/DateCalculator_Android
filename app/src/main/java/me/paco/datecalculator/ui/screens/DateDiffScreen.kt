@@ -779,6 +779,7 @@ fun DateDiffScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val today = LocalDate.now()
+                val lang = uiState.appLanguage
 
                 Box(
                     modifier = Modifier
@@ -790,7 +791,7 @@ fun DateDiffScreen(
                         .clickable { viewModel.updateBaseDate(today) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("今天", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (uiState.baseDate == today) Color.White else NeumorphicTextPrimary)
+                    Text(LanguageUtils.getString("today", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (uiState.baseDate == today) Color.White else NeumorphicTextPrimary)
                 }
 
                 val yesterday = today.minusDays(1)
@@ -804,7 +805,7 @@ fun DateDiffScreen(
                         .clickable { viewModel.updateBaseDate(yesterday) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("昨天", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (uiState.baseDate == yesterday) Color.White else NeumorphicTextPrimary)
+                    Text(LanguageUtils.getString("yesterday", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (uiState.baseDate == yesterday) Color.White else NeumorphicTextPrimary)
                 }
 
                 val plusOneWeek = uiState.baseDate.plusWeeks(1)
@@ -818,7 +819,7 @@ fun DateDiffScreen(
                         .clickable { viewModel.updateBaseDate(plusOneWeek) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("+1周", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
+                    Text(LanguageUtils.getString("plus_1w", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
                 }
 
                 val minusOneWeek = uiState.baseDate.minusWeeks(1)
@@ -832,7 +833,7 @@ fun DateDiffScreen(
                         .clickable { viewModel.updateBaseDate(minusOneWeek) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("-1周", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
+                    Text(LanguageUtils.getString("minus_1w", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
                 }
             }
 

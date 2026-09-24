@@ -421,7 +421,8 @@ fun DateCalculationScreen(
                     onSelectDate = { date ->
                         viewModel.updateBaseDate(date)
                         viewModel.performCalculation()
-                    }
+                    },
+                    language = uiState.appLanguage
                 )
             }
 
