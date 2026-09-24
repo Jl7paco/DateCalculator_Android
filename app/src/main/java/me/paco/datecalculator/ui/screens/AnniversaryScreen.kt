@@ -68,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.data.AnniversaryItem
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.ui.components.DatePickerModal
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
@@ -524,7 +525,7 @@ fun AnniversaryScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("📍 打卡", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.sp)
+                        Text(LanguageUtils.getString("check_in", uiState.appLanguage), fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.sp)
                     }
                 }
 
@@ -541,16 +542,32 @@ fun AnniversaryScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("添加纪念日", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.sp)
+                        Text(LanguageUtils.getString("add_anniversary", uiState.appLanguage), fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.sp)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 全量纪念日与打卡结果展示列表 (包含所有历史结果，不同步历史记录表，无记录卡片带 3D 边框)
+            // 全量纪念日与打卡结果展示列表
             if (uiState.anniversaryList.isEmpty()) {
                 val emptyCardShape = RoundedCornerShape(20.dp)
+                val lang = uiState.appLanguage
+                val emptyTitle = when (lang) {
+                    AppLanguage.ENGLISH -> "❤️ No Anniversaries Saved"
+                    AppLanguage.JAPANESE -> "❤️ 保存された記念日はありません"
+                    AppLanguage.KOREAN -> "❤️ 저장된 기념일이 없습니다"
+                    AppLanguage.TRADITIONAL_CHINESE -> "❤️ 暫無記錄的重要紀念日"
+                    else -> "❤️ 暂无记录的重要纪念日"
+                }
+                val emptyDesc = when (lang) {
+                    AppLanguage.ENGLISH -> "Tap '+ Add Anniversary' or '📍 Check-in' above to save moments"
+                    AppLanguage.JAPANESE -> "上の「記念日追加」または「📍 チェックイン」をタップして保存"
+                    AppLanguage.KOREAN -> "상단의 '+ 기념일 추가' 또는 '📍 위치 체크인'을 누르세요"
+                    AppLanguage.TRADITIONAL_CHINESE -> "點擊上方“新增紀念日”或“📍 打卡”保存美好時刻"
+                    else -> "点击上方“添加纪念日”或“📍 打卡”保存美好时刻"
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -564,9 +581,9 @@ fun AnniversaryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("❤️ 暂无记录的重要纪念日", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                        Text(emptyTitle, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text("点击上方“添加纪念日”或“📍 打卡”保存美好时刻", fontSize = 12.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                        Text(emptyDesc, fontSize = 12.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
                     }
                 }
             } else {

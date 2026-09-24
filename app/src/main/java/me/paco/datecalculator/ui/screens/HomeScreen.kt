@@ -231,8 +231,16 @@ fun HomeScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
+                            val monthTitle = when (uiState.appLanguage) {
+                                AppLanguage.ENGLISH -> {
+                                    val mName = currentYearMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }
+                                    "$mName ${currentYearMonth.year}"
+                                }
+                                AppLanguage.KOREAN -> "${currentYearMonth.year}년 ${currentYearMonth.monthValue}월"
+                                else -> "${currentYearMonth.year}年 ${currentYearMonth.monthValue}月"
+                            }
                             Text(
-                                text = "${currentYearMonth.year}年 ${currentYearMonth.monthValue}月",
+                                text = monthTitle,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
@@ -438,7 +446,7 @@ fun HomeScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate),
+                                text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate, uiState.appLanguage),
                                 fontSize = 14.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
@@ -564,8 +572,9 @@ fun HomeScreen(
                     ) {
                         Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
+                        val locName = WeatherUtils.getLocalizedLocationName(uiState.currentCityName, uiState.appLanguage)
                         val titleStr = LanguageUtils.getString("forecast_title", uiState.appLanguage)
-                        Text("📍 ${uiState.currentCityName} · $titleStr", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
+                        Text("📍 $locName · $titleStr", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -632,7 +641,14 @@ fun HomeScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) 每日运势", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
+                            val dailyFortuneLabel = when (uiState.appLanguage) {
+                                AppLanguage.ENGLISH -> "Daily Horoscope"
+                                AppLanguage.JAPANESE -> "本日の運勢"
+                                AppLanguage.KOREAN -> "오늘의 운세"
+                                AppLanguage.TRADITIONAL_CHINESE -> "每日運勢"
+                                else -> "每日运势"
+                            }
+                            Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) $dailyFortuneLabel", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
                         }
 
                         Row {

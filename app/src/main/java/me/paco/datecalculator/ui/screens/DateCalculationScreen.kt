@@ -507,9 +507,9 @@ fun DateCalculationScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         val unitLabel = if (uiState.dateMode == DateMode.WORKDAY) {
-            stringResource(R.string.label_days_workday)
+            LanguageUtils.getString("workday", uiState.appLanguage)
         } else {
-            stringResource(R.string.label_days_natural)
+            LanguageUtils.getString("natural_day", uiState.appLanguage)
         }
 
         // 1. 模式 A: 正向加减天数输入
@@ -520,7 +520,8 @@ fun DateCalculationScreen(
                 selectedType = uiState.calculationType,
                 onTypeSelected = { viewModel.updateCalculationType(it) },
                 onEqualClick = { viewModel.performCalculation() },
-                dayUnitLabel = unitLabel
+                dayUnitLabel = unitLabel,
+                language = uiState.appLanguage
             )
         }
 

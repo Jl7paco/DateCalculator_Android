@@ -40,6 +40,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,11 +52,19 @@ fun NumericCalculatorInput(
     onTypeSelected: (CalculationType) -> Unit,
     onEqualClick: () -> Unit,
     dayUnitLabel: String = "天",
+    language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     quickOptions: List<Int> = listOf(5, 15, 30),
     modifier: Modifier = Modifier
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+
+    val placeholderText = when (language) {
+        AppLanguage.ENGLISH -> "Enter $dayUnitLabel (e.g. 30)"
+        AppLanguage.JAPANESE -> "$dayUnitLabel 数を入力 (例: 30)"
+        AppLanguage.KOREAN -> "$dayUnitLabel 일수 입력 (예: 30)"
+        else -> "输入${dayUnitLabel}天数 (如: 30)"
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
 
@@ -83,7 +92,7 @@ fun NumericCalculatorInput(
                     },
                     placeholder = {
                         Text(
-                            text = "输入${dayUnitLabel}天数 (如: 30)",
+                            text = placeholderText,
                             color = NeumorphicTextPrimary.copy(alpha = 0.5f),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
@@ -198,7 +207,7 @@ fun NumericCalculatorInput(
             verticalAlignment = Alignment.CenterVertically
         ) {
             quickOptions.forEach { num ->
-                val labelText = "$num$dayUnitLabel"
+                val labelText = "$num $dayUnitLabel"
                 val isSelected = daysInput == num.toString()
 
                 val interactionSource = remember { MutableInteractionSource() }
