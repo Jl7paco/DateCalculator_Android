@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
@@ -563,7 +564,8 @@ fun HomeScreen(
                     ) {
                         Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("📍 ${uiState.currentCityName} · 当地及未来三日天气推算", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
+                        val titleStr = LanguageUtils.getString("forecast_title", uiState.appLanguage)
+                        Text("📍 ${uiState.currentCityName} · $titleStr", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -573,6 +575,18 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         weatherList.forEach { weather ->
+                            val dayLabel = when (weather.dayName) {
+                                "今天" -> LanguageUtils.getString("today", uiState.appLanguage)
+                                "明天" -> when (uiState.appLanguage) {
+                                    AppLanguage.ENGLISH -> "Tomorrow"; AppLanguage.JAPANESE -> "明日"; AppLanguage.KOREAN -> "내일"; else -> "明天"
+                                }
+                                "后天" -> when (uiState.appLanguage) {
+                                    AppLanguage.ENGLISH -> "Day After"; AppLanguage.JAPANESE -> "明後日"; AppLanguage.KOREAN -> "모레"; else -> "后天"
+                                }
+                                else -> weather.dayName
+                            }
+                            val condLabel = WeatherUtils.getLocalizedCondition(weather.condition, uiState.appLanguage)
+
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -582,11 +596,11 @@ fun HomeScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(weather.dayName, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                                    Text(dayLabel, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(weather.iconEmoji, fontSize = 16.sp)
                                     Spacer(modifier = Modifier.height(2.dp))
-                                    Text(weather.condition, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
+                                    Text(condLabel, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text("${weather.tempMin}°~${weather.tempMax}°", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                                 }
@@ -644,8 +658,10 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("幸运数字: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                        Text("幸运颜色: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                        val luckyNumLabel = LanguageUtils.getString("lucky_number", uiState.appLanguage)
+                        val luckyColorLabel = LanguageUtils.getString("lucky_color", uiState.appLanguage)
+                        Text("$luckyNumLabel: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                        Text("$luckyColorLabel: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                     }
                 }
             }

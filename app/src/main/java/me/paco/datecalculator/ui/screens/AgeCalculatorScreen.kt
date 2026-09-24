@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.R
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.ui.components.DatePickerModal
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
@@ -262,12 +263,20 @@ fun AgeCalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                val lang = uiState.appLanguage
+                val ageText = when (lang) {
+                    AppLanguage.ENGLISH -> "${ageResult.years} yrs ${ageResult.months} mos ${ageResult.days} days"
+                    AppLanguage.JAPANESE -> "${ageResult.years} 歳 ${ageResult.months} ヶ月 ${ageResult.days} 日"
+                    AppLanguage.KOREAN -> "${ageResult.years} 세 ${ageResult.months} 개월 ${ageResult.days} 일"
+                    else -> "${ageResult.years} 岁 ${ageResult.months} 个月 ${ageResult.days} 天"
+                }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "精准年龄推算",
+                        text = LanguageUtils.getString("exact_age", lang),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -278,8 +287,8 @@ fun AgeCalculatorScreen(
 
                 // 周岁大字
                 Text(
-                    text = "${ageResult.years} 岁 ${ageResult.months} 个月 ${ageResult.days} 天",
-                    fontSize = 24.sp,
+                    text = ageText,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -290,10 +299,11 @@ fun AgeCalculatorScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val zodiacSignLabel = LanguageUtils.getString("zodiac_sign", lang)
                     SuggestionChip(
                         onClick = {},
                         shape = CircleShape,
-                        label = { Text("生肖: ${ageResult.zodiac}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                        label = { Text("$zodiacSignLabel: ${ageResult.zodiac}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                     )
 
                     SuggestionChip(
@@ -323,13 +333,13 @@ fun AgeCalculatorScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("已来到这个世界", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
-                                Text("${ageResult.totalDays} 天", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                                Text(LanguageUtils.getString("total_days", lang), fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                Text("${ageResult.totalDays} ${LanguageUtils.getString("days_unit", lang)}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("折合月数", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
-                                Text("${ageResult.totalMonths} 个月", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                                Text(LanguageUtils.getString("months_unit", lang), fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                Text("${ageResult.totalMonths} ${LanguageUtils.getString("months_unit", lang)}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                             }
                         }
 
@@ -338,13 +348,13 @@ fun AgeCalculatorScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("折合周数", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
-                                Text("${ageResult.totalWeeks} 周", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                                Text(LanguageUtils.getString("total_weeks", lang), fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                Text("${ageResult.totalWeeks} ${LanguageUtils.getString("weeks_unit", lang)}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("距离下个生日", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
-                                Text("还有 ${ageResult.daysToNextBirthday} 天", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF10B981))
+                                Text(LanguageUtils.getString("next_birthday_days", lang), fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                Text("${ageResult.daysToNextBirthday} ${LanguageUtils.getString("days_unit", lang)}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF10B981))
                             }
                         }
                     }

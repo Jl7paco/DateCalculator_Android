@@ -1,5 +1,6 @@
 package me.paco.datecalculator.util
 
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.HolidayRegion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -42,6 +43,48 @@ object WeatherUtils {
         }
     }
 
+    fun getLocalizedCondition(condition: String, language: AppLanguage): String {
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> condition
+            AppLanguage.TRADITIONAL_CHINESE -> when (condition) {
+                "多云" -> "多雲"; "晴朗" -> "晴朗"; "阴天" -> "陰天"; "小雨" -> "小雨"; "雷阵雨" -> "雷陣雨"; "阵雨" -> "陣雨"; else -> condition
+            }
+            AppLanguage.ENGLISH -> when (condition) {
+                "多云", "晴间多云" -> "Partly Cloudy"
+                "晴朗" -> "Sunny"
+                "阴天", "阴" -> "Overcast"
+                "小雨", "毛毛雨" -> "Light Rain"
+                "阵雨" -> "Showers"
+                "雷阵雨", "强雷雨" -> "Thunderstorm"
+                "有雾" -> "Foggy"
+                "小雪", "阵雪" -> "Light Snow"
+                else -> "Cloudy"
+            }
+            AppLanguage.JAPANESE -> when (condition) {
+                "多云", "晴间多云" -> "晴れ時々曇り"
+                "晴朗" -> "快晴"
+                "阴天", "阴" -> "曇り"
+                "小雨", "毛毛雨" -> "小雨"
+                "阵雨" -> "にわか雨"
+                "雷阵雨", "强雷雨" -> "雷雨"
+                "有雾" -> "霧"
+                "小雪", "阵雪" -> "小雪"
+                else -> "曇り"
+            }
+            AppLanguage.KOREAN -> when (condition) {
+                "多云", "晴间多云" -> "구름많음"
+                "晴朗" -> "맑음"
+                "阴天", "阴" -> "흐림"
+                "小雨", "毛毛雨" -> "약한 비"
+                "阵雨" -> "소나기"
+                "雷阵雨", "强雷雨" -> "뇌우"
+                "有雾" -> "안개"
+                "小雪", "阵雪" -> "약한 눈"
+                else -> "구름많음"
+            }
+        }
+    }
+
     fun getCityCoordinates(cityName: String): Pair<Double, Double> {
         return when {
             cityName.contains("深圳") -> Pair(22.5431, 114.0579)
@@ -61,13 +104,10 @@ object WeatherUtils {
             cityName.contains("首尔") -> Pair(37.5665, 126.9780)
             cityName.contains("伦敦") -> Pair(51.5074, -0.1278)
             cityName.contains("纽约") -> Pair(40.7128, -74.0060)
-            else -> Pair(22.5431, 114.0579) // 默认深圳坐标
+            else -> Pair(22.5431, 114.0579)
         }
     }
 
-    /**
-     * 实时查询真实精准实时天气 (通过 Open-Meteo 气象 API 接口)
-     */
     suspend fun fetchRealLiveWeather(latitude: Double, longitude: Double): List<DailyWeather>? {
         return withContext(Dispatchers.IO) {
             try {
