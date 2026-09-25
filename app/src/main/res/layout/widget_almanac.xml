@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_bg_rounded"
+    android:background="@drawable/widget_bg_neumorphic"
     android:padding="12dp"
     android:gravity="center">
 
@@ -20,7 +20,7 @@
         android:id="@+id/widget_solar_date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="2026年09月22日 星期二"
+        android:text="2026年09月25日 星期五"
         android:textSize="13sp"
         android:textStyle="bold"
         android:textColor="#1E293B"
@@ -30,7 +30,7 @@
         android:id="@+id/widget_lunar_date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="农历 丙午(马)年 九月十二"
+        android:text="农历 丙午(马)年 九月十五"
         android:textSize="12sp"
         android:textColor="#2563EB"
         android:layout_marginTop="2dp" />

@@ -3,8 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_bg_rounded"
-    android:padding="10dp"
+    android:background="@drawable/widget_bg_neumorphic"
+    android:padding="12dp"
     android:gravity="center">
 
     <LinearLayout
@@ -28,12 +28,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="切换 ➔"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textStyle="bold"
             android:textColor="#EC4899"
-            android:background="#FCE7F3"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="3dp" />
+            android:background="@drawable/widget_chip_sunken"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp" />
     </LinearLayout>
 
     <TextView
@@ -51,7 +51,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="520 天"
-        android:textSize="24sp"
+        android:textSize="26sp"
         android:textStyle="bold"
         android:textColor="#EC4899"
         android:layout_marginTop="2dp" />
@@ -61,7 +61,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="下个周年还剩 145 天"
-        android:textSize="10.5sp"
+        android:textSize="11sp"
         android:textColor="#64748B"
         android:layout_marginTop="2dp" />
 </LinearLayout>

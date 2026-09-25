@@ -3,8 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_bg_rounded"
-    android:padding="10dp"
+    android:background="@drawable/widget_bg_neumorphic"
+    android:padding="12dp"
     android:gravity="center">
 
     <TextView
@@ -33,7 +33,7 @@
         android:textSize="12sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
-        android:background="#EC4899"
+        android:background="@drawable/widget_btn_neumorphic_pink"
         android:paddingHorizontal="14dp"
         android:paddingVertical="6dp"
         android:layout_marginTop="6dp" />
