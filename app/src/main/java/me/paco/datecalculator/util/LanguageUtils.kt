@@ -50,6 +50,120 @@ object LanguageUtils {
         }
     }
 
+    fun getLocalizedCityName(cityName: String, language: AppLanguage): String {
+        val clean = cityName.replace("市", "").trim()
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> cityName
+            AppLanguage.TRADITIONAL_CHINESE -> "${clean}市"
+            AppLanguage.ENGLISH -> when (clean) {
+                "北京" -> "Beijing"; "上海" -> "Shanghai"; "广州" -> "Guangzhou"; "深圳" -> "Shenzhen"; "杭州" -> "Hangzhou"; "成都" -> "Chengdu"; "武汉" -> "Wuhan"; "南京" -> "Nanjing"; "重庆" -> "Chongqing"; "天津" -> "Tianjin"; "西安" -> "Xi'an"; "台北" -> "Taipei"; "香港" -> "Hong Kong"; "澳门" -> "Macau"; else -> clean
+            }
+            AppLanguage.JAPANESE -> when (clean) {
+                "北京" -> "北京"; "上海" -> "上海"; "广州" -> "広州"; "深圳" -> "深セン"; "杭州" -> "杭州"; "成都" -> "成都"; "武汉" -> "武漢"; "南京" -> "南京"; "重庆" -> "重慶"; "天津" -> "天津"; "西安" -> "西安"; "台北" -> "台北"; "香港" -> "香港"; "澳门" -> "マカオ"; else -> clean
+            }
+            AppLanguage.KOREAN -> when (clean) {
+                "北京" -> "베이징"; "上海" -> "상하이"; "广州" -> "광저우"; "深圳" -> "선전"; "杭州" -> "항저우"; "成都" -> "청두"; "武汉" -> "우한"; "南京" -> "난징"; "重庆" -> "충칭"; "天津" -> "텐진"; "西安" -> "시안"; "台北" -> "타이베이"; "香港" -> "홍콩"; "澳门" -> "마카오"; else -> clean
+            }
+        }
+    }
+
+    fun getLocalizedZodiac(zodiac: String, language: AppLanguage): String {
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> zodiac
+            AppLanguage.TRADITIONAL_CHINESE -> zodiac
+            AppLanguage.ENGLISH -> when (zodiac) {
+                "鼠" -> "Rat"; "牛" -> "Ox"; "虎" -> "Tiger"; "兔" -> "Rabbit"; "龙" -> "Dragon"; "蛇" -> "Snake"; "马" -> "Horse"; "羊" -> "Goat"; "猴" -> "Monkey"; "鸡" -> "Rooster"; "狗" -> "Dog"; "猪" -> "Pig"; else -> zodiac
+            }
+            AppLanguage.JAPANESE -> when (zodiac) {
+                "鼠" -> "子"; "牛" -> "丑"; "虎" -> "寅"; "兔" -> "卯"; "龙" -> "辰"; "蛇" -> "巳"; "马" -> "午"; "羊" -> "未"; "猴" -> "申"; "鸡" -> "酉"; "狗" -> "戌"; "猪" -> "亥"; else -> zodiac
+            }
+            AppLanguage.KOREAN -> when (zodiac) {
+                "鼠" -> "쥐"; "牛" -> "소"; "虎" -> "호랑이"; "兔" -> "토끼"; "龙" -> "용"; "蛇" -> "뱀"; "马" -> "말"; "羊" -> "양"; "猴" -> "원숭이"; "鸡" -> "닭"; "狗" -> "개"; "猪" -> "돼지"; else -> zodiac
+            }
+        }
+    }
+
+    fun getLocalizedStageTitle(index: Int, language: AppLanguage): String {
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> "第${index}段时间"
+            AppLanguage.TRADITIONAL_CHINESE -> "第${index}段時間"
+            AppLanguage.ENGLISH -> "Stage $index"
+            AppLanguage.JAPANESE -> "第${index}段階"
+            AppLanguage.KOREAN -> "${index}단계"
+        }
+    }
+
+    fun getLocalizedHistoryCategory(category: String, language: AppLanguage): String {
+        return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> category
+            AppLanguage.TRADITIONAL_CHINESE -> when (category) {
+                "日期计算" -> "日期計算"; "倒数日" -> "倒數日"; "纪念日" -> "紀念日"; "农历公历" -> "農曆公曆"; else -> category
+            }
+            AppLanguage.ENGLISH -> when (category) {
+                "日期计算" -> "Date Calc"; "倒数日" -> "Countdown"; "纪念日" -> "Anniversary"; "农历公历" -> "Lunar/Solar"; else -> category
+            }
+            AppLanguage.JAPANESE -> when (category) {
+                "日期计算" -> "日付計算"; "倒数日" -> "カウントダウン"; "纪念日" -> "記念日"; "农历公历" -> "旧暦/新暦"; else -> category
+            }
+            AppLanguage.KOREAN -> when (category) {
+                "日期计算" -> "날짜 계산"; "倒数日" -> "디데이"; "纪念日" -> "기념일"; "农历公历" -> "음력/양력"; else -> category
+            }
+        }
+    }
+
+    fun getLocalizedHistoryTitle(title: String, language: AppLanguage): String {
+        var res = title
+        when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> {}
+            AppLanguage.TRADITIONAL_CHINESE -> {
+                res = res.replace("工作日计算结果", "工作日計算結果").replace("自然日计算结果", "自然日計算結果")
+            }
+            AppLanguage.ENGLISH -> {
+                res = res.replace("工作日计算结果:", "Workday Result:").replace("自然日计算结果:", "Calendar Day Result:").replace("相差", "Diff:").replace("天", " Days").replace("工作日", " Workdays")
+            }
+            AppLanguage.JAPANESE -> {
+                res = res.replace("工作日计算结果:", "営業日計算結果:").replace("自然日计算结果:", "自然日計算結果:").replace("相差", "差:").replace("天", "日").replace("工作日", "営業日")
+            }
+            AppLanguage.KOREAN -> {
+                res = res.replace("工作日计算结果:", "근무일 계산 결과:").replace("自然日计算结果:", "자연일 계산 결과:").replace("相差", "차이:").replace("天", "일").replace("工作日", "근무일")
+            }
+        }
+        return res
+    }
+
+    fun getLocalizedHistoryDetail(detail: String, language: AppLanguage): String {
+        var result = detail
+        when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> {}
+            AppLanguage.TRADITIONAL_CHINESE -> {
+                result = result.replace("起始日期", "起始日期").replace("目标日期", "目標日期").replace("工作日", "工作日").replace("自然日", "自然日")
+            }
+            AppLanguage.ENGLISH -> {
+                result = result.replace("起始日期:", "Start:").replace("目标日期:", "Target:").replace("工作日", " Workdays").replace("自然日", " Days").replace("加", " + ").replace("减", " - ")
+            }
+            AppLanguage.JAPANESE -> {
+                result = result.replace("起始日期:", "開始日:").replace("目标日期:", "目標日:").replace("工作日", "営業日").replace("自然日", "日").replace("加", " 加算 ").replace("减", " 減算 ")
+            }
+            AppLanguage.KOREAN -> {
+                result = result.replace("起始日期:", "시작:").replace("目标日期:", "목표:").replace("工作日", "근무일").replace("自然日", "일").replace("加", " 더하기 ").replace("减", " 빼기 ")
+            }
+        }
+        return result
+    }
+
+    fun getLocalizedRegionTag(tag: String, language: AppLanguage): String {
+        val clean = tag.replace("🇨🇳 ", "").replace("🇹🇼 ", "").replace("🇭🇰 ", "").replace("🇲🇴 ", "").replace("🇸🇬 ", "").replace("🇸🇬 ", "").trim()
+        val icon = if (tag.contains("🇨🇳")) "🇨🇳" else if (tag.contains("🇹🇼")) "🇹🇼" else "📌"
+        val name = when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> clean
+            AppLanguage.TRADITIONAL_CHINESE -> when (clean) { "中国大陆" -> "中國大陸"; "台湾（中国）" -> "台灣（中國）"; else -> clean }
+            AppLanguage.ENGLISH -> when (clean) { "中国大陆" -> "China Mainland"; "台湾（中国）" -> "Taiwan, China"; else -> clean }
+            AppLanguage.JAPANESE -> when (clean) { "中国大陆" -> "中国本土"; "台湾（中国）" -> "台湾"; else -> clean }
+            AppLanguage.KOREAN -> when (clean) { "中国大陆" -> "중국 본토"; "台湾（中国）" -> "대만"; else -> clean }
+        }
+        return "$icon $name"
+    }
+
     fun getLocalizedHolidayName(label: String, language: AppLanguage): String {
         val cleanLabel = label.replace("🇨🇳 ", "").replace("🇹🇼 ", "").replace("🎆 ", "").replace("🧧 ", "").replace("🌿 ", "").replace("🛠️ ", "").replace("🎏 ", "").replace("📚 ", "").replace("🥮 ", "").trim()
         val icon = when {
@@ -206,7 +320,9 @@ object LanguageUtils {
             "ji_label" to "忌",
             "lunar_to_solar_title" to "公历 ➔ 农历",
             "solar_to_lunar_title" to "农历 ➔ 公历",
-            "lunar_convert_title" to "农历与公历转换"
+            "lunar_convert_title" to "农历与公历转换",
+            "custom_color" to "自定义色彩",
+            "palette_title" to "调色盘 (14 款精选主色调):"
         )
 
         val stringsZhTw = mapOf(
@@ -328,7 +444,9 @@ object LanguageUtils {
             "ji_label" to "忌",
             "lunar_to_solar_title" to "公曆 ➔ 農曆",
             "solar_to_lunar_title" to "農曆 ➔ 公曆",
-            "lunar_convert_title" to "農曆與公曆轉換"
+            "lunar_convert_title" to "農曆與公曆轉換",
+            "custom_color" to "自定義色彩",
+            "palette_title" to "調色盤 (14 款精選主色調):"
         )
 
         val stringsEn = mapOf(
@@ -450,7 +568,9 @@ object LanguageUtils {
             "ji_label" to "Avoid",
             "lunar_to_solar_title" to "Solar ➔ Lunar",
             "solar_to_lunar_title" to "Lunar ➔ Solar",
-            "lunar_convert_title" to "Lunar & Solar Converter"
+            "lunar_convert_title" to "Lunar & Solar Converter",
+            "custom_color" to "Custom Color",
+            "palette_title" to "Theme Color Palette (14):"
         )
 
         val stringsJa = mapOf(
@@ -572,7 +692,9 @@ object LanguageUtils {
             "ji_label" to "凶",
             "lunar_to_solar_title" to "新暦 ➔ 旧暦",
             "solar_to_lunar_title" to "旧暦 ➔ 新暦",
-            "lunar_convert_title" to "旧暦と新暦の相互変換"
+            "lunar_convert_title" to "旧暦と新暦の相互変換",
+            "custom_color" to "カスタムカラー",
+            "palette_title" to "テーマカラーパレット (14):"
         )
 
         val stringsKo = mapOf(
@@ -694,7 +816,9 @@ object LanguageUtils {
             "ji_label" to "흉",
             "lunar_to_solar_title" to "양력 ➔ 음력",
             "solar_to_lunar_title" to "음력 ➔ 양력",
-            "lunar_convert_title" to "음력/양력 상호 변환"
+            "lunar_convert_title" to "음력/양력 상호 변환",
+            "custom_color" to "사용자 지정 색상",
+            "palette_title" to "테마 색상 팔레트 (14):"
         )
 
         return when (language) {

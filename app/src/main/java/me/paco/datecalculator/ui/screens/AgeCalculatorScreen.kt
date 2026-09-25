@@ -25,13 +25,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.CalendarMonth
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,11 +46,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import me.paco.datecalculator.R
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.ui.components.DatePickerModal
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
@@ -80,35 +77,38 @@ fun AgeCalculatorScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val isDark = LocalDarkTheme.current
+    val lang = uiState.appLanguage
 
     var showBirthDatePicker by remember { mutableStateOf(false) }
+    var showTargetDatePicker by remember { mutableStateOf(false) }
     var showHistoryDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
 
-    val birthDate = uiState.selectedBirthDate
-    val ageResult = remember(birthDate) {
-        LunarCalendarUtils.calculateExactAge(birthDate)
-    }
+    var targetBaseDate by remember { mutableStateOf(LocalDate.now()) }
 
-    val fortune = remember(birthDate) {
-        LunarCalendarUtils.getDailyFortune(LocalDate.now(), ageResult.constellation)
-    }
+    val birthDate = uiState.selectedBirthDate
+    val ageResult = LunarCalendarUtils.calculateExactAge(birthDate, targetBaseDate)
 
     if (showBirthDatePicker) {
         DatePickerModal(
             selectedDate = birthDate,
-            onDateSelected = { newDate ->
-                viewModel.updateBirthDate(newDate)
+            onDateSelected = { d ->
+                viewModel.updateBirthDate(d)
                 showBirthDatePicker = false
-
-                val detail = "精确年龄: ${ageResult.years}岁 ${ageResult.months}个月 ${ageResult.days}天 (共 ${ageResult.totalDays} 天)"
-                viewModel.saveToHistory(
-                    category = "年龄计算",
-                    title = "出生日期: ${DateCalculatorUtils.formatDate(newDate)}",
-                    detail = detail
-                )
             },
             onDismiss = { showBirthDatePicker = false }
+        )
+    }
+
+    if (showTargetDatePicker) {
+        DatePickerModal(
+            selectedDate = targetBaseDate,
+            onDateSelected = { d ->
+                targetBaseDate = d
+                showTargetDatePicker = false
+            },
+            onDismiss = { showTargetDatePicker = false }
         )
     }
 
@@ -132,7 +132,7 @@ fun AgeCalculatorScreen(
             .verticalScroll(scrollState)
             .padding(14.dp)
     ) {
-        // 顶栏 (36dp 高度, 15sp 标题, 无括号简洁名称)
+        // 顶栏 (36dp 高度, 15sp 标题)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,7 +149,7 @@ fun AgeCalculatorScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = LanguageUtils.getString("tab_age", uiState.appLanguage),
+                    text = LanguageUtils.getString("tab_age", lang),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicTextPrimary
@@ -168,7 +168,7 @@ fun AgeCalculatorScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.History,
-                        contentDescription = "查看历史记录",
+                        contentDescription = LanguageUtils.getString("history_title", lang),
                         tint = NeumorphicAccent,
                         modifier = Modifier.size(16.dp)
                     )
@@ -185,7 +185,7 @@ fun AgeCalculatorScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
-                        contentDescription = "打开设置",
+                        contentDescription = LanguageUtils.getString("settings_title", lang),
                         tint = NeumorphicAccent,
                         modifier = Modifier.size(16.dp)
                     )
@@ -193,60 +193,116 @@ fun AgeCalculatorScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // 1. 出生日期选择卡片
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showBirthDatePicker = true },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-            )
+        // 1. 选择出生日期与目标基准日期双面板
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
+                    .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { showBirthDatePicker = true }
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(end = 10.dp)
-                    )
-                    Column {
-                        Text(
-                            text = LanguageUtils.getString("select_birth_date", uiState.appLanguage),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.padding(end = 10.dp)
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        val birthFormatted = DateCalculatorUtils.formatDateWithWeek(birthDate, uiState.appLanguage)
-                        Text(
-                            text = birthFormatted,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Column {
+                            Text(
+                                text = LanguageUtils.getString("select_birth_date", lang),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = DateCalculatorUtils.formatDateWithWeek(birthDate),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeumorphicTextPrimary
+                            )
+                        }
                     }
-                }
 
-                Icon(
-                    imageVector = Icons.Default.EditCalendar,
-                    contentDescription = "选择日期",
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                )
+                    Icon(
+                        imageVector = Icons.Default.EditCalendar,
+                        contentDescription = "选择日期",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
+                    .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { showTargetDatePicker = true }
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.padding(end = 10.dp)
+                        )
+                        Column {
+                            val targetLabel = when (lang) {
+                                AppLanguage.ENGLISH -> "Target Date"
+                                AppLanguage.JAPANESE -> "基準日"
+                                AppLanguage.KOREAN -> "기준 날짜"
+                                AppLanguage.TRADITIONAL_CHINESE -> "選擇目標基準日期"
+                                else -> "选择目标基准日期"
+                            }
+                            Text(
+                                text = targetLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = DateCalculatorUtils.formatDateWithWeek(targetBaseDate),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeumorphicTextPrimary
+                            )
+                        }
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.EditCalendar,
+                        contentDescription = "选择日期",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // 2. 年龄计算核心结果卡片 (周岁 / 生辰 / 存活天数)
         val resultCardShape = RoundedCornerShape(22.dp)
@@ -263,11 +319,11 @@ fun AgeCalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val lang = uiState.appLanguage
                 val ageText = when (lang) {
                     AppLanguage.ENGLISH -> "${ageResult.years} yrs ${ageResult.months} mos ${ageResult.days} days"
                     AppLanguage.JAPANESE -> "${ageResult.years} 歳 ${ageResult.months} ヶ月 ${ageResult.days} 日"
                     AppLanguage.KOREAN -> "${ageResult.years} 세 ${ageResult.months} 개월 ${ageResult.days} 일"
+                    AppLanguage.TRADITIONAL_CHINESE -> "${ageResult.years} 歲 ${ageResult.months} 個月 ${ageResult.days} 天"
                     else -> "${ageResult.years} 岁 ${ageResult.months} 个月 ${ageResult.days} 天"
                 }
 
@@ -300,16 +356,17 @@ fun AgeCalculatorScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val zodiacSignLabel = LanguageUtils.getString("zodiac_sign", lang)
+                    val localizedZodiac = LanguageUtils.getLocalizedZodiac(ageResult.zodiac, lang)
                     SuggestionChip(
                         onClick = {},
                         shape = CircleShape,
-                        label = { Text("$zodiacSignLabel: ${ageResult.zodiac}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                        label = { Text("$zodiacSignLabel: $localizedZodiac", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                     )
 
                     SuggestionChip(
                         onClick = {},
                         shape = CircleShape,
-                        label = { Text("${fortune.emoji} ${fortune.constellation}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                        label = { Text("${ageResult.constellationEmoji} ${ageResult.constellation}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                     )
                 }
 
@@ -354,7 +411,7 @@ fun AgeCalculatorScreen(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(LanguageUtils.getString("next_birthday_days", lang), fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
-                                Text("${ageResult.daysToNextBirthday} ${LanguageUtils.getString("days_unit", lang)}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF10B981))
+                                Text("${ageResult.daysToNextBirthday} ${LanguageUtils.getString("days_unit", lang)}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -369,84 +426,24 @@ fun AgeCalculatorScreen(
                     NeumorphicIconButton(
                         icon = Icons.Default.ContentCopy,
                         onClick = {
-                            val copyText = "出生日期: ${DateCalculatorUtils.formatDate(birthDate)} | 精确年龄: ${ageResult.years}岁${ageResult.months}个月${ageResult.days}天 (共 ${ageResult.totalDays} 天) | 生肖星座: ${ageResult.zodiac}年 ${ageResult.constellationEmoji}${ageResult.constellation}"
+                            val copyText = "Exact Age: ${ageResult.years} yrs ${ageResult.months} mos ${ageResult.days} days | Total Days: ${ageResult.totalDays}"
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText("AgeResult", copyText))
-                            Toast.makeText(context, "年龄计算结果已复制", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Age result copied!", Toast.LENGTH_SHORT).show()
                         },
-                        contentDescription = "复制结果",
+                        contentDescription = "Copy Age Result",
                         modifier = Modifier.weight(1f)
                     )
 
                     NeumorphicIconButton(
                         icon = Icons.Default.Share,
                         onClick = {
-                            val shareText = "我的年龄档案:\n出生日期: ${DateCalculatorUtils.formatDate(birthDate)}\n周岁: ${ageResult.years}岁 ${ageResult.months}个月 ${ageResult.days}天\n生肖: ${ageResult.zodiac} | 星座: ${ageResult.constellationEmoji}${ageResult.constellation}\n已陪伴这个世界: ${ageResult.totalDays} 天 (${ageResult.totalWeeks} 周)"
-                            ShareUtils.shareText(context, "我的精准年龄档案", shareText)
+                            val shareText = "Exact Age Record:\nBirth Date: ${DateCalculatorUtils.formatDate(birthDate)}\nAge: ${ageResult.years} yrs ${ageResult.months} mos ${ageResult.days} days\nTotal Lived: ${ageResult.totalDays} days (${ageResult.totalWeeks} weeks)"
+                            ShareUtils.shareText(context, "Age Record", shareText)
                         },
-                        contentDescription = "分享长卡",
+                        contentDescription = "Share Age Record",
                         modifier = Modifier.weight(1f)
                     )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // 3. 星座专属每日运势 Card
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                .clip(RoundedCornerShape(20.dp))
-                .padding(14.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                val lang = uiState.appLanguage
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val fortuneTitle = when (lang) {
-                        AppLanguage.ENGLISH -> "Horoscope"
-                        AppLanguage.JAPANESE -> "運勢"
-                        AppLanguage.KOREAN -> "운세"
-                        AppLanguage.TRADITIONAL_CHINESE -> "專屬運勢"
-                        else -> "专属运势"
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) $fortuneTitle", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
-                    }
-
-                    Row {
-                        repeat(fortune.starRating) {
-                            Text("⭐", fontSize = 12.sp)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = fortune.summary,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = NeumorphicTextPrimary,
-                    lineHeight = 18.sp
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    val luckyNumLabel = LanguageUtils.getString("lucky_number", lang)
-                    val luckyColorLabel = LanguageUtils.getString("lucky_color", lang)
-                    Text("$luckyNumLabel: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                    Text("$luckyColorLabel: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                 }
             }
         }

@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -187,7 +186,7 @@ fun HistoryScreen(
                         Icon(imageVector = Icons.Default.Timeline, contentDescription = null, tint = NeumorphicAccent)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = item.title,
+                            text = LanguageUtils.getLocalizedHistoryTitle(item.title, lang),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = NeumorphicTextPrimary
@@ -232,7 +231,7 @@ fun HistoryScreen(
                         .verticalScroll(rememberScrollState())
                 ) {
                     Text(
-                        text = item.detail,
+                        text = LanguageUtils.getLocalizedHistoryDetail(item.detail, lang),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -251,7 +250,8 @@ fun HistoryScreen(
                         modeLabel = unitLabel,
                         regionLabel = item.regionTag,
                         showOuterCard = false,
-                        showExportButton = false
+                        showExportButton = false,
+                        language = lang
                     )
                 }
             },
@@ -332,7 +332,7 @@ fun HistoryScreen(
                             if (editedTitleText.isNotBlank()) {
                                 viewModel.renameHistoryItem(item.id, editedTitleText)
                                 itemToEditTitle = null
-                                Toast.makeText(context, "已修改历史名称", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
                             }
                         }
                         .padding(horizontal = 16.dp),
@@ -484,7 +484,7 @@ fun HistoryScreen(
                                             .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
                                         Text(
-                                            text = item.category,
+                                            text = LanguageUtils.getLocalizedHistoryCategory(item.category, lang),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = NeumorphicAccent,
                                             fontWeight = FontWeight.Bold
@@ -494,7 +494,7 @@ fun HistoryScreen(
                                     Spacer(modifier = Modifier.width(8.dp))
 
                                     Text(
-                                        text = item.title,
+                                        text = LanguageUtils.getLocalizedHistoryTitle(item.title, lang),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = NeumorphicTextPrimary,
@@ -541,7 +541,7 @@ fun HistoryScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
-                                text = item.detail,
+                                text = LanguageUtils.getLocalizedHistoryDetail(item.detail, lang),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = NeumorphicTextPrimary.copy(alpha = 0.85f),
                                 fontSize = 13.sp
@@ -555,7 +555,7 @@ fun HistoryScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = item.regionTag,
+                                    text = LanguageUtils.getLocalizedRegionTag(item.regionTag, lang),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontSize = 11.sp,
                                     color = NeumorphicAccent,
@@ -571,7 +571,7 @@ fun HistoryScreen(
                                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                                         ) {
                                             Text(
-                                                text = "📊 排期示意图",
+                                                text = "📊 Diagram",
                                                 fontSize = 10.5.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = NeumorphicAccent

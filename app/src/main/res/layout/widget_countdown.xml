@@ -4,17 +4,37 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg_rounded"
-    android:padding="12dp"
+    android:padding="10dp"
     android:gravity="center">
 
-    <TextView
-        android:id="@+id/widget_title"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="⏳ 倒数日"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:textColor="#2563EB" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⏳ 目标倒数日"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#2563EB" />
+
+        <TextView
+            android:id="@+id/btn_next_countdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="切换 ➔"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="#2563EB"
+            android:background="#D8E2FF"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="3dp" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/widget_event_name"
@@ -31,7 +51,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="9 天"
-        android:textSize="26sp"
+        android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="#2563EB"
         android:layout_marginTop="2dp" />
@@ -41,7 +61,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="目标: 2026-10-01"
-        android:textSize="11sp"
+        android:textSize="10.5sp"
         android:textColor="#64748B"
         android:layout_marginTop="2dp" />
 </LinearLayout>

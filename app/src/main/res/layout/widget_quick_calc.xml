@@ -2,30 +2,76 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:background="@drawable/widget_bg_rounded"
-    android:padding="12dp"
-    android:gravity="center_vertical">
+    android:padding="10dp"
+    android:gravity="center">
 
     <TextView
         android:id="@+id/widget_calc_title"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="📅 日期快速计算器"
-        android:textSize="14sp"
+        android:text="📅 桌面快速日期计算器"
+        android:textSize="13sp"
         android:textStyle="bold"
         android:textColor="#2563EB" />
 
     <TextView
-        android:id="@+id/widget_calc_btn"
+        android:id="@+id/widget_calc_result"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="立即计算 ➔"
-        android:textSize="12sp"
+        android:text="点击下方按钮计算目标日期"
+        android:textSize="13sp"
         android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:background="#2563EB"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="6dp" />
+        android:textColor="#1E293B"
+        android:layout_marginTop="4dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="6dp">
+
+        <TextView
+            android:id="@+id/btn_calc_15"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="+15天"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="#2563EB"
+            android:gravity="center"
+            android:paddingVertical="5dp"
+            android:layout_marginEnd="4dp" />
+
+        <TextView
+            android:id="@+id/btn_calc_30"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="+30天"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="#2563EB"
+            android:gravity="center"
+            android:paddingVertical="5dp"
+            android:layout_marginEnd="4dp" />
+
+        <TextView
+            android:id="@+id/btn_calc_100"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="+100天"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="#2563EB"
+            android:gravity="center"
+            android:paddingVertical="5dp" />
+    </LinearLayout>
 </LinearLayout>

@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg_rounded"
-    android:padding="12dp"
+    android:padding="10dp"
     android:gravity="center">
 
     <TextView
@@ -12,7 +12,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="📍 纪念日打卡"
-        android:textSize="14sp"
+        android:textSize="13sp"
         android:textStyle="bold"
         android:textColor="#EC4899" />
 
@@ -21,20 +21,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="📍 当前位置: 深圳市"
-        android:textSize="12sp"
+        android:textSize="11.5sp"
         android:textColor="#1E293B"
-        android:layout_marginTop="6dp" />
+        android:layout_marginTop="4dp" />
 
     <TextView
         android:id="@+id/widget_checkin_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="点击快捷打卡"
+        android:text="📍 1键打卡"
         android:textSize="12sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
         android:background="#EC4899"
-        android:paddingHorizontal="12dp"
+        android:paddingHorizontal="14dp"
         android:paddingVertical="6dp"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="6dp" />
 </LinearLayout>
