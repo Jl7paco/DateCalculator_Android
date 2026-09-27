@@ -25,6 +25,7 @@ import me.paco.datecalculator.data.ThemeColorPreset
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.util.DailyWeather
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LocationUtils
 import me.paco.datecalculator.util.PreferenceUtils
 import me.paco.datecalculator.util.WeatherUtils
@@ -108,8 +109,8 @@ data class DateCalculatorUiState(
     val isMultiStageExtensionEnabled: Boolean = false,
     val multiStagePlanTitle: String = "",
     val stages: List<CalculationStage> = listOf(
-        CalculationStage(type = CalculationType.ADD, daysInput = "", remark = "第一段时间"),
-        CalculationStage(type = CalculationType.ADD, daysInput = "", remark = "第二段时间")
+        CalculationStage(type = CalculationType.ADD, daysInput = "", remark = ""),
+        CalculationStage(type = CalculationType.ADD, daysInput = "", remark = "")
     ),
     val showResult: Boolean = false,
     val historyList: List<HistoryItem> = emptyList(),
@@ -178,7 +179,7 @@ class DateCalculatorViewModel : ViewModel() {
     fun addAnniversary(item: AnniversaryItem, context: Context) {
         val current = _uiState.value.anniversaryList
         if (current.size >= 999) {
-            Toast.makeText(context, "重要纪念日卡片已达 999 个上限", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "上限 999", Toast.LENGTH_SHORT).show()
             return
         }
         val updated = listOf(item) + current
@@ -226,7 +227,7 @@ class DateCalculatorViewModel : ViewModel() {
         context?.let {
             PreferenceUtils.saveHolidayRegion(it, region)
             val regionName = "${region.flagEmoji} ${region.nativeName}"
-            Toast.makeText(context, "已自动同步 $regionName 最新节假日数据", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "已同步 $regionName 节假日数据", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -370,10 +371,7 @@ class DateCalculatorViewModel : ViewModel() {
 
     fun addCalculationStage() {
         val currentStages = _uiState.value.stages
-        val numZh = when (currentStages.size + 1) {
-            1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${currentStages.size + 1}"
-        }
-        val defaultRemark = "第${numZh}段时间"
+        val defaultRemark = LanguageUtils.getLocalizedStageTitle(currentStages.size + 1, _uiState.value.appLanguage)
         val lastType = currentStages.lastOrNull()?.type ?: _uiState.value.calculationType
         val newStage = CalculationStage(
             type = lastType,
@@ -391,7 +389,7 @@ class DateCalculatorViewModel : ViewModel() {
             val copyStage = CalculationStage(
                 type = target.type,
                 daysInput = target.daysInput,
-                remark = "${target.remark} (副本)"
+                remark = "${target.remark} (Copy)"
             )
             val mutableList = currentStages.toMutableList()
             mutableList.add(index + 1, copyStage)
@@ -444,19 +442,20 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(showResult = true)
         val state = _uiState.value
         val resultDate = calculateTargetDate()
-        val formattedDate = DateCalculatorUtils.formatDate(resultDate)
+        val lang = state.appLanguage
+        val formattedDate = DateCalculatorUtils.formatDate(resultDate, lang)
 
         val isWorkdayMode = (state.dateMode == DateMode.WORKDAY)
-        val modeText = if (isWorkdayMode) "工作日" else "自然日"
-        val opText = if (state.calculationType == CalculationType.ADD) "加" else "减"
-        val daysText = "${state.daysInput}$modeText"
+        val modeText = if (isWorkdayMode) LanguageUtils.getString("workday", lang) else LanguageUtils.getString("natural_day", lang)
+        val opText = if (state.calculationType == CalculationType.ADD) "+" else "-"
+        val daysText = "${state.daysInput} $modeText"
 
-        val title = "$modeText 计算结果: $formattedDate"
-        val detail = "起始日期: ${state.baseDate} $opText $daysText ➔ 目标日期: $formattedDate"
-        val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.nativeName}"
+        val title = "${LanguageUtils.getString("result_title_workday", lang)}: $formattedDate"
+        val detail = "${LanguageUtils.getString("base_date", lang)}: ${DateCalculatorUtils.formatDate(state.baseDate, lang)} $opText $daysText ➔ ${LanguageUtils.getString("target_date", lang)}: $formattedDate"
+        val regionTag = "${state.holidayRegion.flagEmoji} ${state.holidayRegion.getLocalizedName(lang)}"
 
         saveToHistory(
-            category = "日期计算",
+            category = LanguageUtils.getString("tab_calc", lang),
             title = title,
             detail = detail,
             regionTag = regionTag,
@@ -491,12 +490,10 @@ class DateCalculatorViewModel : ViewModel() {
         val isWorkdayMode = (state.dateMode == DateMode.WORKDAY)
         var currentBase = state.baseDate
         val results = mutableListOf<StageSegmentResult>()
+        val lang = state.appLanguage
 
         state.stages.forEachIndexed { index, stage ->
-            val numZh = when (index + 1) {
-                1 -> "一"; 2 -> "二"; 3 -> "三"; 4 -> "四"; 5 -> "五"; else -> "${index + 1}"
-            }
-            val defaultRemark = "第${numZh}段时间"
+            val defaultRemark = LanguageUtils.getLocalizedStageTitle(index + 1, lang)
             val effectiveRemark = stage.remark.ifBlank { defaultRemark }
 
             val days = stage.days.toInt()
@@ -538,7 +535,7 @@ class DateCalculatorViewModel : ViewModel() {
         category: String,
         title: String,
         detail: String,
-        regionTag: String = "${_uiState.value.holidayRegion.flagEmoji} ${_uiState.value.holidayRegion.nativeName}",
+        regionTag: String = "${_uiState.value.holidayRegion.flagEmoji} ${_uiState.value.holidayRegion.getLocalizedName(_uiState.value.appLanguage)}",
         resultDate: LocalDate? = null,
         resultDays: Long? = null
     ) {

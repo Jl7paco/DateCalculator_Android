@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
@@ -84,6 +85,8 @@ fun HomeScreen(
     val scrollState = rememberScrollState()
     val homeConfig = uiState.homeConfig
     val lang = uiState.appLanguage
+    val effectiveLang = lang.getEffectiveLanguage()
+    val isChineseLanguage = (effectiveLang == AppLanguage.SIMPLIFIED_CHINESE || effectiveLang == AppLanguage.TRADITIONAL_CHINESE)
 
     var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
     var selectedCalendarDate by remember { mutableStateOf(LocalDate.now()) }
@@ -210,7 +213,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // ================= 月历视图 (高度扩展至 44dp 单元格，文字绝对清晰完整) =================
+        // ================= 月历视图 (全新规则：仅在 简体/繁体中文 界面设置下展示农历) =================
         if (homeConfig.showCalendar) {
             Box(
                 modifier = Modifier
@@ -232,7 +235,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "${currentYearMonth.year}年 ${currentYearMonth.monthValue}月",
+                                text = LanguageUtils.getLocalizedYearMonth(currentYearMonth, lang),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
@@ -331,10 +334,13 @@ fun HomeScreen(
                                     val isShift = uiState.enableChineseHolidays && !uiState.disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(cellDate, uiState.holidayRegion)
                                     val isWeekend = uiState.weekendRule.isWeekend(cellDate, uiState.isCurrentWeekBigWeek)
 
+                                    // 核心规则：仅在简体中文/繁体中文界面设置下展示农历
                                     val dayLunar = LunarCalendarUtils.solarToLunar(cellDate)
-                                    val lunarText = if (dayLunar.solarTerm.isNotEmpty()) dayLunar.solarTerm
-                                                    else if (dayLunar.festival.isNotEmpty()) dayLunar.festival.take(2)
-                                                    else dayLunar.lunarDayName
+                                    val lunarText = if (isChineseLanguage) {
+                                        if (dayLunar.solarTerm.isNotEmpty()) dayLunar.solarTerm
+                                        else if (dayLunar.festival.isNotEmpty()) dayLunar.festival.take(2)
+                                        else dayLunar.lunarDayName
+                                    } else ""
 
                                     val cellShape = RoundedCornerShape(8.dp)
                                     val cellModifier = if (isSelected) {
@@ -388,14 +394,16 @@ fun HomeScreen(
                                                 }
                                             }
 
-                                            Text(
-                                                text = lunarText,
-                                                fontSize = 9.sp,
-                                                color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
-                                                maxLines = 1,
-                                                softWrap = false,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                            if (lunarText.isNotEmpty()) {
+                                                Text(
+                                                    text = lunarText,
+                                                    fontSize = 9.sp,
+                                                    color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 } else {
@@ -412,8 +420,8 @@ fun HomeScreen(
 
         // ================= 当日黄历、节气、农历、天气、星座运势 =================
 
-        // 1. 当日农历、节气与老黄历宜忌 Card (空间紧凑压缩)
-        if (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac) {
+        // 1. 当日农历、节气与老黄历宜忌 Card (核心规则：仅在简体中文/繁体中文界面设置下展示)
+        if (isChineseLanguage && (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac)) {
             val combinedShape = RoundedCornerShape(18.dp)
             Box(
                 modifier = Modifier
@@ -431,7 +439,7 @@ fun HomeScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate),
+                                text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate, lang),
                                 fontSize = 14.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
@@ -463,7 +471,7 @@ fun HomeScreen(
                         HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // 老黄历宜忌
+                        // 老黄历宜忌 (跟随语言翻译)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -486,13 +494,14 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 almanac.yiList.forEach { yiItem ->
+                                    val translatedYi = LanguageUtils.getLocalizedAlmanacItem(yiItem, lang)
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(6.dp))
                                             .background(Color(0xFF10B981).copy(alpha = 0.15f))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
-                                        Text(yiItem, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
+                                        Text(translatedYi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
                                     }
                                 }
                             }
@@ -522,13 +531,14 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 almanac.jiList.forEach { jiItem ->
+                                    val translatedJi = LanguageUtils.getLocalizedAlmanacItem(jiItem, lang)
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(6.dp))
                                             .background(Color(0xFF64748B).copy(alpha = 0.15f))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
-                                        Text(jiItem, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                        Text(translatedJi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
                                     }
                                 }
                             }
@@ -540,7 +550,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(6.dp))
         }
 
-        // 2. 当日及未来三日天气预报 Card
+        // 2. 当日及未来三日天气预报 Card (城市地名多语言翻译)
         if (homeConfig.showWeather) {
             Box(
                 modifier = Modifier
@@ -557,7 +567,8 @@ fun HomeScreen(
                     ) {
                         Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("📍 ${uiState.currentCityName} · ${LanguageUtils.getString("forecast_title", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
+                        val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
+                        Text("📍 $localizedCity · ${LanguageUtils.getString("forecast_title", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -593,7 +604,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(6.dp))
         }
 
-        // 3. 星座与运势 Card (在未滚动默认状态下，精准露出标题行)
+        // 3. 星座与运势 Card (星座名称多语言翻译)
         if (homeConfig.showZodiacFortune) {
             Box(
                 modifier = Modifier
@@ -612,7 +623,8 @@ fun HomeScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("${fortune.emoji} ${fortune.constellation} (${fortune.dateRange}) ${LanguageUtils.getString("fortune_suffix", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
+                            val localizedConstellation = LanguageUtils.getLocalizedConstellation(fortune.constellation, lang)
+                            Text("$localizedConstellation (${fortune.dateRange}) ${LanguageUtils.getString("fortune_suffix", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
                         }
 
                         Row {

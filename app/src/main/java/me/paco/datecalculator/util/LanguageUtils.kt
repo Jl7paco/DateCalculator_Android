@@ -1,21 +1,106 @@
 package me.paco.datecalculator.util
 
 import me.paco.datecalculator.data.AppLanguage
+import java.time.YearMonth
 
 object LanguageUtils {
 
     fun getWeekHeaders(language: AppLanguage): List<String> {
-        return when (language) {
+        return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> listOf("日", "一", "二", "三", "四", "五", "六")
             AppLanguage.TRADITIONAL_CHINESE -> listOf("日", "一", "二", "三", "四", "五", "六")
             AppLanguage.ENGLISH -> listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
             AppLanguage.JAPANESE -> listOf("日", "月", "火", "水", "木", "金", "土")
             AppLanguage.KOREAN -> listOf("일", "월", "화", "수", "목", "금", "토")
+            else -> listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+        }
+    }
+
+    fun getLocalizedYearMonth(yearMonth: YearMonth, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE, AppLanguage.JAPANESE -> "${yearMonth.year}年 ${yearMonth.monthValue}月"
+            AppLanguage.KOREAN -> "${yearMonth.year}년 ${yearMonth.monthValue}월"
+            else -> {
+                val mName = yearMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }
+                "$mName ${yearMonth.year}"
+            }
+        }
+    }
+
+    fun getLocalizedConstellation(name: String, language: AppLanguage): String {
+        val clean = name.replace("♑ ", "").replace("♒ ", "").replace("♓ ", "").replace("♈ ", "").replace("♉ ", "").replace("♊ ", "").replace("♋ ", "").replace("<ctrl42> ", "").replace("♍ ", "").replace("♎ ", "").replace("♏ ", "").replace("♐ ", "").trim()
+        val emoji = when {
+            name.contains("摩羯") -> "♑"
+            name.contains("水瓶") -> "♒"
+            name.contains("双鱼") -> "♓"
+            name.contains("白羊") -> "♈"
+            name.contains("金牛") -> "♉"
+            name.contains("双子") -> "♊"
+            name.contains("巨蟹") -> "♋"
+            name.contains("狮子") -> "♌"
+            name.contains("处女") -> "♍"
+            name.contains("天秤") -> "♎"
+            name.contains("天蝎") -> "♏"
+            name.contains("射手") -> "♐"
+            else -> "✨"
+        }
+
+        val translated = when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> clean
+            AppLanguage.TRADITIONAL_CHINESE -> when (clean) {
+                "摩羯座" -> "摩羯座"; "水瓶座" -> "水瓶座"; "双鱼座" -> "雙魚座"; "白羊座" -> "白羊座"
+                "金牛座" -> "金牛座"; "双子座" -> "雙子座"; "巨蟹座" -> "巨蟹座"; "狮子座" -> "獅子座"
+                "处女座" -> "處女座"; "天秤座" -> "天秤座"; "天蝎座" -> "天蠍座"; "射手座" -> "射手座"; else -> clean
+            }
+            AppLanguage.ENGLISH -> when (clean) {
+                "摩羯座" -> "Capricorn"; "水瓶座" -> "Aquarius"; "双鱼座" -> "Pisces"; "白羊座" -> "Aries"
+                "金牛座" -> "Taurus"; "双子座" -> "Gemini"; "巨蟹座" -> "Cancer"; "狮子座" -> "Leo"
+                "处女座" -> "Virgo"; "天秤座" -> "Libra"; "天蝎座" -> "Scorpio"; "射手座" -> "Sagittarius"; else -> clean
+            }
+            AppLanguage.JAPANESE -> when (clean) {
+                "摩羯座" -> "山羊座"; "水瓶座" -> "水瓶座"; "双鱼座" -> "魚座"; "白羊座" -> "牡羊座"
+                "金牛座" -> "牡牛座"; "双子座" -> "双子座"; "巨蟹座" -> "蟹座"; "狮子座" -> "獅子座"
+                "处女座" -> "乙女座"; "天秤座" -> "天秤座"; "天蝎座" -> "蠍座"; "射手座" -> "射手座"; else -> clean
+            }
+            AppLanguage.KOREAN -> when (clean) {
+                "摩羯座" -> "염소자리"; "水瓶座" -> "물병자리"; "双鱼座" -> "물고기자리"; "白羊座" -> "양자리"
+                "金牛座" -> "황소자리"; "双子座" -> "쌍둥이자리"; "巨蟹座" -> "게자리"; "狮子座" -> "사자자리"
+                "处女座" -> "처녀자리"; "天秤座" -> "천칭자리"; "天蝎座" -> "전갈자리"; "射手座" -> "궁수자리"; else -> clean
+            }
+            else -> clean
+        }
+        return "$emoji $translated"
+    }
+
+    fun getLocalizedAlmanacItem(item: String, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> item
+            AppLanguage.TRADITIONAL_CHINESE -> when (item) {
+                "祭祀" -> "祭祀"; "祈福" -> "祈福"; "出行" -> "出行"; "立券" -> "立券"; "签合同" -> "簽合同"; "纳财" -> "納財"
+                "扫舍" -> "掃舍"; "沐浴" -> "沐浴"; "求医" -> "求醫"; "治病" -> "治病"; "开市" -> "開市"; "交易" -> "交易"
+                "安床" -> "安床"; "入宅" -> "入宅"; "嫁娶" -> "嫁娶"; "安葬" -> "安葬"; "破土" -> "破土"; else -> item
+            }
+            AppLanguage.ENGLISH -> when (item) {
+                "祭祀" -> "Worship"; "祈福" -> "Pray"; "出行" -> "Travel"; "立券" -> "Contract"; "签合同" -> "Sign Agreement"; "纳财" -> "Wealth"
+                "扫舍" -> "Clean House"; "沐浴" -> "Bathing"; "求医" -> "Medical"; "治病" -> "Cure"; "开市" -> "Open Business"; "交易" -> "Trading"
+                "安床" -> "Set Bed"; "入宅" -> "Move In"; "嫁娶" -> "Wedding"; "安葬" -> "Burial"; "破土" -> "Break Ground"; else -> item
+            }
+            AppLanguage.JAPANESE -> when (item) {
+                "祭祀" -> "神事"; "祈福" -> "祈願"; "出行" -> "旅行"; "立券" -> "契約"; "签合同" -> "調印"; "纳财" -> "納財"
+                "扫舍" -> "掃除"; "沐浴" -> "入浴"; "求医" -> "通院"; "治病" -> "治療"; "开市" -> "開店"; "交易" -> "取引"
+                "安床" -> "寝具準備"; "入宅" -> "新居入居"; "嫁娶" -> "婚礼"; "安葬" -> "埋葬"; "破土" -> "起工"; else -> item
+            }
+            AppLanguage.KOREAN -> when (item) {
+                "祭祀" -> "제사"; "祈福" -> "기복"; "出行" -> "외출"; "立券" -> "계약"; "签合同" -> "서명"; "纳财" -> "재물 수합"
+                "扫舍" -> "청소"; "沐浴" -> "목욕"; "求医" -> "진료"; "治病" -> "치료"; "开市" -> "개업"; "交易" -> "거래"
+                "安床" -> "침대 배치"; "入宅" -> "입주"; "嫁娶" -> "혼인"; "安葬" -> "매장"; "破土" -> "개토"; else -> item
+            }
+            else -> item
         }
     }
 
     fun getWeatherCondition(condition: String, language: AppLanguage): String {
-        return when (language) {
+        return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> condition
             AppLanguage.TRADITIONAL_CHINESE -> when (condition) {
                 "晴朗" -> "晴朗"; "阴天" -> "陰天"; "小雨" -> "小雨"; "雷阵雨" -> "雷陣雨"; "多云" -> "多雲"; else -> condition
@@ -29,30 +114,32 @@ object LanguageUtils {
             AppLanguage.KOREAN -> when (condition) {
                 "晴朗" -> "맑음"; "阴天" -> "흐림"; "小雨" -> "가랑비"; "雷阵雨" -> "뇌우"; "多云" -> "구름조금"; else -> condition
             }
+            else -> condition
         }
     }
 
     fun getDayName(dayName: String, language: AppLanguage): String {
-        return when (language) {
+        return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> dayName
             AppLanguage.TRADITIONAL_CHINESE -> when (dayName) {
-                "今天" -> "今天"; "明天" -> "明天"; "后天" -> "後天"; else -> dayName
+                "今天" -> "今天"; "明天" -> "明天"; "后天" -> "後天"; "大后天" -> "大後天"; else -> dayName
             }
             AppLanguage.ENGLISH -> when (dayName) {
-                "今天" -> "Today"; "明天" -> "Tomorrow"; "后天" -> "Day After"; else -> dayName
+                "今天" -> "Today"; "明天" -> "Tomorrow"; "后天" -> "Day After"; "大后天" -> "3 Days Later"; else -> dayName
             }
             AppLanguage.JAPANESE -> when (dayName) {
-                "今天" -> "今日"; "明天" -> "明日"; "后天" -> "明後日"; else -> dayName
+                "今天" -> "今日"; "明天" -> "明日"; "后天" -> "明後日"; "大后天" -> "明々後日"; else -> dayName
             }
             AppLanguage.KOREAN -> when (dayName) {
-                "今天" -> "오늘"; "明天" -> "내일"; "后天" -> "모레"; else -> dayName
+                "今天" -> "오늘"; "明天" -> "내일"; "后天" -> "모레"; "大后天" -> "글피"; else -> dayName
             }
+            else -> dayName
         }
     }
 
     fun getLocalizedCityName(cityName: String, language: AppLanguage): String {
         val clean = cityName.replace("市", "").trim()
-        return when (language) {
+        return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> cityName
             AppLanguage.TRADITIONAL_CHINESE -> "${clean}市"
             AppLanguage.ENGLISH -> when (clean) {
@@ -64,11 +151,12 @@ object LanguageUtils {
             AppLanguage.KOREAN -> when (clean) {
                 "北京" -> "베이징"; "上海" -> "상하이"; "广州" -> "광저우"; "深圳" -> "선전"; "杭州" -> "항저우"; "成都" -> "청두"; "武汉" -> "우한"; "南京" -> "난징"; "重庆" -> "충칭"; "天津" -> "텐진"; "西安" -> "시안"; "台北" -> "타이베이"; "香港" -> "홍콩"; "澳门" -> "마카오"; else -> clean
             }
+            else -> clean
         }
     }
 
     fun getLocalizedZodiac(zodiac: String, language: AppLanguage): String {
-        return when (language) {
+        return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> zodiac
             AppLanguage.TRADITIONAL_CHINESE -> zodiac
             AppLanguage.ENGLISH -> when (zodiac) {
@@ -80,21 +168,23 @@ object LanguageUtils {
             AppLanguage.KOREAN -> when (zodiac) {
                 "鼠" -> "쥐"; "牛" -> "소"; "虎" -> "호랑이"; "兔" -> "토끼"; "龙" -> "용"; "蛇" -> "뱀"; "马" -> "말"; "羊" -> "양"; "猴" -> "원숭이"; "鸡" -> "닭"; "狗" -> "개"; "猪" -> "돼지"; else -> zodiac
             }
+            else -> zodiac
         }
     }
 
     fun getLocalizedStageTitle(index: Int, language: AppLanguage): String {
-        return when (language) {
+        return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> "第${index}段时间"
             AppLanguage.TRADITIONAL_CHINESE -> "第${index}段時間"
             AppLanguage.ENGLISH -> "Stage $index"
             AppLanguage.JAPANESE -> "第${index}段階"
             AppLanguage.KOREAN -> "${index}단계"
+            else -> "Stage $index"
         }
     }
 
     fun getLocalizedHistoryCategory(category: String, language: AppLanguage): String {
-        return when (language) {
+        return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> category
             AppLanguage.TRADITIONAL_CHINESE -> when (category) {
                 "日期计算" -> "日期計算"; "倒数日" -> "倒數日"; "纪念日" -> "紀念日"; "农历公历" -> "農曆公曆"; else -> category
@@ -108,12 +198,13 @@ object LanguageUtils {
             AppLanguage.KOREAN -> when (category) {
                 "日期计算" -> "날짜 계산"; "倒数日" -> "디데이"; "纪念日" -> "기념일"; "农历公历" -> "음력/양력"; else -> category
             }
+            else -> category
         }
     }
 
     fun getLocalizedHistoryTitle(title: String, language: AppLanguage): String {
         var res = title
-        when (language) {
+        when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> {}
             AppLanguage.TRADITIONAL_CHINESE -> {
                 res = res.replace("工作日计算结果", "工作日計算結果").replace("自然日计算结果", "自然日計算結果")
@@ -127,13 +218,14 @@ object LanguageUtils {
             AppLanguage.KOREAN -> {
                 res = res.replace("工作日计算结果:", "근무일 계산 결과:").replace("自然日计算结果:", "자연일 계산 결과:").replace("相差", "차이:").replace("天", "일").replace("工作日", "근무일")
             }
+            else -> {}
         }
         return res
     }
 
     fun getLocalizedHistoryDetail(detail: String, language: AppLanguage): String {
         var result = detail
-        when (language) {
+        when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> {}
             AppLanguage.TRADITIONAL_CHINESE -> {
                 result = result.replace("起始日期", "起始日期").replace("目标日期", "目標日期").replace("工作日", "工作日").replace("自然日", "自然日")
@@ -147,6 +239,7 @@ object LanguageUtils {
             AppLanguage.KOREAN -> {
                 result = result.replace("起始日期:", "시작:").replace("目标日期:", "목표:").replace("工作日", "근무일").replace("自然日", "일").replace("加", " 더하기 ").replace("减", " 빼기 ")
             }
+            else -> {}
         }
         return result
     }
@@ -154,12 +247,13 @@ object LanguageUtils {
     fun getLocalizedRegionTag(tag: String, language: AppLanguage): String {
         val clean = tag.replace("🇨🇳 ", "").replace("🇹🇼 ", "").replace("🇭🇰 ", "").replace("🇲🇴 ", "").replace("🇸🇬 ", "").replace("🇸🇬 ", "").trim()
         val icon = if (tag.contains("🇨🇳")) "🇨🇳" else if (tag.contains("🇹🇼")) "🇹🇼" else "📌"
-        val name = when (language) {
+        val name = when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> clean
             AppLanguage.TRADITIONAL_CHINESE -> when (clean) { "中国大陆" -> "中國大陸"; "台湾（中国）" -> "台灣（中國）"; else -> clean }
             AppLanguage.ENGLISH -> when (clean) { "中国大陆" -> "China Mainland"; "台湾（中国）" -> "Taiwan, China"; else -> clean }
             AppLanguage.JAPANESE -> when (clean) { "中国大陆" -> "中国本土"; "台湾（中国）" -> "台湾"; else -> clean }
             AppLanguage.KOREAN -> when (clean) { "中国大陆" -> "중국 본토"; "台湾（中国）" -> "대만"; else -> clean }
+            else -> clean
         }
         return "$icon $name"
     }
@@ -178,7 +272,7 @@ object LanguageUtils {
             else -> "📌"
         }
 
-        val name = when (language) {
+        val name = when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> cleanLabel
             AppLanguage.TRADITIONAL_CHINESE -> when (cleanLabel) {
                 "国庆节" -> "國慶節"; "元旦" -> "元旦"; "春节" -> "春節"; "清明节" -> "清明節"
@@ -196,11 +290,14 @@ object LanguageUtils {
                 "国庆节" -> "국경절"; "元旦" -> "신정"; "春节" -> "설날"; "清明节" -> "청명절"
                 "五一劳动节" -> "노동절"; "端午节" -> "단오절"; "高考" -> "수능"; "中考" -> "고입시험"; "中秋节" -> "추석"; else -> cleanLabel
             }
+            else -> cleanLabel
         }
         return "$icon $name"
     }
 
     fun getString(key: String, language: AppLanguage): String {
+        val effectiveLang = language.getEffectiveLanguage()
+
         val stringsZhCn = mapOf(
             "app_title" to "日期计算器",
             "tab_home" to "首页",
@@ -231,7 +328,7 @@ object LanguageUtils {
             "base_date" to "起始日期",
             "settings_title" to "系统设置",
             "history_title" to "历史记录",
-            "add_countdown" to "+ 新增倒数日",
+            "add_countdown" to "新增倒数日",
             "common_countdown" to "常用倒数日",
             "fixed_countdown" to "固定倒数日",
             "today" to "今天",
@@ -240,7 +337,7 @@ object LanguageUtils {
             "minus_1w" to "-1周",
             "mode_forward" to "加减天数",
             "mode_reverse" to "区间拆算",
-            "multi_stage_btn" to "多段模式",
+            "multi_stage_btn" to "多段加减",
             "add_stage_btn" to "添加下一段时间",
             "save_record" to "保存到记录",
             "diff_natural" to "相差自然日",
@@ -266,8 +363,8 @@ object LanguageUtils {
             "lucky_number" to "幸运数字",
             "lucky_color" to "幸运颜色",
             "forecast_title" to "当地及未来三日天气推算",
-            "add_anniversary" to "+ 新增纪念日",
-            "check_in" to "📍 打卡",
+            "add_anniversary" to "新增纪念日",
+            "check_in" to "打卡",
             "save_anniversary" to "保存纪念日",
             "anniversary_name" to "纪念日名称",
             "anniversary_date" to "纪念日日期",
@@ -313,9 +410,9 @@ object LanguageUtils {
             "rule_six_days_saturday_desc" to "每周日及周一至周五为工作日，仅周六休息",
             "rule_seven_days_desc" to "一周七天均为工作日，不计周末",
             "no_anniversary_record" to "❤️ 暂无记录的重要纪念日",
-            "add_anniversary_hint" to "点击上方“添加纪念日”或“📍 打卡”保存美好时刻",
+            "add_anniversary_hint" to "点击上方“新增纪念日”或“打卡”保存美好时刻",
             "fortune_suffix" to "每日运势",
-            "custom_btn" to "+ 自定义",
+            "custom_btn" to "自定义",
             "yi_label" to "宜",
             "ji_label" to "忌",
             "lunar_to_solar_title" to "公历 ➔ 农历",
@@ -355,7 +452,7 @@ object LanguageUtils {
             "base_date" to "起始日期",
             "settings_title" to "系統設定",
             "history_title" to "歷史記錄",
-            "add_countdown" to "+ 新增倒數日",
+            "add_countdown" to "新增倒數日",
             "common_countdown" to "常用倒數日",
             "fixed_countdown" to "固定倒數日",
             "today" to "今天",
@@ -364,7 +461,7 @@ object LanguageUtils {
             "minus_1w" to "-1周",
             "mode_forward" to "加減天數",
             "mode_reverse" to "區間拆算",
-            "multi_stage_btn" to "多段模式",
+            "multi_stage_btn" to "多段加減",
             "add_stage_btn" to "添加下一段時間",
             "save_record" to "保存到記錄",
             "diff_natural" to "相差自然日",
@@ -390,8 +487,8 @@ object LanguageUtils {
             "lucky_number" to "幸運數字",
             "lucky_color" to "幸運顏色",
             "forecast_title" to "當地及未來三日天氣推算",
-            "add_anniversary" to "+ 新增紀念日",
-            "check_in" to "📍 打卡",
+            "add_anniversary" to "新增紀念日",
+            "check_in" to "打卡",
             "save_anniversary" to "保存紀念日",
             "anniversary_name" to "紀念日名稱",
             "anniversary_date" to "紀念日日期",
@@ -437,9 +534,9 @@ object LanguageUtils {
             "rule_six_days_saturday_desc" to "每周日及周一至周五為工作日，僅周六休息",
             "rule_seven_days_desc" to "一周七天均為工作日，不計周末",
             "no_anniversary_record" to "❤️ 暫無記錄的重要紀念日",
-            "add_anniversary_hint" to "點擊上方“添加紀念日”或“📍 打卡”保存美好時刻",
+            "add_anniversary_hint" to "點擊上方“新增紀念日”或“打卡”保存美好時刻",
             "fortune_suffix" to "每日運勢",
-            "custom_btn" to "+ 自定義",
+            "custom_btn" to "自定義",
             "yi_label" to "宜",
             "ji_label" to "忌",
             "lunar_to_solar_title" to "公曆 ➔ 農曆",
@@ -479,16 +576,16 @@ object LanguageUtils {
             "base_date" to "Start Date",
             "settings_title" to "Settings",
             "history_title" to "History",
-            "add_countdown" to "+ Add Countdown",
+            "add_countdown" to "Add Countdown",
             "common_countdown" to "Preset Countdowns",
             "fixed_countdown" to "Pinned Countdowns",
             "today" to "Today",
-            "yesterday" to "Yesterday",
+            "yesterday" to "Yest",
             "plus_1w" to "+1 Wk",
             "minus_1w" to "-1 Wk",
             "mode_forward" to "Add/Sub Days",
             "mode_reverse" to "Range Breakdown",
-            "multi_stage_btn" to "Multi-Stage",
+            "multi_stage_btn" to "Multi-Stage Calc",
             "add_stage_btn" to "Add Next Stage",
             "save_record" to "Save to History",
             "diff_natural" to "Diff Calendar Days",
@@ -514,8 +611,8 @@ object LanguageUtils {
             "lucky_number" to "Lucky Number",
             "lucky_color" to "Lucky Color",
             "forecast_title" to "Local 3-Day Weather Forecast",
-            "add_anniversary" to "+ Add Anniversary",
-            "check_in" to "📍 Check-in",
+            "add_anniversary" to "Add Anniversary",
+            "check_in" to "Check-in",
             "save_anniversary" to "Save Anniversary",
             "anniversary_name" to "Anniversary Title",
             "anniversary_date" to "Anniversary Date",
@@ -561,9 +658,9 @@ object LanguageUtils {
             "rule_six_days_saturday_desc" to "Sun-Fri workdays, Sat rest",
             "rule_seven_days_desc" to "All 7 days workdays, no weekend rest",
             "no_anniversary_record" to "❤️ No Anniversaries Saved",
-            "add_anniversary_hint" to "Click 'Add Anniversary' or '📍 Check-in' to record special moments",
+            "add_anniversary_hint" to "Click 'Add Anniversary' or 'Check-in' to record special moments",
             "fortune_suffix" to "Daily Horoscope",
-            "custom_btn" to "+ Custom",
+            "custom_btn" to "Custom",
             "yi_label" to "Good",
             "ji_label" to "Avoid",
             "lunar_to_solar_title" to "Solar ➔ Lunar",
@@ -603,7 +700,7 @@ object LanguageUtils {
             "base_date" to "開始日",
             "settings_title" to "システム設定",
             "history_title" to "履歴",
-            "add_countdown" to "+ カウントダウン追加",
+            "add_countdown" to "カウントダウン追加",
             "common_countdown" to "よく使うカウントダウン",
             "fixed_countdown" to "固定済みカウントダウン",
             "today" to "今日",
@@ -612,7 +709,7 @@ object LanguageUtils {
             "minus_1w" to "-1週",
             "mode_forward" to "日数計算",
             "mode_reverse" to "期間分析",
-            "multi_stage_btn" to "マルチステージ",
+            "multi_stage_btn" to "多段階加減",
             "add_stage_btn" to "次の期間を追加",
             "save_record" to "履歴に保存",
             "diff_natural" to "自然日数差",
@@ -638,8 +735,8 @@ object LanguageUtils {
             "lucky_number" to "ラッキーナンバー",
             "lucky_color" to "ラッキーカラー",
             "forecast_title" to "現地と3日間の天気予報",
-            "add_anniversary" to "+ 記念日追加",
-            "check_in" to "📍 チェックイン",
+            "add_anniversary" to "記念日追加",
+            "check_in" to "チェックイン",
             "save_anniversary" to "記念日を保存",
             "anniversary_name" to "記念日名",
             "anniversary_date" to "記念日",
@@ -685,9 +782,9 @@ object LanguageUtils {
             "rule_six_days_saturday_desc" to "日曜・月〜金勤務、土曜日休み",
             "rule_seven_days_desc" to "毎日勤務、週末休みなし",
             "no_anniversary_record" to "❤️ 保存された記念日はありません",
-            "add_anniversary_hint" to "「記念日追加」または「📍 チェックイン」をクリック",
+            "add_anniversary_hint" to "「記念日追加」または「チェックイン」をクリック",
             "fortune_suffix" to "今日の運勢",
-            "custom_btn" to "+ カスタム",
+            "custom_btn" to "カスタム",
             "yi_label" to "吉",
             "ji_label" to "凶",
             "lunar_to_solar_title" to "新暦 ➔ 旧暦",
@@ -727,7 +824,7 @@ object LanguageUtils {
             "base_date" to "시작 날짜",
             "settings_title" to "시스템 설정",
             "history_title" to "히스토리",
-            "add_countdown" to "+ 디데이 추가",
+            "add_countdown" to "디데이 추가",
             "common_countdown" to "자주 쓰는 디데이",
             "fixed_countdown" to "고정된 디데이",
             "today" to "오늘",
@@ -736,7 +833,7 @@ object LanguageUtils {
             "minus_1w" to "-1주",
             "mode_forward" to "일수 더하기/빼기",
             "mode_reverse" to "기간 분석",
-            "multi_stage_btn" to "다단계 모드",
+            "multi_stage_btn" to "다단계 가감",
             "add_stage_btn" to "다음 단계 추가",
             "save_record" to "기록에 저장",
             "diff_natural" to "자연일 차이",
@@ -762,8 +859,8 @@ object LanguageUtils {
             "lucky_number" to "행운의 숫자",
             "lucky_color" to "행운의 색상",
             "forecast_title" to "현지 및 향후 3일 날씨 예보",
-            "add_anniversary" to "+ 기념일 추가",
-            "check_in" to "📍 체크인",
+            "add_anniversary" to "기념일 추가",
+            "check_in" to "체크인",
             "save_anniversary" to "기념일 저장",
             "anniversary_name" to "기념일 이름",
             "anniversary_date" to "기념일 날짜",
@@ -806,12 +903,12 @@ object LanguageUtils {
             "rule_five_days_desc" to "월~금 근무, 토/일 휴무",
             "rule_big_small_weeks_desc" to "일요일 휴무와 토/일 휴무를 교대로 진행",
             "rule_six_days_sunday_desc" to "월~토 근무, 일요일 휴무",
-            "rule_six_days_saturday_desc" to "일/월~금 근무, 토요일 휴무",
+            "rule_six_days_saturday_desc" to "생년월일 및 휴무일 적용",
             "rule_seven_days_desc" to "매일 근무, 주말 휴무 없음",
             "no_anniversary_record" to "❤️ 저장된 기념일이 없습니다",
-            "add_anniversary_hint" to "'기념일 추가' 또는 '📍 체크인'을 클릭하세요",
+            "add_anniversary_hint" to "'기념일 추가' 또는 '체크인'을 클릭하세요",
             "fortune_suffix" to "오늘의 운세",
-            "custom_btn" to "+ 커스텀",
+            "custom_btn" to "커스텀",
             "yi_label" to "길",
             "ji_label" to "흉",
             "lunar_to_solar_title" to "양력 ➔ 음력",
@@ -821,12 +918,13 @@ object LanguageUtils {
             "palette_title" to "테마 색상 팔레트 (14):"
         )
 
-        return when (language) {
+        return when (effectiveLang) {
             AppLanguage.SIMPLIFIED_CHINESE -> stringsZhCn[key] ?: key
             AppLanguage.TRADITIONAL_CHINESE -> stringsZhTw[key] ?: key
             AppLanguage.ENGLISH -> stringsEn[key] ?: key
             AppLanguage.JAPANESE -> stringsJa[key] ?: key
             AppLanguage.KOREAN -> stringsKo[key] ?: key
+            else -> stringsEn[key] ?: key
         }
     }
 }

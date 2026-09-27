@@ -4,6 +4,8 @@
     android:minHeight="60dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_quick_calc"
+    android:previewLayout="@layout/widget_quick_calc"
+    android:previewImage="@mipmap/ic_launcher"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>

@@ -3,6 +3,7 @@ package me.paco.datecalculator.data
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import kotlin.math.abs
 
 enum class HolidayRegion(
@@ -28,52 +29,43 @@ enum class HolidayRegion(
     INDIA("IN", "印度", "India", "🇮🇳", "含印度全国及各邦法定节假日"),
     INDONESIA("ID", "印尼", "Indonesia", "🇮🇩", "含印尼全国法定公众假期 (Hari Libur)"),
     AUSTRALIA("AU", "澳大利亚", "Australia", "🇦🇺", "含澳大利亚全国及州法定公众假期"),
-    NEW_ZEALAND("NZ", "新西兰", "New Zealand", "🇳🇿", "含新西兰全国法定公众假期"),
+    NEW_ZEALAND("NZ", "新西兰", "New Zealand", "🇳ℤ", "含新西兰全国法定公众假期"),
     UNITED_STATES("US", "美国", "United States", "🇺🇸", "含联邦法定节假日 (Federal Holidays)"),
     THAILAND("TH", "泰国", "ประเทศไทย", "🇹🇭", "含泰国法定公众假期及补假");
 
+    val supportsLunarCalendar: Boolean
+        get() = this == CHINA || this == TAIWAN || this == HONG_KONG || this == MACAO || this == SINGAPORE || this == MALAYSIA
+
+    val supportsAlmanac: Boolean
+        get() = this == CHINA || this == TAIWAN || this == HONG_KONG || this == MACAO
+
     fun getLocalizedName(language: AppLanguage): String {
-        if (language == AppLanguage.SIMPLIFIED_CHINESE) return label
-        if (language == AppLanguage.TRADITIONAL_CHINESE) {
+        val eff = language.getEffectiveLanguage()
+        if (eff == AppLanguage.SIMPLIFIED_CHINESE) return label
+        if (eff == AppLanguage.TRADITIONAL_CHINESE) {
             return when (this) {
                 CHINA -> "中國大陸"
                 TAIWAN -> "台灣（中國）"
-                HONG_KONG -> "中國香港"
-                MACAO -> "中國澳門"
+                HONG_KONG -> "香港"
+                MACAO -> "澳門"
                 SINGAPORE -> "新加坡"
+                MALAYSIA -> "馬來西亞"
+                VIETNAM -> "越南"
                 JAPAN -> "日本"
                 SOUTH_KOREA -> "韓國"
-                UNITED_STATES -> "美國"
                 UNITED_KINGDOM -> "英國"
                 GERMANY -> "德國"
                 FRANCE -> "法國"
                 ITALY -> "義大利"
+                INDIA -> "印度"
+                INDONESIA -> "印尼"
                 AUSTRALIA -> "澳大利亞"
                 NEW_ZEALAND -> "紐西蘭"
-                else -> label
+                UNITED_STATES -> "美國"
+                THAILAND -> "泰國"
             }
         }
-        return when (this) {
-            CHINA -> "Mainland China"
-            TAIWAN -> "Taiwan"
-            HONG_KONG -> "Hong Kong"
-            MACAO -> "Macau"
-            SINGAPORE -> "Singapore"
-            MALAYSIA -> "Malaysia"
-            VIETNAM -> "Vietnam"
-            JAPAN -> "Japan"
-            SOUTH_KOREA -> "South Korea"
-            UNITED_KINGDOM -> "United Kingdom"
-            GERMANY -> "Germany"
-            FRANCE -> "France"
-            ITALY -> "Italy"
-            INDIA -> "India"
-            INDONESIA -> "Indonesia"
-            AUSTRALIA -> "Australia"
-            NEW_ZEALAND -> "New Zealand"
-            UNITED_STATES -> "United States"
-            THAILAND -> "Thailand"
-        }
+        return nativeName
     }
 }
 
@@ -124,9 +116,6 @@ enum class ThemeColorPreset(val label: String, val primaryColorHex: Long) {
     CUSTOM("自定义色彩", 0xFF2563EB)
 }
 
-/**
- * 深色/黑暗模式选择配置 (更名："开启"、"关闭")
- */
 enum class DarkThemeMode(val label: String) {
     SYSTEM("跟随系统"),
     ON("开启"),
@@ -134,7 +123,7 @@ enum class DarkThemeMode(val label: String) {
 }
 
 /**
- * 应用多语言支持配置
+ * 应用多语言支持配置 (新增：SYSTEM跟随系统)
  */
 enum class AppLanguage(
     val code: String,
@@ -142,14 +131,39 @@ enum class AppLanguage(
     val nativeName: String,
     val localeTag: String
 ) {
+    SYSTEM("system", "跟随系统", "跟随系统", "system"),
     SIMPLIFIED_CHINESE("zh_CN", "简体中文", "简体中文", "zh-CN"),
     TRADITIONAL_CHINESE("zh_TW", "繁体中文", "繁體中文", "zh-TW"),
     ENGLISH("en", "英语", "English", "en"),
     JAPANESE("ja", "日语", "日本語", "ja"),
     KOREAN("ko", "韩语", "한국어", "ko");
 
+    fun getEffectiveLanguage(): AppLanguage {
+        if (this != SYSTEM) return this
+        val systemLocale = Locale.getDefault()
+        val langCode = systemLocale.language.lowercase()
+        val script = systemLocale.script.lowercase()
+        val country = systemLocale.country.uppercase()
+
+        return when {
+            langCode == "zh" -> {
+                if (script == "hant" || country == "TW" || country == "HK" || country == "MO") {
+                    TRADITIONAL_CHINESE
+                } else {
+                    SIMPLIFIED_CHINESE
+                }
+            }
+            langCode == "ja" -> JAPANESE
+            langCode == "ko" -> KOREAN
+            else -> ENGLISH
+        }
+    }
+
     val isChineseLocale: Boolean
-        get() = this == SIMPLIFIED_CHINESE || this == TRADITIONAL_CHINESE
+        get() {
+            val eff = getEffectiveLanguage()
+            return eff == SIMPLIFIED_CHINESE || eff == TRADITIONAL_CHINESE
+        }
 }
 
 data class HomeConfig(
@@ -201,9 +215,6 @@ data class ZodiacFortune(
     val ji: String
 )
 
-/**
- * 重要纪念日与打卡模型 (最高存储 999 个卡片，支持记录经纬度、地点与精准打卡时间)
- */
 data class AnniversaryItem(
     val id: Long = System.currentTimeMillis(),
     val title: String,

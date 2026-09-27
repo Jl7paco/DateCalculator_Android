@@ -4,6 +4,8 @@
     android:minHeight="140dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_checkin"
+    android:previewLayout="@layout/widget_checkin"
+    android:previewImage="@mipmap/ic_launcher"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>

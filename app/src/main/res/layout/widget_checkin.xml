@@ -11,7 +11,7 @@
         android:id="@+id/widget_checkin_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="📍 纪念日打卡"
+        android:text="纪念日打卡"
         android:textSize="13sp"
         android:textStyle="bold"
         android:textColor="#EC4899" />
@@ -20,7 +20,7 @@
         android:id="@+id/widget_checkin_location"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="📍 当前位置: 深圳市"
+        android:text="当前位置: 深圳市"
         android:textSize="11.5sp"
         android:textColor="#1E293B"
         android:layout_marginTop="4dp" />
@@ -29,7 +29,7 @@
         android:id="@+id/widget_checkin_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="📍 1键打卡"
+        android:text="1键打卡"
         android:textSize="12sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"

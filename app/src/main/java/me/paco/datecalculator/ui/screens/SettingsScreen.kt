@@ -142,7 +142,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 0. 语言设置 Card
+        // 0. 语言设置 Card (新增：跟随系统选项，排在第1位)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -165,10 +165,11 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    AppLanguage.values().forEach { appLang ->
+                    AppLanguage.entries.forEach { appLang ->
                         val isSelected = (uiState.appLanguage == appLang)
+                        val displayName = if (appLang == AppLanguage.SYSTEM) LanguageUtils.getString("dark_mode_system", lang) else appLang.nativeName
                         NeumorphicChip(
-                            text = appLang.nativeName,
+                            text = displayName,
                             selected = isSelected,
                             onClick = {
                                 viewModel.updateAppLanguage(appLang, context)
@@ -219,7 +220,7 @@ fun SettingsScreen(
 
                 HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
 
-                // 子模块开关列表 (非中文环境下自动取消黄历与农历选项，并仅以当前语言文字显示)
+                // 子模块开关列表
                 val moduleList = mutableListOf<Triple<String, Boolean, (Boolean) -> Unit>>()
                 moduleList.add(Triple(LanguageUtils.getString("home_calendar", lang), config.showCalendar) { checked ->
                     viewModel.updateHomeConfig(config.copy(showCalendar = checked), context)
@@ -327,7 +328,7 @@ fun SettingsScreen(
                                 } else {
                                     viewModel.updateGpsAutoDetect(true, context)
                                     val detected = LocationUtils.detectCurrentRegion(context)
-                                    Toast.makeText(context, "已开启 GPS 自动识别，匹配所在地: ${detected.flagEmoji} ${detected.nativeName}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "GPS matched: ${detected.flagEmoji} ${detected.getLocalizedName(lang)}", Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 viewModel.updateGpsAutoDetect(false, context)
@@ -350,7 +351,7 @@ fun SettingsScreen(
                             .clip(RoundedCornerShape(14.dp))
                             .semantics {
                                 role = Role.Button
-                                contentDescription = "当前选择的地区: ${selected.nativeName}，点击展开地区选择列表"
+                                contentDescription = "Select region: ${selected.getLocalizedName(lang)}"
                             }
                             .clickable { regionMenuExpanded = true }
                             .padding(horizontal = 14.dp),
@@ -362,12 +363,12 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "${selected.flagEmoji} ${selected.nativeName}",
+                                text = "${selected.flagEmoji} ${selected.getLocalizedName(lang)}",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = NeumorphicTextPrimary
                             )
-                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "展开地区下拉菜单", tint = NeumorphicAccent, modifier = Modifier.size(20.dp))
+                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown", tint = NeumorphicAccent, modifier = Modifier.size(20.dp))
                         }
                     }
 
@@ -389,7 +390,7 @@ fun SettingsScreen(
                                     )
                                     .semantics {
                                         role = Role.Button
-                                        contentDescription = "选择地区: ${region.nativeName}"
+                                        contentDescription = "Region: ${region.getLocalizedName(lang)}"
                                     }
                                     .clickable {
                                         viewModel.updateHolidayRegion(region, context)
@@ -398,7 +399,7 @@ fun SettingsScreen(
                                     .padding(horizontal = 12.dp, vertical = 10.dp)
                             ) {
                                 Text(
-                                    text = "${region.flagEmoji} ${region.nativeName}",
+                                    text = "${region.flagEmoji} ${region.getLocalizedName(lang)}",
                                     fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold,
                                     color = if (isCurrent) NeumorphicAccent else NeumorphicTextPrimary,
                                     fontSize = 14.sp
@@ -585,7 +586,7 @@ fun SettingsScreen(
                 ) {
                     listOf(ThemeColorPreset.SYSTEM, ThemeColorPreset.CUSTOM).forEach { preset ->
                         val isSelected = (uiState.themePreset == preset)
-                        val labelText = if (preset == ThemeColorPreset.SYSTEM) LanguageUtils.getString("dark_mode_system", lang) else preset.label
+                        val labelText = if (preset == ThemeColorPreset.SYSTEM) LanguageUtils.getString("dark_mode_system", lang) else LanguageUtils.getString("custom_color", lang)
                         NeumorphicChip(
                             text = labelText,
                             selected = isSelected,
@@ -598,7 +599,7 @@ fun SettingsScreen(
 
                 // 调色盘 Picker (14 款精美调色盘选择)
                 Spacer(modifier = Modifier.height(10.dp))
-                Text("调色盘 (14):", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                Text(LanguageUtils.getString("palette_title", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val customPaletteColors = listOf(

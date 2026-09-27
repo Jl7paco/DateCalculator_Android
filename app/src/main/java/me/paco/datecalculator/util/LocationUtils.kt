@@ -50,7 +50,7 @@ object LocationUtils {
         } catch (_: Exception) {}
 
         val currentRegion = detectCurrentRegion(context)
-        return WeatherUtils.getLocationName(currentRegion)
+        return currentRegion.nativeName
     }
 
     fun requestSingleLocationUpdate(context: Context, onCityUpdated: (String?) -> Unit) {

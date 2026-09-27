@@ -231,7 +231,7 @@ fun AgeCalculatorScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = DateCalculatorUtils.formatDateWithWeek(birthDate),
+                                text = DateCalculatorUtils.formatDateWithWeek(birthDate, lang),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
@@ -285,7 +285,7 @@ fun AgeCalculatorScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = DateCalculatorUtils.formatDateWithWeek(targetBaseDate),
+                                text = DateCalculatorUtils.formatDateWithWeek(targetBaseDate, lang),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
@@ -363,10 +363,11 @@ fun AgeCalculatorScreen(
                         label = { Text("$zodiacSignLabel: $localizedZodiac", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                     )
 
+                    val localizedConstellation = LanguageUtils.getLocalizedConstellation(ageResult.constellation, lang)
                     SuggestionChip(
                         onClick = {},
                         shape = CircleShape,
-                        label = { Text("${ageResult.constellationEmoji} ${ageResult.constellation}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                        label = { Text(localizedConstellation, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                     )
                 }
 
@@ -438,7 +439,7 @@ fun AgeCalculatorScreen(
                     NeumorphicIconButton(
                         icon = Icons.Default.Share,
                         onClick = {
-                            val shareText = "Exact Age Record:\nBirth Date: ${DateCalculatorUtils.formatDate(birthDate)}\nAge: ${ageResult.years} yrs ${ageResult.months} mos ${ageResult.days} days\nTotal Lived: ${ageResult.totalDays} days (${ageResult.totalWeeks} weeks)"
+                            val shareText = "Exact Age Record:\nBirth Date: ${DateCalculatorUtils.formatDate(birthDate, lang)}\nAge: ${ageResult.years} yrs ${ageResult.months} mos ${ageResult.days} days\nTotal Lived: ${ageResult.totalDays} days (${ageResult.totalWeeks} weeks)"
                             ShareUtils.shareText(context, "Age Record", shareText)
                         },
                         contentDescription = "Share Age Record",

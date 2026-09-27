@@ -1,7 +1,6 @@
 package me.paco.datecalculator.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +22,6 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.StageSegmentResult
+import me.paco.datecalculator.util.ChronologicalBlock
 import me.paco.datecalculator.util.CsvExporter
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LanguageUtils
@@ -49,22 +48,20 @@ fun TimelineDiagram(
     baseDate: LocalDate,
     finalDate: LocalDate,
     segments: List<StageSegmentResult>,
-    modeLabel: String,
-    regionLabel: String,
-    language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
-    modifier: Modifier = Modifier,
+    modeLabel: String = "工作日",
+    regionLabel: String = "🇨🇳 中国大陆",
     showOuterCard: Boolean = true,
+    showSubTimeline: Boolean = true,
     showExportButton: Boolean = true,
-    showSubTimeline: Boolean = true
+    language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
-    val allChronologicalBlocks = segments.flatMap { seg ->
-        DateCalculatorUtils.decomposeChronologicalBlocks(
-            startDate = seg.startDate,
-            endDate = seg.endDate
-        )
-    }
+    val allChronologicalBlocks = DateCalculatorUtils.decomposeChronologicalBlocks(
+        startDate = baseDate,
+        endDate = finalDate
+    )
 
     val totalWorkdaysCount = allChronologicalBlocks.filter { it.type == TimelineBlockType.WORKDAY }.sumOf { it.daysCount }
     val totalWeekendDaysCount = allChronologicalBlocks.filter { it.type == TimelineBlockType.WEEKEND_REST }.sumOf { it.daysCount }
@@ -74,13 +71,7 @@ fun TimelineDiagram(
     val hasFuturePrediction = finalDate.year >= 2027
     val isSubtractMode = segments.firstOrNull()?.type == CalculationType.SUBTRACT
 
-    val overviewTitle = when (language) {
-        AppLanguage.ENGLISH -> "Schedule Overview"
-        AppLanguage.JAPANESE -> "スケジュール概要"
-        AppLanguage.KOREAN -> "일정 개요"
-        AppLanguage.TRADITIONAL_CHINESE -> "總時間安排示意"
-        else -> "总时间安排示意"
-    }
+    val overviewTitle = LanguageUtils.getString("timeline_title", language)
 
     val totalDurationLabel = when (language) {
         AppLanguage.ENGLISH -> "Total: $grandTotalCalendarDays Days"
@@ -151,15 +142,15 @@ fun TimelineDiagram(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("${LanguageUtils.getString("weekend_chip", language)}: $totalWeekendDaysCount ${LanguageUtils.getString("days_unit", language)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                        Text("${LanguageUtils.getString("weekend_rest", language)}: $totalWeekendDaysCount ${LanguageUtils.getString("days_unit", language)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                     }
                 }
 
-                if (totalStatutoryDaysCount > 0 && language.isChineseLocale) {
+                if (totalStatutoryDaysCount > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFEF4444)))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("🎉 节假日: $totalStatutoryDaysCount ${LanguageUtils.getString("days_unit", language)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
+                        Text("${LanguageUtils.getString("statutory_holiday", language)}: $totalStatutoryDaysCount ${LanguageUtils.getString("days_unit", language)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
                     }
                 }
 
@@ -194,8 +185,16 @@ fun TimelineDiagram(
             }
 
             // 远期预测提示横幅
-            if (hasFuturePrediction && language.isChineseLocale) {
+            if (hasFuturePrediction) {
                 Spacer(modifier = Modifier.height(8.dp))
+                val predictionText = when (language) {
+                    AppLanguage.ENGLISH -> "⚠️ Holiday schedules for 2027+ include algorithmic predictions."
+                    AppLanguage.JAPANESE -> "⚠️ 2027年以降の祝日情報は予測アルゴリズムを含みます。"
+                    AppLanguage.KOREAN -> "⚠️ 2027년 이후 공휴일 일정은 예측 알고리즘이 포함됩니다."
+                    AppLanguage.TRADITIONAL_CHINESE -> "⚠️ 2027年及以後的節假日及調休安排包含智能算法預測。"
+                    else -> "⚠️ 2027年及以后的节假日及调休安排包含智能算法预测（官方公布后自动校准）"
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -204,7 +203,7 @@ fun TimelineDiagram(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "⚠️ 2027年及以后的节假日及调休安排包含智能算法预测（官方公布后自动校准）",
+                        text = predictionText,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFB45309)
@@ -212,23 +211,17 @@ fun TimelineDiagram(
                 }
             }
 
-            // 3. 竖条分段时间轴 (仅在多段模式/showSubTimeline为true时显示，单段推算自动隐藏)
+            // 3. 竖条分段时间轴
             if (showSubTimeline && segments.size > 1) {
                 Spacer(modifier = Modifier.height(14.dp))
                 HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.12f))
                 Spacer(modifier = Modifier.height(14.dp))
 
                 segments.forEachIndexed { index, seg ->
-                    val stageTitleText = if (seg.remark.isNotBlank()) seg.remark else when (language) {
-                        AppLanguage.ENGLISH -> "Stage ${index + 1}"
-                        AppLanguage.JAPANESE -> "第${index + 1}段階"
-                        AppLanguage.KOREAN -> "${index + 1}단계"
-                        AppLanguage.TRADITIONAL_CHINESE -> "第${index + 1}階段"
-                        else -> "第${index + 1}段时间"
-                    }
+                    val stageTitleText = if (seg.remark.isNotBlank()) seg.remark else LanguageUtils.getLocalizedStageTitle(index + 1, language)
 
                     val isAdd = (seg.type == CalculationType.ADD)
-                    val stageActionLabel = if (isAdd) "+ Add" else "- Sub"
+                    val stageActionLabel = if (isAdd) LanguageUtils.getString("stage_add_label", language) else LanguageUtils.getString("stage_sub_label", language)
                     val symbol = if (isAdd) "+" else "-"
 
                     val stageBlocks = DateCalculatorUtils.decomposeChronologicalBlocks(seg.startDate, seg.endDate)
@@ -238,113 +231,75 @@ fun TimelineDiagram(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.width(32.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isAdd) NeumorphicAccent else Color(0xFFEF4444)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("${index + 1}", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
-                            }
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .height(54.dp)
+                                .clip(CircleShape)
+                                .background(if (isAdd) NeumorphicAccent else Color(0xFFEF4444))
+                        )
 
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(50.dp)
-                                    .background(if (isAdd) NeumorphicAccent.copy(alpha = 0.35f) else Color(0xFFEF4444).copy(alpha = 0.35f))
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
 
                         Column(modifier = Modifier.weight(1f)) {
-                            Box(
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "$stageTitleText ($stageActionLabel)",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isAdd) NeumorphicAccent else Color(0xFFEF4444)
+                                )
+
+                                Text(
+                                    text = "$symbol${seg.daysCount} $modeLabel (共 $stageTotalCalDays 日)",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = NeumorphicTextPrimary
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
-                                    .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
-                                    .padding(10.dp)
+                                    .height(8.dp)
+                                    .clip(CircleShape)
+                                    .background(NeumorphicSunkenBg)
                             ) {
-                                Column {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(stageTitleText, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 13.sp)
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(CircleShape)
-                                                    .background(if (isAdd) NeumorphicAccent.copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(stageActionLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAdd) NeumorphicAccent else Color(0xFFEF4444))
-                                            }
-                                        }
-
-                                        Text("$symbol${seg.daysCount} $modeLabel", fontWeight = FontWeight.ExtraBold, color = if (isAdd) NeumorphicAccent else Color(0xFFEF4444), fontSize = 13.sp)
+                                stageBlocks.forEach { block ->
+                                    val bColor = when (block.type) {
+                                        TimelineBlockType.WORKDAY -> if (isSubtractMode) Color(0xFFEF4444) else NeumorphicAccent
+                                        TimelineBlockType.WEEKEND_REST -> Color(0xFFF59E0B)
+                                        TimelineBlockType.STATUTORY_HOLIDAY -> Color(0xFFEF4444)
                                     }
+                                    val bWeight = (block.daysCount.toFloat() / stageTotalCalDays).coerceAtLeast(0.01f)
 
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    Row(
+                                    Box(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(8.dp)
-                                            .clip(CircleShape)
-                                            .background(NeumorphicSunkenBg)
-                                    ) {
-                                        stageBlocks.forEach { b ->
-                                            val c = when (b.type) {
-                                                TimelineBlockType.WORKDAY -> if (isAdd) NeumorphicAccent else Color(0xFFEF4444)
-                                                TimelineBlockType.WEEKEND_REST -> Color(0xFFF59E0B)
-                                                TimelineBlockType.STATUTORY_HOLIDAY -> Color(0xFFEF4444)
-                                            }
-                                            val w = (b.daysCount.toFloat() / stageTotalCalDays).coerceAtLeast(0.01f)
-
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(w)
-                                                    .fillMaxHeight()
-                                                    .background(c)
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text("${seg.startDate}  ➔  ${seg.endDate}", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
+                                            .weight(bWeight)
+                                            .fillMaxHeight()
+                                            .background(bColor)
+                                    )
                                 }
                             }
 
-                            if (seg.restDaysCount > 0) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                val restNotice = when (language) {
-                                    AppLanguage.ENGLISH -> "☕ Rest days included: ${seg.restDaysCount} days"
-                                    AppLanguage.JAPANESE -> "☕ 休日含む: ${seg.restDaysCount} 日"
-                                    AppLanguage.KOREAN -> "☕ 휴무일 포함: ${seg.restDaysCount} 일"
-                                    AppLanguage.TRADITIONAL_CHINESE -> "☕ 包含休假/雙休: ${seg.restDaysCount} 天"
-                                    else -> "☕ 包含休假/双休: ${seg.restDaysCount} 天"
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFFFEF3C7))
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                ) {
-                                    Text(restNotice, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(4.dp))
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "${DateCalculatorUtils.formatDate(seg.startDate, language)} ➔ ${DateCalculatorUtils.formatDate(seg.endDate, language)}",
+                                fontSize = 10.5.sp,
+                                color = NeumorphicTextPrimary.copy(alpha = 0.65f)
+                            )
                         }
+                    }
+
+                    if (index < segments.size - 1) {
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
                 }
             }
@@ -352,20 +307,16 @@ fun TimelineDiagram(
     }
 
     if (showOuterCard) {
-        val outerCardShape = RoundedCornerShape(20.dp)
-        Surface(
+        val outerShape22 = RoundedCornerShape(22.dp)
+        Box(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(vertical = 2.dp)
-                .neumorphicExtruded(shape = outerCardShape, elevation = 4.dp)
-                .background(NeumorphicBg, shape = outerCardShape)
-                .border(1.dp, NeumorphicAccent.copy(alpha = 0.2f), shape = outerCardShape)
-                .clip(outerCardShape),
-            color = Color.Transparent
+                .neumorphicExtruded(shape = outerShape22, elevation = 5.dp)
+                .background(NeumorphicBg, shape = outerShape22)
+                .clip(outerShape22)
+                .padding(14.dp)
         ) {
-            Box(modifier = Modifier.padding(14.dp)) {
-                diagramContent()
-            }
+            diagramContent()
         }
     } else {
         diagramContent()

@@ -327,7 +327,7 @@ fun DateDiffScreen(
                             .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        Text(DateCalculatorUtils.formatDate(customDateInput), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                        Text(DateCalculatorUtils.formatDate(customDateInput, lang), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                     }
 
                     Row(
@@ -532,7 +532,7 @@ fun DateDiffScreen(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Column {
                                     Text(pinned.name, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = NeumorphicTextPrimary)
-                                    Text("Target: $upcoming", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                    Text("Target: ${DateCalculatorUtils.formatDate(upcoming, lang)}", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
                                 }
                             }
 
@@ -569,7 +569,8 @@ fun DateDiffScreen(
                     isSolar = (startCalendarType == 0),
                     onCalendarTypeChanged = { isSolar ->
                         startCalendarType = if (isSolar) 0 else 1
-                    }
+                    },
+                    language = lang
                 )
             }
 
@@ -606,7 +607,7 @@ fun DateDiffScreen(
                                     fontSize = 11.sp
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
-                                val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(uiState.baseDate)
+                                val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(uiState.baseDate, lang)
                                 Text(
                                     text = dateFormattedWithWeek,
                                     fontSize = 16.sp,
@@ -704,7 +705,8 @@ fun DateDiffScreen(
                     isSolar = (targetCalendarType == 0),
                     onCalendarTypeChanged = { isSolar ->
                         targetCalendarType = if (isSolar) 0 else 1
-                    }
+                    },
+                    language = lang
                 )
             }
 
@@ -734,7 +736,7 @@ fun DateDiffScreen(
                             modifier = Modifier.padding(end = 8.dp)
                         )
                         Text(
-                            text = "${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(uiState.endDate)}",
+                            text = "${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(uiState.endDate, lang)}",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = NeumorphicTextPrimary
@@ -926,7 +928,7 @@ fun DateDiffScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
-                                text = "${LanguageUtils.getString("base_date", lang)}: ${cardData.baseDate}  ➔  ${LanguageUtils.getString("target_date", lang)}: ${cardData.targetDate}",
+                                text = "${LanguageUtils.getString("base_date", lang)}: ${DateCalculatorUtils.formatDate(cardData.baseDate, lang)}  ➔  ${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(cardData.targetDate, lang)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                             )

@@ -1,61 +1,62 @@
 package me.paco.datecalculator.util
 
 import me.paco.datecalculator.data.AppLanguage
-import me.paco.datecalculator.data.HolidayRegion
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.LocalDate
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 data class DailyWeather(
-    val date: LocalDate,
     val dayName: String,
-    val condition: String,
     val iconEmoji: String,
+    val condition: String,
     val tempMin: Int,
-    val tempMax: Int,
-    val wind: String,
-    val airQuality: String
+    val tempMax: Int
 )
 
 object WeatherUtils {
 
-    fun getLocationName(region: HolidayRegion): String {
-        return when (region) {
-            HolidayRegion.CHINA -> "深圳市"
-            HolidayRegion.TAIWAN -> "台北市"
-            HolidayRegion.HONG_KONG -> "香港特别行政区"
-            HolidayRegion.MACAO -> "澳门特别行政区"
-            HolidayRegion.SINGAPORE -> "新加坡"
-            HolidayRegion.JAPAN -> "东京都"
-            HolidayRegion.SOUTH_KOREA -> "首尔"
-            HolidayRegion.UNITED_STATES -> "纽约"
-            HolidayRegion.UNITED_KINGDOM -> "伦敦"
-            HolidayRegion.GERMANY -> "柏林"
-            HolidayRegion.FRANCE -> "巴黎"
-            HolidayRegion.ITALY -> "罗马"
-            HolidayRegion.AUSTRALIA -> "悉尼"
-            else -> region.nativeName
+    fun getCityCoordinates(cityName: String): Pair<Double, Double> {
+        val clean = cityName.replace("市", "").replace("特别行政区", "").trim()
+        return when {
+            clean.contains("北京") -> Pair(39.9042, 116.4074)
+            clean.contains("上海") -> Pair(31.2304, 121.4737)
+            clean.contains("广州") -> Pair(23.1291, 113.2644)
+            clean.contains("深圳") -> Pair(22.5431, 114.0579)
+            clean.contains("杭州") -> Pair(30.2741, 120.1551)
+            clean.contains("成都") -> Pair(30.5728, 104.0668)
+            clean.contains("武汉") -> Pair(30.5928, 114.3055)
+            clean.contains("南京") -> Pair(32.0603, 118.7969)
+            clean.contains("重庆") -> Pair(29.5630, 106.5516)
+            clean.contains("天津") -> Pair(39.3434, 117.3616)
+            clean.contains("西安") -> Pair(34.3416, 108.9398)
+            clean.contains("台北") -> Pair(25.0330, 121.5654)
+            clean.contains("香港") -> Pair(22.3193, 114.1694)
+            clean.contains("澳门") -> Pair(22.1987, 113.5439)
+            clean.contains("新加坡") -> Pair(1.3521, 103.8198)
+            clean.contains("东京") -> Pair(35.6762, 139.6503)
+            clean.contains("首尔") -> Pair(37.5665, 126.9780)
+            clean.contains("伦敦") -> Pair(51.5074, -0.1278)
+            clean.contains("纽约") -> Pair(40.7128, -74.0060)
+            else -> Pair(22.5431, 114.0579) // 默认深圳市
         }
     }
 
-    fun getLocalizedLocationName(cityName: String, language: AppLanguage): String {
-        if (language == AppLanguage.SIMPLIFIED_CHINESE || language == AppLanguage.TRADITIONAL_CHINESE) {
-            return cityName
-        }
+    fun getEnglishCityName(cityName: String): String {
         return when {
-            cityName.contains("深圳") -> "Shenzhen"
             cityName.contains("北京") -> "Beijing"
             cityName.contains("上海") -> "Shanghai"
             cityName.contains("广州") -> "Guangzhou"
-            cityName.contains("成都") -> "Chengdu"
+            cityName.contains("深圳") -> "Shenzhen"
             cityName.contains("杭州") -> "Hangzhou"
+            cityName.contains("成都") -> "Chengdu"
             cityName.contains("武汉") -> "Wuhan"
             cityName.contains("南京") -> "Nanjing"
+            cityName.contains("重庆") -> "Chongqing"
+            cityName.contains("天津") -> "Tianjin"
             cityName.contains("西安") -> "Xi'an"
             cityName.contains("台北") -> "Taipei"
             cityName.contains("香港") -> "Hong Kong"
@@ -70,7 +71,7 @@ object WeatherUtils {
     }
 
     fun getLocalizedCondition(condition: String, language: AppLanguage): String {
-        return when (language) {
+        return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> condition
             AppLanguage.TRADITIONAL_CHINESE -> when (condition) {
                 "多云" -> "多雲"; "晴朗" -> "晴朗"; "阴天" -> "陰天"; "小雨" -> "小雨"; "雷阵雨" -> "雷陣雨"; "阵雨" -> "陣雨"; else -> condition
@@ -94,165 +95,121 @@ object WeatherUtils {
                 "阵雨" -> "にわか雨"
                 "雷阵雨", "强雷雨" -> "雷雨"
                 "有雾" -> "霧"
-                "小雪", "阵雪" -> "小雪"
+                "小雪", "阵雪" -> "粉雪"
                 else -> "曇り"
             }
             AppLanguage.KOREAN -> when (condition) {
-                "多云", "晴间多云" -> "구름많음"
+                "多云", "晴间多云" -> "구름조금"
                 "晴朗" -> "맑음"
                 "阴天", "阴" -> "흐림"
-                "小雨", "毛毛雨" -> "약한 비"
+                "小雨", "毛毛雨" -> "가랑비"
                 "阵雨" -> "소나기"
                 "雷阵雨", "强雷雨" -> "뇌우"
                 "有雾" -> "안개"
-                "小雪", "阵雪" -> "약한 눈"
+                "小雪", "阵雪" -> "함박눈"
                 else -> "구름많음"
             }
+            else -> condition
         }
     }
 
-    fun getCityCoordinates(cityName: String): Pair<Double, Double> {
-        return when {
-            cityName.contains("深圳") -> Pair(22.5431, 114.0579)
-            cityName.contains("北京") -> Pair(39.9042, 116.4074)
-            cityName.contains("上海") -> Pair(31.2304, 121.4737)
-            cityName.contains("广州") -> Pair(23.1291, 113.2644)
-            cityName.contains("成都") -> Pair(30.5728, 104.0668)
-            cityName.contains("杭州") -> Pair(30.2741, 120.1551)
-            cityName.contains("武汉") -> Pair(30.5928, 114.3055)
-            cityName.contains("南京") -> Pair(32.0603, 118.7969)
-            cityName.contains("西安") -> Pair(34.3416, 108.9398)
-            cityName.contains("台北") -> Pair(25.0330, 121.5654)
-            cityName.contains("香港") -> Pair(22.3193, 114.1694)
-            cityName.contains("澳门") -> Pair(22.1987, 113.5439)
-            cityName.contains("新加坡") -> Pair(1.3521, 103.8198)
-            cityName.contains("东京") -> Pair(35.6762, 139.6503)
-            cityName.contains("首尔") -> Pair(37.5665, 126.9780)
-            cityName.contains("伦敦") -> Pair(51.5074, -0.1278)
-            cityName.contains("纽约") -> Pair(40.7128, -74.0060)
-            else -> Pair(22.5431, 114.0579)
-        }
-    }
+    /**
+     * 实时抓取并解析 Open-Meteo 真实气象天气推算
+     */
+    fun fetchRealLiveWeather(lat: Double, lon: Double): List<DailyWeather>? {
+        return try {
+            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto"
+            val url = URL(urlStr)
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 3000
+            conn.readTimeout = 3000
 
-    suspend fun fetchRealLiveWeather(latitude: Double, longitude: Double): List<DailyWeather>? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Asia%2FShanghai"
-                val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 3500
-                    readTimeout = 3500
-                    requestMethod = "GET"
-                }
+            if (conn.responseCode == 200) {
+                val reader = BufferedReader(InputStreamReader(conn.inputStream))
+                val response = reader.readText()
+                reader.close()
 
-                if (conn.responseCode == 200) {
-                    val jsonText = conn.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(jsonText)
-                    val daily = json.getJSONObject("daily")
-                    val timeArray = daily.getJSONArray("time")
-                    val maxTempArray = daily.getJSONArray("temperature_2m_max")
-                    val minTempArray = daily.getJSONArray("temperature_2m_min")
-                    val codeArray = daily.getJSONArray("weathercode")
+                val json = JSONObject(response)
+                val daily = json.getJSONObject("daily")
+                val codes = daily.getJSONArray("weathercode")
+                val maxTemps = daily.getJSONArray("temperature_2m_max")
+                val minTemps = daily.getJSONArray("temperature_2m_min")
 
-                    val result = mutableListOf<DailyWeather>()
-                    val today = LocalDate.now()
+                val dayNames = listOf("今天", "明天", "后天", "大后天")
+                val weatherList = mutableListOf<DailyWeather>()
 
-                    for (i in 0 until minOf(4, timeArray.length())) {
-                        val date = today.plusDays(i.toLong())
-                        val minTemp = minTempArray.getDouble(i).roundToInt()
-                        val maxTemp = maxTempArray.getDouble(i).roundToInt()
-                        val weatherCode = codeArray.getInt(i)
+                for (i in 0 until 4.coerceAtMost(codes.length())) {
+                    val code = codes.getInt(i)
+                    val maxT = maxTemps.getDouble(i).toInt()
+                    val minT = minTemps.getDouble(i).toInt()
+                    val (icon, cond) = parseWmoWeatherCode(code)
 
-                        val (condition, emoji) = parseWmoCode(weatherCode)
-                        val dayLabel = when (i) {
-                            0 -> "今天"
-                            1 -> "明天"
-                            2 -> "后天"
-                            else -> when (date.dayOfWeek.value) {
-                                1 -> "周一"; 2 -> "周二"; 3 -> "周三"; 4 -> "周四"; 5 -> "周五"; 6 -> "周六"; else -> "周日"
-                            }
-                        }
-
-                        result.add(
-                            DailyWeather(
-                                date = date,
-                                dayName = dayLabel,
-                                condition = condition,
-                                iconEmoji = emoji,
-                                tempMin = minTemp,
-                                tempMax = maxTemp,
-                                wind = "微风 2级",
-                                airQuality = "35 优"
-                            )
+                    weatherList.add(
+                        DailyWeather(
+                            dayName = dayNames.getOrElse(i) { "第${i + 1}天" },
+                            iconEmoji = icon,
+                            condition = cond,
+                            tempMin = minT,
+                            tempMax = maxT
                         )
-                    }
-                    if (result.isNotEmpty()) return@withContext result
+                    )
                 }
-            } catch (_: Exception) {}
+                weatherList
+            } else {
+                null
+            }
+        } catch (_: Exception) {
             null
         }
     }
 
-    private fun parseWmoCode(code: Int): Pair<String, String> {
+    fun parseWmoWeatherCode(code: Int): Pair<String, String> {
         return when (code) {
-            0 -> Pair("晴朗", "☀️")
-            1, 2 -> Pair("多云", "⛅")
-            3 -> Pair("阴天", "☁️")
-            45, 48 -> Pair("有雾", "🌫️")
-            51, 53, 55 -> Pair("毛毛雨", "🌧️")
-            56, 57 -> Pair("冻雨", "🌧️")
-            61, 63, 65 -> Pair("阵雨", "🌧️")
-            66, 67 -> Pair("冻阵雨", "🌧️")
-            71, 73, 75 -> Pair("小雪", "🌨️")
-            77 -> Pair("雪粒", "🌨️")
-            80, 81, 82 -> Pair("雷阵雨", "⛈️")
-            85, 86 -> Pair("阵雪", "🌨️")
-            95, 96, 99 -> Pair("强雷雨", "⛈️")
-            else -> Pair("多云", "⛅")
+            0 -> Pair("☀️", "晴朗")
+            1, 2, 3 -> Pair("☁️", "多云")
+            45, 48 -> Pair("🌫️", "有雾")
+            51, 53, 55 -> Pair("🌧️", "毛毛雨")
+            61, 63, 65 -> Pair("🌧️", "小雨")
+            80, 81, 82 -> Pair("🌧️", "阵雨")
+            95, 96, 99 -> Pair("⛈️", "雷阵雨")
+            71, 73, 75, 85, 86 -> Pair("❄️", "小雪")
+            else -> Pair("🌤️", "晴间多云")
         }
     }
 
-    fun getWeatherForecast(baseDate: LocalDate = LocalDate.now()): List<DailyWeather> {
-        val weatherTypes = listOf(
-            Triple("多云", "⛅", "东风 2级"),
-            Triple("阴天", "☁️", "东北风 2级"),
-            Triple("雷阵雨", "⛈️", "南风 3级"),
-            Triple("小雨", "🌧️", "东南风 2级"),
-            Triple("晴朗", "☀️", "微风 1级")
+    /**
+     * 根据离线离散数学算式推算高质感的 4 天天气模拟预报
+     */
+    fun getWeatherForecast(date: LocalDate): List<DailyWeather> {
+        val baseSeed = date.toEpochDay().toInt()
+        val tempBase = 22 + (abs(baseSeed) % 8)
+
+        val dayNames = listOf("今天", "明天", "后天", "大后天")
+        val conditions = listOf(
+            Pair("☀️", "晴朗"),
+            Pair("☁️", "阴天"),
+            Pair("🌧️", "小雨"),
+            Pair("⛈️", "雷阵雨")
         )
 
-        val aqiList = listOf("32 优", "42 优", "55 良")
+        val result = mutableListOf<DailyWeather>()
+        for (i in 0 until 4) {
+            val condIdx = abs(baseSeed * 13 + i * 17) % conditions.size
+            val (icon, name) = conditions[condIdx]
+            val minT = tempBase + (i % 2)
+            val maxT = minT + 6 + (abs(baseSeed + i) % 4)
 
-        return (0..3).map { dayOffset ->
-            val date = baseDate.plusDays(dayOffset.toLong())
-            val epoch = date.toEpochDay()
-            val hash = (epoch * 31 + dayOffset * 17).toInt()
-
-            val typeIdx = abs(hash) % weatherTypes.size
-            val weatherInfo = weatherTypes[typeIdx]
-            val aqi = aqiList[abs(hash * 3) % aqiList.size]
-
-            val tempMin = 25 + (abs(hash) % 3)
-            val tempMax = 31 + (abs(hash) % 3)
-
-            val dayLabel = when (dayOffset) {
-                0 -> "今天"
-                1 -> "明天"
-                2 -> "后天"
-                else -> when (date.dayOfWeek.value) {
-                    1 -> "周一"; 2 -> "周二"; 3 -> "周三"; 4 -> "周四"; 5 -> "周五"; 6 -> "周六"; else -> "周日"
-                }
-            }
-
-            DailyWeather(
-                date = date,
-                dayName = dayLabel,
-                condition = weatherInfo.first,
-                iconEmoji = weatherInfo.second,
-                tempMin = tempMin,
-                tempMax = tempMax,
-                wind = weatherInfo.third,
-                airQuality = aqi
+            result.add(
+                DailyWeather(
+                    dayName = dayNames[i],
+                    iconEmoji = icon,
+                    condition = name,
+                    tempMin = minT,
+                    tempMax = maxT
+                )
             )
         }
+        return result
     }
 }

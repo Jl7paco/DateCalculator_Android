@@ -25,6 +25,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,17 +35,47 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import me.paco.datecalculator.data.AppLanguage
-import me.paco.datecalculator.util.LanguageUtils
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.util.LanguageUtils
+
+@Composable
+fun NeumorphicIconButton(
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+    size: Dp = 36.dp,
+    tint: Color = NeumorphicAccent
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+            .background(NeumorphicBg, shape = CircleShape)
+            .clip(CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(size * 0.5f)
+        )
+    }
+}
 
 /**
- * 紧凑型胶囊切页开关 (尺寸缩小 30% 以上，支持同行右侧布局)
+ * 紧凑型胶囊切页开关 (支持居中与各语言精准字距)
  */
 @Composable
 fun NeumorphicCapsuleSwitch(
@@ -106,7 +137,11 @@ fun NeumorphicCapsuleSwitch(
                     text = option1Text,
                     fontSize = 11.sp,
                     fontWeight = if (isOption1Selected) FontWeight.ExtraBold else FontWeight.Bold,
-                    color = if (isOption1Selected) Color.White else NeumorphicTextPrimary.copy(alpha = 0.65f)
+                    color = if (isOption1Selected) Color.White else NeumorphicTextPrimary.copy(alpha = 0.65f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -121,7 +156,11 @@ fun NeumorphicCapsuleSwitch(
                     text = option2Text,
                     fontSize = 11.sp,
                     fontWeight = if (!isOption1Selected) FontWeight.ExtraBold else FontWeight.Bold,
-                    color = if (!isOption1Selected) Color.White else NeumorphicTextPrimary.copy(alpha = 0.65f)
+                    color = if (!isOption1Selected) Color.White else NeumorphicTextPrimary.copy(alpha = 0.65f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -129,7 +168,7 @@ fun NeumorphicCapsuleSwitch(
 }
 
 /**
- * 公历 / 农历 同行胶囊拨动开关 (精细缩小尺寸，可直接置于标题/日期同行)
+ * 公历 / 农历 同行胶囊拨动开关
  */
 @Composable
 fun SolarLunarSwitch(
@@ -138,18 +177,19 @@ fun SolarLunarSwitch(
     language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
+    val switchWidth = if (language.isChineseLocale) 110.dp else 125.dp
     NeumorphicCapsuleSwitch(
         option1Text = LanguageUtils.getString("solar", language),
         option2Text = LanguageUtils.getString("lunar", language),
         isOption1Selected = isSolar,
         onOptionChanged = onCalendarTypeChanged,
-        modifier = modifier.width(110.dp),
+        modifier = modifier.width(switchWidth),
         height = 30.dp
     )
 }
 
 /**
- * 工作日 / 自然日双标签滑动胶囊拨动开关 (精细缩小尺寸)
+ * 工作日 / 自然日双标签滑动胶囊拨动开关 (精细拓宽居中)
  */
 @Composable
 fun WorkdayNaturalSwitch(
@@ -158,18 +198,19 @@ fun WorkdayNaturalSwitch(
     language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
+    val switchWidth = if (language.isChineseLocale) 125.dp else 150.dp
     NeumorphicCapsuleSwitch(
         option1Text = LanguageUtils.getString("workday", language),
         option2Text = LanguageUtils.getString("natural_day", language),
         isOption1Selected = isWorkday,
         onOptionChanged = onWorkdayChanged,
-        modifier = modifier.width(130.dp),
+        modifier = modifier.width(switchWidth),
         height = 30.dp
     )
 }
 
 /**
- * 新拟物分段切页器 (支持草图胶囊滑动样式，精细缩小 30% 尺寸)
+ * 模式三向切页器 (无整体底部椭圆大阴影，干练美观)
  */
 @Composable
 fun NeumorphicSegmentedRow(
@@ -177,67 +218,52 @@ fun NeumorphicSegmentedRow(
     selectedIndex: Int,
     onIndexSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    height: Dp = 32.dp
+    height: Dp = 36.dp
 ) {
-    if (items.size == 2) {
-        NeumorphicCapsuleSwitch(
-            option1Text = items[0],
-            option2Text = items[1],
-            isOption1Selected = (selectedIndex == 0),
-            onOptionChanged = { isOpt1 -> onIndexSelected(if (isOpt1) 0 else 1) },
-            modifier = modifier,
-            height = height
-        )
-    } else {
+    val containerShape = RoundedCornerShape(12.dp)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(NeumorphicSunkenBg, shape = containerShape)
+            .clip(containerShape)
+            .padding(2.dp)
+    ) {
         Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(height)
-                .padding(vertical = 1.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             items.forEachIndexed { index, title ->
                 val isSelected = selectedIndex == index
+                val itemShape = RoundedCornerShape(10.dp)
 
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val scale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.93f else 1.0f,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "SegmentPressScale"
-                )
-
-                val segModifier = if (isSelected) {
+                val itemModifier = if (isSelected) {
                     Modifier
-                        .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
-                        .background(NeumorphicAccent, shape = CircleShape)
+                        .neumorphicExtruded(shape = itemShape, elevation = 3.dp)
+                        .background(NeumorphicAccent, shape = itemShape)
                 } else {
-                    Modifier
-                        .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
+                    Modifier.background(Color.Transparent)
                 }
 
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .then(segModifier)
-                        .clip(CircleShape)
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null
-                        ) { onIndexSelected(index) },
+                        .then(itemModifier)
+                        .clip(itemShape)
+                        .clickable { onIndexSelected(index) },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = title,
-                        fontSize = 11.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                        color = if (isSelected) Color.White else NeumorphicTextPrimary
+                        color = if (isSelected) Color.White else NeumorphicTextPrimary.copy(alpha = 0.75f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
