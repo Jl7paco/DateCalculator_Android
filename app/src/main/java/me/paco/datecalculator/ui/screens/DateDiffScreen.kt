@@ -336,12 +336,7 @@ fun DateDiffScreen(
                     ) {
                         EventRepeatMode.entries.forEach { mode ->
                             val isSel = selectedRepeatMode == mode
-                            val modeLabel = when (mode) {
-                                EventRepeatMode.NONE -> "None"
-                                EventRepeatMode.WEEKLY -> "Weekly"
-                                EventRepeatMode.MONTHLY -> "Monthly"
-                                EventRepeatMode.YEARLY -> "Yearly"
-                            }
+                            val modeLabel = mode.getLocalizedName(lang)
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -351,7 +346,7 @@ fun DateDiffScreen(
                                     .clickable { selectedRepeatMode = mode },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(modeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSel) Color.White else NeumorphicTextPrimary)
+                                Text(modeLabel, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (isSel) Color.White else NeumorphicTextPrimary)
                             }
                         }
                     }
@@ -361,13 +356,15 @@ fun DateDiffScreen(
                 TextButton(
                     onClick = {
                         if (customNameInput.isNotBlank()) {
+                            val fullName = "$selectedEmoji $customNameInput"
                             viewModel.addCustomEvent(
-                                name = customNameInput,
+                                name = fullName,
                                 targetDate = customDateInput,
                                 iconEmoji = selectedEmoji,
-                                repeatMode = selectedRepeatMode
+                                repeatMode = selectedRepeatMode,
+                                isPinned = true,
+                                context = context
                             )
-                            val fullName = "$selectedEmoji $customNameInput"
                             viewModel.updateEndDate(customDateInput)
                             currentTargetEventName = fullName
                             addResultCard(fullName, customDateInput)
@@ -399,7 +396,7 @@ fun DateDiffScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteCustomEvent(targetEvent)
+                        viewModel.deleteCustomEvent(targetEvent, context)
                         eventToDelete = null
                     }
                 ) {
@@ -486,8 +483,42 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 置顶 / 固定倒数日展示区
-            val pinnedEvents = uiState.customEvents.filter { it.isPinned }
+            // 预计算常用节假日列表
+            val base = uiState.baseDate
+            val rawPresets = when (uiState.holidayRegion) {
+                HolidayRegion.CHINA -> listOf(
+                    stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1),
+                    stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
+                    stringResource(R.string.preset_spring_festival) to calculateNextLunarDate(base, 1, 1),
+                    "🌿 清明节" to calculateNextSolarDate(base, 4, 4),
+                    "🛠️ 五一劳动节" to calculateNextSolarDate(base, 5, 1),
+                    stringResource(R.string.preset_dragon_boat) to calculateNextLunarDate(base, 5, 5),
+                    stringResource(R.string.preset_gaokao) to calculateNextSolarDate(base, 6, 7),
+                    "📚 中考" to calculateNextSolarDate(base, 6, 21),
+                    stringResource(R.string.preset_mid_autumn) to calculateNextLunarDate(base, 8, 15)
+                )
+                else -> listOf(
+                    stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
+                    stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1)
+                )
+            }
+
+            // 汇总全量置顶固定倒数日（包含联动同步的自定义事件与置顶的常用节假日）
+            val allPinnedCards = mutableListOf<Pair<CustomEventItem?, Pair<String, LocalDate>>>()
+
+            // 1. 自定义或同步建立的置顶事件
+            uiState.customEvents.filter { it.isPinned }.forEach { item ->
+                allPinnedCards.add(Pair(item, item.name to item.getNextUpcomingDate(uiState.baseDate)))
+            }
+
+            // 2. 常用节假日被置顶的事件
+            rawPresets.filter { (label, _) -> uiState.pinnedPresetHolidays.contains(label) }.forEach { (label, date) ->
+                val localizedName = LanguageUtils.getLocalizedHolidayName(label, lang)
+                if (allPinnedCards.none { it.second.first == localizedName || it.second.first == label }) {
+                    allPinnedCards.add(Pair(null, localizedName to date))
+                }
+            }
+
             val cardColorPalette = listOf(
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
                 Color(0xFFD1FAE5),
@@ -496,12 +527,12 @@ fun DateDiffScreen(
                 Color(0xFFFCE7F3)
             )
 
-            if (pinnedEvents.isNotEmpty()) {
+            if (allPinnedCards.isNotEmpty()) {
                 Text(LanguageUtils.getString("fixed_countdown", lang), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NeumorphicAccent)
                 Spacer(modifier = Modifier.height(6.dp))
 
-                pinnedEvents.forEachIndexed { pIdx, pinned ->
-                    val upcoming = pinned.getNextUpcomingDate(uiState.baseDate)
+                allPinnedCards.forEachIndexed { pIdx, (customItem, pair) ->
+                    val (pinnedName, upcoming) = pair
                     val diffDays = DateCalculatorUtils.naturalDaysBetween(uiState.baseDate, upcoming)
                     val cardBgColor = cardColorPalette[pIdx % cardColorPalette.size]
 
@@ -517,8 +548,8 @@ fun DateDiffScreen(
                             .clickable {
                                 targetCalendarType = 0
                                 viewModel.updateEndDate(upcoming)
-                                currentTargetEventName = pinned.name
-                                addResultCard(pinned.name, upcoming)
+                                currentTargetEventName = pinnedName
+                                addResultCard(pinnedName, upcoming)
                             }
                             .padding(horizontal = 14.dp, vertical = 10.dp)
                     ) {
@@ -531,7 +562,7 @@ fun DateDiffScreen(
                                 Icon(imageVector = Icons.Default.PushPin, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Column {
-                                    Text(pinned.name, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = NeumorphicTextPrimary)
+                                    Text(pinnedName, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = NeumorphicTextPrimary)
                                     Text("Target: ${DateCalculatorUtils.formatDate(upcoming, lang)}", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
                                 }
                             }
@@ -547,7 +578,14 @@ fun DateDiffScreen(
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier
                                         .size(18.dp)
-                                        .clickable { viewModel.togglePinCustomEvent(pinned, context) }
+                                        .clickable {
+                                            if (customItem != null) {
+                                                viewModel.togglePinCustomEvent(customItem, context)
+                                            } else {
+                                                val rawLabel = rawPresets.firstOrNull { LanguageUtils.getLocalizedHolidayName(it.first, lang) == pinnedName }?.first ?: pinnedName
+                                                viewModel.togglePinPresetHoliday(rawLabel, context)
+                                            }
+                                        }
                                 )
                             }
                         }
@@ -765,7 +803,7 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. 常用倒数日功能区
+            // 3. 常用倒数日功能区 (支持点击选中与长按固定置顶)
             Text(
                 text = LanguageUtils.getString("common_countdown", lang),
                 style = MaterialTheme.typography.bodyMedium,
@@ -774,25 +812,6 @@ fun DateDiffScreen(
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            val base = uiState.baseDate
-            val rawPresets = when (uiState.holidayRegion) {
-                HolidayRegion.CHINA -> listOf(
-                    stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1),
-                    stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
-                    stringResource(R.string.preset_spring_festival) to calculateNextLunarDate(base, 1, 1),
-                    "🌿 清明节" to calculateNextSolarDate(base, 4, 4),
-                    "🛠️ 五一劳动节" to calculateNextSolarDate(base, 5, 1),
-                    stringResource(R.string.preset_dragon_boat) to calculateNextLunarDate(base, 5, 5),
-                    stringResource(R.string.preset_gaokao) to calculateNextSolarDate(base, 6, 7),
-                    "📚 中考" to calculateNextSolarDate(base, 6, 21),
-                    stringResource(R.string.preset_mid_autumn) to calculateNextLunarDate(base, 8, 15)
-                )
-                else -> listOf(
-                    stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
-                    stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1)
-                )
-            }
 
             val presetCountdowns = rawPresets.filterNot { (label, _) ->
                 uiState.disabledPresetHolidays.contains(label)
@@ -810,12 +829,19 @@ fun DateDiffScreen(
                     val displayLabel = if (isPinned) "📌 $localizedName" else localizedName
 
                     Box(
-                        modifier = Modifier.clickable {
-                            targetCalendarType = 0
-                            viewModel.updateEndDate(targetDate)
-                            currentTargetEventName = localizedName
-                            addResultCard(localizedName, targetDate)
-                        }
+                        modifier = Modifier.combinedClickable(
+                            onClick = {
+                                targetCalendarType = 0
+                                viewModel.updateEndDate(targetDate)
+                                currentTargetEventName = localizedName
+                                addResultCard(localizedName, targetDate)
+                            },
+                            onLongClick = {
+                                viewModel.togglePinPresetHoliday(label, context)
+                                val msg = if (isPinned) "Unpinned" else "Pinned!"
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
+                        )
                     ) {
                         NeumorphicChip(
                             text = displayLabel,

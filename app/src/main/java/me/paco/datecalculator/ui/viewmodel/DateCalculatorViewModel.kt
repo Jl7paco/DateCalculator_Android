@@ -37,7 +37,28 @@ enum class EventRepeatMode(val label: String) {
     NONE("不重复"),
     WEEKLY("每周"),
     MONTHLY("每月"),
-    YEARLY("每年")
+    YEARLY("每年");
+
+    fun getLocalizedName(language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> label
+            AppLanguage.TRADITIONAL_CHINESE -> when (this) {
+                NONE -> "不重複"; WEEKLY -> "每周"; MONTHLY -> "每月"; YEARLY -> "每年"
+            }
+            AppLanguage.ENGLISH -> when (this) {
+                NONE -> "None"; WEEKLY -> "Weekly"; MONTHLY -> "Monthly"; YEARLY -> "Yearly"
+            }
+            AppLanguage.JAPANESE -> when (this) {
+                NONE -> "なし"; WEEKLY -> "毎週"; MONTHLY -> "毎月"; YEARLY -> "毎年"
+            }
+            AppLanguage.KOREAN -> when (this) {
+                NONE -> "없음"; WEEKLY -> "매주"; MONTHLY -> "매월"; YEARLY -> "매년"
+            }
+            else -> when (this) {
+                NONE -> "None"; WEEKLY -> "Weekly"; MONTHLY -> "Monthly"; YEARLY -> "Yearly"
+            }
+        }
+    }
 }
 
 enum class CalcSubMode(val label: String) {
@@ -118,11 +139,11 @@ data class DateCalculatorUiState(
     val anniversaryList: List<AnniversaryItem> = emptyList(),
     val fireworksTrigger: Int = 0,
 
-    // V3.0 新增状态
+    // V3.0 新增状态 (新增：SYSTEM跟随系统作为默认值)
     val themePreset: ThemeColorPreset = ThemeColorPreset.SYSTEM,
     val customPrimaryColorHex: Long = 0xFF2563EB,
     val darkThemeMode: DarkThemeMode = DarkThemeMode.SYSTEM,
-    val appLanguage: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
+    val appLanguage: AppLanguage = AppLanguage.SYSTEM,
     val homeConfig: HomeConfig = HomeConfig(),
     val selectedBirthDate: LocalDate = LocalDate.of(2000, 1, 1),
     val currentCityName: String = "北京市",
@@ -147,9 +168,10 @@ class DateCalculatorViewModel : ViewModel() {
         val homeConfig = PreferenceUtils.getHomeConfig(context)
         val savedPinnedSet = PreferenceUtils.getPinnedEvents(context)
         val savedAnniversaries = PreferenceUtils.getAnniversaries(context)
+        val savedCustomEvents = PreferenceUtils.getCustomEvents(context)
 
-        val updatedCustomEvents = if (savedPinnedSet.isNotEmpty()) {
-            _uiState.value.customEvents.map { event ->
+        val updatedCustomEvents = if (savedCustomEvents.isNotEmpty()) {
+            savedCustomEvents.map { event ->
                 if (savedPinnedSet.contains(event.name)) event.copy(isPinned = true) else event
             }
         } else _uiState.value.customEvents
@@ -226,8 +248,8 @@ class DateCalculatorViewModel : ViewModel() {
         )
         context?.let {
             PreferenceUtils.saveHolidayRegion(it, region)
-            val regionName = "${region.flagEmoji} ${region.nativeName}"
-            Toast.makeText(context, "已同步 $regionName 节假日数据", Toast.LENGTH_SHORT).show()
+            val regionName = "${region.flagEmoji} ${region.getLocalizedName(_uiState.value.appLanguage)}"
+            Toast.makeText(context, "Saved $regionName", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -595,17 +617,30 @@ class DateCalculatorViewModel : ViewModel() {
         name: String,
         targetDate: LocalDate,
         iconEmoji: String = "📌",
-        repeatMode: EventRepeatMode = EventRepeatMode.NONE
+        repeatMode: EventRepeatMode = EventRepeatMode.NONE,
+        isPinned: Boolean = false,
+        context: Context? = null
     ) {
         val fullName = if (name.startsWith(iconEmoji)) name else "$iconEmoji $name"
         val newEvent = CustomEventItem(
             name = fullName,
             targetDate = targetDate,
             iconEmoji = iconEmoji,
-            repeatMode = repeatMode
+            repeatMode = repeatMode,
+            isPinned = isPinned
         )
         val updatedEvents = _uiState.value.customEvents + newEvent
-        _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
+        val updatedPinnedSet = if (isPinned) _uiState.value.pinnedPresetHolidays + fullName else _uiState.value.pinnedPresetHolidays
+
+        _uiState.value = _uiState.value.copy(
+            customEvents = updatedEvents,
+            pinnedPresetHolidays = updatedPinnedSet
+        )
+
+        context?.let { ctx ->
+            PreferenceUtils.saveCustomEvents(ctx, updatedEvents)
+            PreferenceUtils.savePinnedEvents(ctx, updatedPinnedSet)
+        }
     }
 
     fun togglePinCustomEvent(event: CustomEventItem, context: Context? = null) {
@@ -615,14 +650,18 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
 
         context?.let { ctx ->
+            PreferenceUtils.saveCustomEvents(ctx, updatedEvents)
             val customPinnedNames = updatedEvents.filter { it.isPinned }.map { it.name }.toSet()
             PreferenceUtils.savePinnedEvents(ctx, _uiState.value.pinnedPresetHolidays + customPinnedNames)
         }
     }
 
-    fun deleteCustomEvent(event: CustomEventItem) {
+    fun deleteCustomEvent(event: CustomEventItem, context: Context? = null) {
         val updatedEvents = _uiState.value.customEvents.filterNot { it.id == event.id }
         _uiState.value = _uiState.value.copy(customEvents = updatedEvents)
+        context?.let { ctx ->
+            PreferenceUtils.saveCustomEvents(ctx, updatedEvents)
+        }
     }
 
     fun calculateRangeBreakdown(): RangeBreakdownResult {

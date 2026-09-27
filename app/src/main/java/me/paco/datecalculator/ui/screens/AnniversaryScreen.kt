@@ -293,7 +293,9 @@ fun AnniversaryScreen(
                             viewModel.addCustomEvent(
                                 name = fullName,
                                 targetDate = dateInput,
-                                iconEmoji = selectedEmoji
+                                iconEmoji = selectedEmoji,
+                                isPinned = linkToCountdown,
+                                context = context
                             )
 
                             showAddDialog = false
@@ -414,7 +416,9 @@ fun AnniversaryScreen(
                         viewModel.addCustomEvent(
                             name = "$checkInEmoji $title",
                             targetDate = LocalDate.now(),
-                            iconEmoji = checkInEmoji
+                            iconEmoji = checkInEmoji,
+                            isPinned = true,
+                            context = context
                         )
 
                         Toast.makeText(context, "🎉 Saved!", Toast.LENGTH_SHORT).show()
