@@ -210,9 +210,35 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun deleteAnniversary(itemId: Long, context: Context) {
-        val updated = _uiState.value.anniversaryList.filterNot { it.id == itemId }
-        _uiState.value = _uiState.value.copy(anniversaryList = updated)
-        PreferenceUtils.saveAnniversaries(context, updated)
+        val targetItem = _uiState.value.anniversaryList.find { it.id == itemId }
+        val updatedAnniversaries = _uiState.value.anniversaryList.filterNot { it.id == itemId }
+        _uiState.value = _uiState.value.copy(anniversaryList = updatedAnniversaries)
+        PreferenceUtils.saveAnniversaries(context, updatedAnniversaries)
+
+        if (targetItem != null) {
+            val rawTitle = targetItem.title.trim()
+            val emojiTitle = "${targetItem.iconEmoji} $rawTitle".trim()
+
+            val updatedCustomEvents = _uiState.value.customEvents.filterNot { event ->
+                val eventClean = event.name.trim()
+                eventClean == rawTitle || eventClean == emojiTitle ||
+                eventClean.contains(rawTitle) || (rawTitle.isNotEmpty() && eventClean.endsWith(rawTitle))
+            }
+
+            val updatedPinnedSet = _uiState.value.pinnedPresetHolidays.filterNot { label ->
+                val labelClean = label.trim()
+                labelClean == rawTitle || labelClean == emojiTitle ||
+                labelClean.contains(rawTitle) || (rawTitle.isNotEmpty() && labelClean.endsWith(rawTitle))
+            }.toSet()
+
+            _uiState.value = _uiState.value.copy(
+                customEvents = updatedCustomEvents,
+                pinnedPresetHolidays = updatedPinnedSet
+            )
+
+            PreferenceUtils.saveCustomEvents(context, updatedCustomEvents)
+            PreferenceUtils.savePinnedEvents(context, updatedPinnedSet)
+        }
     }
 
     fun togglePinAnniversary(itemId: Long, context: Context) {

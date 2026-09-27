@@ -47,6 +47,9 @@ import androidx.compose.ui.window.PopupProperties
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.util.LanguageUtils
 
+/**
+ * 具有按压 3D 弹簧弹性缩放与微调动画的新拟物图标按钮
+ */
 @Composable
 fun NeumorphicIconButton(
     icon: ImageVector,
@@ -56,13 +59,39 @@ fun NeumorphicIconButton(
     size: Dp = 36.dp,
     tint: Color = NeumorphicAccent
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.82f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "IconButtonScale"
+    )
+
+    val rotation by animateFloatAsState(
+        targetValue = if (isPressed) -12f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "IconButtonRotation"
+    )
+
     Box(
         modifier = modifier
             .size(size)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                rotationZ = rotation
+            }
             .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
             .background(NeumorphicBg, shape = CircleShape)
             .clip(CircleShape)
-            .clickable { onClick() },
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -75,7 +104,7 @@ fun NeumorphicIconButton(
 }
 
 /**
- * 紧凑型胶囊切页开关 (支持居中与各语言精准字距)
+ * 紧凑型胶囊切页开关
  */
 @Composable
 fun NeumorphicCapsuleSwitch(
@@ -189,7 +218,7 @@ fun SolarLunarSwitch(
 }
 
 /**
- * 工作日 / 自然日双标签滑动胶囊拨动开关 (精细拓宽居中)
+ * 工作日 / 自然日双标签滑动胶囊拨动开关
  */
 @Composable
 fun WorkdayNaturalSwitch(
@@ -210,7 +239,7 @@ fun WorkdayNaturalSwitch(
 }
 
 /**
- * 模式三向切页器 (无整体底部椭圆大阴影，干练美观)
+ * 模式三向切页器
  */
 @Composable
 fun NeumorphicSegmentedRow(
@@ -239,6 +268,14 @@ fun NeumorphicSegmentedRow(
                 val isSelected = selectedIndex == index
                 val itemShape = RoundedCornerShape(10.dp)
 
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val scale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.93f else 1.0f,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "SegmentPressScale"
+                )
+
                 val itemModifier = if (isSelected) {
                     Modifier
                         .neumorphicExtruded(shape = itemShape, elevation = 3.dp)
@@ -251,9 +288,16 @@ fun NeumorphicSegmentedRow(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
                         .then(itemModifier)
                         .clip(itemShape)
-                        .clickable { onIndexSelected(index) },
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null
+                        ) { onIndexSelected(index) },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

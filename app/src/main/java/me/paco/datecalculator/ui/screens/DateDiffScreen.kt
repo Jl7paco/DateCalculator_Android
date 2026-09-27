@@ -877,7 +877,7 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. 多卡片推栈倒计时结果展示层
+            // 4. 多卡片推栈倒计时结果展示层 (纯图标固定按钮，无文字)
             if (resultCardList.isNotEmpty()) {
                 resultCardList.forEachIndexed { cardIdx, cardData ->
                     val natDays = DateCalculatorUtils.naturalDaysBetween(cardData.baseDate, cardData.targetDate)
@@ -885,6 +885,7 @@ fun DateDiffScreen(
                         cardData.baseDate, cardData.targetDate, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays
                     )
                     val isPast = cardData.targetDate.isBefore(cardData.baseDate)
+                    val isCardPinned = uiState.pinnedPresetHolidays.contains(cardData.eventName) || uiState.customEvents.any { (it.name == cardData.eventName || it.name.contains(cardData.eventName)) && it.isPinned }
 
                     val resultCardShape = RoundedCornerShape(22.dp)
                     Box(
@@ -917,16 +918,47 @@ fun DateDiffScreen(
                                     )
                                 }
 
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .clickable {
-                                            resultCardList = resultCardList.filterNot { it.id == cardData.id }
-                                        }
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                            .background(if (isCardPinned) NeumorphicAccent else NeumorphicBg, shape = CircleShape)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                val fullName = cardData.eventName
+                                                val foundCustom = uiState.customEvents.find { it.name == fullName || it.name.contains(cardData.eventName) }
+                                                if (foundCustom != null) {
+                                                    viewModel.togglePinCustomEvent(foundCustom, context)
+                                                } else {
+                                                    viewModel.togglePinPresetHoliday(fullName, context)
+                                                }
+                                                val msg = if (isCardPinned) "Unpinned" else "Pinned!"
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PushPin,
+                                            contentDescription = "Pin",
+                                            tint = if (isCardPinned) Color.White else NeumorphicAccent,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clickable {
+                                                resultCardList = resultCardList.filterNot { it.id == cardData.id }
+                                            }
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(10.dp))
