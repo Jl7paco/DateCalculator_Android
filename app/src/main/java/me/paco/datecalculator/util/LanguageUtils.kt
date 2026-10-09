@@ -1,9 +1,654 @@
 package me.paco.datecalculator.util
 
 import me.paco.datecalculator.data.AppLanguage
+import java.time.LocalDate
 import java.time.YearMonth
+import java.util.Locale
 
 object LanguageUtils {
+
+    fun getString(key: String, language: AppLanguage): String {
+        val effectiveLang = language.getEffectiveLanguage()
+        val map = when (effectiveLang) {
+            AppLanguage.SIMPLIFIED_CHINESE -> stringsZh
+            AppLanguage.TRADITIONAL_CHINESE -> stringsZhTw
+            AppLanguage.ENGLISH -> stringsEn
+            AppLanguage.JAPANESE -> stringsJa
+            AppLanguage.KOREAN -> stringsKo
+            else -> stringsZh
+        }
+        return map[key] ?: key
+    }
+
+    private val stringsZh = mapOf(
+        "app_title" to "日期计算器",
+        "tab_home" to "首页",
+        "tab_calc" to "日期计算",
+        "tab_countdown" to "倒数日",
+        "tab_anniversary" to "纪念日",
+        "tab_lunar" to "农历转换",
+        "tab_age" to "年龄计算",
+        "settings_language" to "语言设置",
+        "settings_theme" to "主题配色方案",
+        "settings_dark_mode" to "深色模式",
+        "settings_home_config" to "首页功能卡片显隐设置",
+        "settings_region" to "选择国家/地区",
+        "settings_gps_auto" to "GPS 自动识别所在地",
+        "settings_sync_holidays" to "同步最新节假日数据",
+        "home_show_screen" to "显示首页 (Home Screen)",
+        "home_calendar" to "月历视图",
+        "home_almanac" to "当日黄历与宜忌",
+        "home_solar_terms" to "二十四节气",
+        "home_lunar" to "农历干支与月日",
+        "home_zodiac" to "星座每日运势",
+        "home_weather" to "GPS 实时天气预报",
+        "history_title" to "历史记录",
+        "history_empty" to "暂无历史推算记录",
+        "history_clear" to "清空全部历史",
+        "settings_title" to "系统设置",
+        "select_start_date" to "选择起始日期",
+        "select_target_date" to "选择目标日期",
+        "base_date" to "起始日期",
+        "target_date" to "目标日期",
+        "today" to "今天",
+        "yesterday" to "昨天",
+        "plus_1w" to "+1周",
+        "minus_1w" to "-1周",
+        "workday" to "工作日",
+        "natural_day" to "自然日",
+        "mode_forward" to "加减天数",
+        "mode_reverse" to "区间拆算",
+        "multi_stage_btn" to "多段加减",
+        "calc_rule_title" to "推算规则 (工作日 / 自然日)",
+        "add_stage_btn" to "添加阶段",
+        "export_csv_btn" to "导出 CSV",
+        "common_countdown" to "常用倒数日",
+        "fixed_countdown" to "固定倒数日",
+        "add_countdown" to "添加自定义倒数日",
+        "solar" to "公历",
+        "lunar" to "农历",
+        "birth_date_label" to "出生日期",
+        "select_birth_date" to "选择出生日期",
+        "exact_age" to "您的精确年龄",
+        "age_result" to "您的精确年龄",
+        "years_unit" to "岁",
+        "months_unit" to "个月",
+        "weeks_unit" to "周",
+        "days_unit" to "天",
+        "total_days" to "生存总天数",
+        "total_weeks" to "生存总周数",
+        "next_birthday_days" to "距离下次生日",
+        "zodiac_sign" to "生肖属相",
+        "constellation" to "星座",
+        "days_until_prefix" to "距离",
+        "days_until_suffix" to "还有",
+        "lucky_number" to "幸运数字",
+        "lucky_color" to "幸运颜色",
+        "forecast_title" to "当地及未来三日天气推算",
+        "add_anniversary" to "新增纪念日",
+        "check_in" to "打卡",
+        "save_anniversary" to "保存纪念日",
+        "anniversary_name" to "纪念日名称",
+        "anniversary_date" to "纪念日日期",
+        "dark_mode_system" to "跟随系统",
+        "dark_mode_on" to "开启",
+        "dark_mode_off" to "关闭",
+        "workday_chip" to "工作日",
+        "weekend_chip" to "休息日",
+        "result_title_workday" to "工作日计算结果",
+        "result_title_natural" to "自然日计算结果",
+        "cancel" to "取消",
+        "confirm" to "确定",
+        "export_csv" to "导出 CSV",
+        "close_details" to "关闭详情",
+        "edit_history_title" to "修改历史记录名称",
+        "enter_new_history_title" to "请输入新的历史记录名称:",
+        "save_title" to "保存名称",
+        "reverse_end_date_title" to "选择终止日期拆算包含的天数:",
+        "end_date_label" to "终止日期",
+        "anniversary_dialog_title" to "添加重要纪念日",
+        "check_in_dialog_title" to "精准打卡",
+        "confirm_delete_anniversary" to "确认删除纪念日？",
+        "confirm_delete_btn" to "确认删除",
+        "days_passed" to "已陪伴过去",
+        "days_upcoming" to "距离即将到来",
+        "next_anniversary_remains" to "下个周年还剩",
+        "stage_remark_hint" to "记下这段时间要安排的事 (如: 方案准备 / 旅程第一站)",
+        "timeline_title" to "总时间安排示意",
+        "total_duration" to "总历时",
+        "weekend_rest" to "周末双休",
+        "statutory_holiday" to "法定节假日",
+        "stage_add_label" to "多段加",
+        "stage_sub_label" to "多段减",
+        "rule_weekend_title" to "周末休息模式",
+        "rule_five_days" to "双休 (周六日休息)",
+        "rule_big_small_weeks" to "大小周 (单双休轮替)",
+        "rule_six_days_sunday" to "单休 (仅周日休息)",
+        "rule_six_days_saturday" to "单休 (仅周六休息)",
+        "rule_seven_days" to "无休 (七天工作)",
+        "rule_five_days_desc" to "每周一至周五为工作日，周六周日休息",
+        "rule_big_small_weeks_desc" to "一周单休 (仅周日休)，次周双休 (周六日休)，隔周轮替",
+        "rule_six_days_sunday_desc" to "每周一至周六为工作日，仅周日休息",
+        "rule_six_days_saturday_desc" to "每周日及周一至周五为工作日，仅周六休息",
+        "rule_seven_days_desc" to "一周七天均为工作日，不计周末",
+        "no_anniversary_record" to "❤️ 暂无记录的重要纪念日",
+        "add_anniversary_hint" to "点击上方“新增纪念日”或“打卡”保存美好时刻",
+        "fortune_suffix" to "每日运势",
+        "custom_btn" to "自定义",
+        "yi_label" to "宜",
+        "ji_label" to "忌",
+        "lunar_to_solar_title" to "公历 ➔ 农历",
+        "solar_to_lunar_title" to "农历 ➔ 公历",
+        "lunar_convert_title" to "农历与公历转换",
+        "custom_color" to "自定义色彩",
+        "palette_title" to "调色盘 (14 款精选主色调):"
+    )
+
+    private val stringsZhTw = mapOf(
+        "app_title" to "日期計算器",
+        "tab_home" to "首頁",
+        "tab_calc" to "日期計算",
+        "tab_countdown" to "倒數日",
+        "tab_anniversary" to "紀念日",
+        "tab_lunar" to "農曆轉換",
+        "tab_age" to "年齡計算",
+        "settings_language" to "語言設定",
+        "settings_theme" to "主題配色方案",
+        "settings_dark_mode" to "深色模式",
+        "settings_home_config" to "首頁功能顯示與顯隱設定",
+        "settings_region" to "選擇國家/地區",
+        "settings_gps_auto" to "GPS 自動識別所在地",
+        "settings_sync_holidays" to "同步最新節假日數據",
+        "home_show_screen" to "顯示首頁 (Home Screen)",
+        "home_calendar" to "月曆視圖",
+        "home_almanac" to "當日黃曆與宜忌",
+        "home_solar_terms" to "二十四節氣",
+        "home_lunar" to "農曆干支與月日",
+        "home_zodiac" to "星座每日運勢",
+        "home_weather" to "GPS 實時天氣預報",
+        "history_title" to "歷史記錄",
+        "history_empty" to "暫無歷史推算記錄",
+        "history_clear" to "清空全部歷史",
+        "settings_title" to "系統設定",
+        "select_start_date" to "選擇起始日期",
+        "select_target_date" to "選擇目標日期",
+        "base_date" to "起始日期",
+        "target_date" to "目標日期",
+        "today" to "今天",
+        "yesterday" to "昨天",
+        "plus_1w" to "+1周",
+        "minus_1w" to "-1周",
+        "workday" to "工作日",
+        "natural_day" to "自然日",
+        "mode_forward" to "加減天數",
+        "mode_reverse" to "區間拆算",
+        "multi_stage_btn" to "多段加減",
+        "calc_rule_title" to "推算規則 (工作日 / 自然日)",
+        "add_stage_btn" to "添加階段",
+        "export_csv_btn" to "匯出 CSV",
+        "common_countdown" to "常用倒數日",
+        "fixed_countdown" to "固定倒數日",
+        "add_countdown" to "添加自定義倒數日",
+        "solar" to "公曆",
+        "lunar" to "農曆",
+        "birth_date_label" to "出生日期",
+        "select_birth_date" to "選擇出生日期",
+        "exact_age" to "您的精確年齡",
+        "age_result" to "您的精確年齡",
+        "years_unit" to "歲",
+        "months_unit" to "個月",
+        "weeks_unit" to "周",
+        "days_unit" to "天",
+        "total_days" to "生存總天數",
+        "total_weeks" to "生存總周數",
+        "next_birthday_days" to "距離下次生日",
+        "zodiac_sign" to "生肖屬相",
+        "constellation" to "星座",
+        "days_until_prefix" to "距離",
+        "days_until_suffix" to "還有",
+        "lucky_number" to "幸運數字",
+        "lucky_color" to "幸運顏色",
+        "forecast_title" to "當地及未來三日天氣推算",
+        "add_anniversary" to "新增紀念日",
+        "check_in" to "打卡",
+        "save_anniversary" to "保存紀念日",
+        "anniversary_name" to "紀念日名稱",
+        "anniversary_date" to "紀念日日期",
+        "dark_mode_system" to "跟隨系統",
+        "dark_mode_on" to "開啟",
+        "dark_mode_off" to "關閉",
+        "workday_chip" to "工作日",
+        "weekend_chip" to "休息日",
+        "result_title_workday" to "工作日計算結果",
+        "result_title_natural" to "自然日計算結果",
+        "cancel" to "取消",
+        "confirm" to "確定",
+        "export_csv" to "匯出 CSV",
+        "close_details" to "關閉詳情",
+        "edit_history_title" to "修改歷史記錄名稱",
+        "enter_new_history_title" to "請輸入新的歷史記錄名稱:",
+        "save_title" to "保存名稱",
+        "reverse_end_date_title" to "選擇終止日期拆算包含的天數:",
+        "end_date_label" to "終止日期",
+        "anniversary_dialog_title" to "添加重要紀念日",
+        "check_in_dialog_title" to "精準打卡",
+        "confirm_delete_anniversary" to "確認刪除紀念日？",
+        "confirm_delete_btn" to "確認刪除",
+        "days_passed" to "已陪伴過去",
+        "days_upcoming" to "距離即將到來",
+        "next_anniversary_remains" to "下個周年還剩",
+        "stage_remark_hint" to "記下這段時間要安排的事 (如: 方案準備 / 旅程第一站)",
+        "timeline_title" to "總時間安排示意",
+        "total_duration" to "總歷時",
+        "weekend_rest" to "周末雙休",
+        "statutory_holiday" to "法定節假日",
+        "stage_add_label" to "多段加",
+        "stage_sub_label" to "多段減",
+        "rule_weekend_title" to "周末休息模式",
+        "rule_five_days" to "雙休 (周六日休息)",
+        "rule_big_small_weeks" to "大小周 (單雙休輪替)",
+        "rule_six_days_sunday" to "單休 (僅周日休息)",
+        "rule_six_days_saturday" to "單休 (僅周六休息)",
+        "rule_seven_days" to "無休 (七天工作)",
+        "rule_five_days_desc" to "每周一至周五為工作日，周六周日休息",
+        "rule_big_small_weeks_desc" to "一周單休 (僅周日休)，次周雙休 (周六日休)，隔周輪替",
+        "rule_six_days_sunday_desc" to "每周一至周六為工作日，僅周日休息",
+        "rule_six_days_saturday_desc" to "每周日及周一至周五為工作日，僅周六休息",
+        "rule_seven_days_desc" to "一周七天均為工作日，不計周末",
+        "no_anniversary_record" to "❤️ 暫無記錄的重要紀念日",
+        "add_anniversary_hint" to "點擊上方“新增紀念日”或“打卡”保存美好時刻",
+        "fortune_suffix" to "每日運勢",
+        "custom_btn" to "自定義",
+        "yi_label" to "宜",
+        "ji_label" to "忌",
+        "lunar_to_solar_title" to "公曆 ➔ 農曆",
+        "solar_to_lunar_title" to "農曆 ➔ 公曆",
+        "lunar_convert_title" to "農曆與公曆轉換",
+        "custom_color" to "自定義色彩",
+        "palette_title" to "調色盤 (14 款精選主色調):"
+    )
+
+    private val stringsEn = mapOf(
+        "app_title" to "Date Calculator",
+        "tab_home" to "Home",
+        "tab_calc" to "Date Calc",
+        "tab_countdown" to "Countdown",
+        "tab_anniversary" to "Anniversary",
+        "tab_lunar" to "Lunar",
+        "tab_age" to "Age Calc",
+        "settings_language" to "Language Settings",
+        "settings_theme" to "Theme Color Preset",
+        "settings_dark_mode" to "Dark Mode",
+        "settings_home_config" to "Home Modules Visibility",
+        "settings_region" to "Country / Region",
+        "settings_gps_auto" to "Auto GPS Location Detection",
+        "settings_sync_holidays" to "Sync Latest Holidays Data",
+        "home_show_screen" to "Show Home Screen",
+        "home_calendar" to "Calendar View",
+        "home_almanac" to "Almanac & Daily Guidance",
+        "home_solar_terms" to "24 Solar Terms",
+        "home_lunar" to "Lunar Date Info",
+        "home_zodiac" to "Daily Horoscope & Zodiac",
+        "home_weather" to "Live Weather Forecast",
+        "history_title" to "Calculation History",
+        "history_empty" to "No history records yet",
+        "history_clear" to "Clear History",
+        "settings_title" to "Settings",
+        "select_start_date" to "Select Start Date",
+        "select_target_date" to "Select Target Date",
+        "base_date" to "Start Date",
+        "target_date" to "Target Date",
+        "today" to "Today",
+        "yesterday" to "Yest",
+        "plus_1w" to "+1 Wk",
+        "minus_1w" to "-1 Wk",
+        "workday" to "Workday",
+        "natural_day" to "Calendar Day",
+        "mode_forward" to "Days Calc",
+        "mode_reverse" to "Interval Breakdown",
+        "multi_stage_btn" to "Multi-Stage Calc",
+        "calc_rule_title" to "Calculation Rule",
+        "add_stage_btn" to "Add Stage",
+        "export_csv_btn" to "Export CSV",
+        "common_countdown" to "Preset Countdowns",
+        "fixed_countdown" to "Pinned Countdowns",
+        "add_countdown" to "Add Custom Countdown",
+        "solar" to "Solar",
+        "lunar" to "Lunar",
+        "birth_date_label" to "Date of Birth",
+        "select_birth_date" to "Select Date of Birth",
+        "exact_age" to "Your Exact Age",
+        "age_result" to "Exact Age Breakdown",
+        "years_unit" to "Years Old",
+        "months_unit" to "Months",
+        "weeks_unit" to "Weeks",
+        "days_unit" to "Days",
+        "total_days" to "Total Days Lived",
+        "total_weeks" to "Total Weeks Lived",
+        "next_birthday_days" to "Days to Next Birthday",
+        "zodiac_sign" to "Zodiac Animal",
+        "constellation" to "Astrological Sign",
+        "days_until_prefix" to "",
+        "days_until_suffix" to "Days Remaining",
+        "lucky_number" to "Lucky Number",
+        "lucky_color" to "Lucky Color",
+        "forecast_title" to "Weather Forecast",
+        "add_anniversary" to "Add Anniversary",
+        "check_in" to "Check-in",
+        "save_anniversary" to "Save Anniversary",
+        "anniversary_name" to "Title",
+        "anniversary_date" to "Date",
+        "dark_mode_system" to "System Default",
+        "dark_mode_on" to "On",
+        "dark_mode_off" to "Off",
+        "workday_chip" to "Workday",
+        "weekend_chip" to "Weekend",
+        "result_title_workday" to "Workday Result",
+        "result_title_natural" to "Calendar Day Result",
+        "cancel" to "Cancel",
+        "confirm" to "Confirm",
+        "export_csv" to "Export CSV",
+        "close_details" to "Close",
+        "edit_history_title" to "Rename Record",
+        "enter_new_history_title" to "Enter new title:",
+        "save_title" to "Save",
+        "reverse_end_date_title" to "Select End Date to Breakdown Interval:",
+        "end_date_label" to "End Date",
+        "anniversary_dialog_title" to "New Anniversary",
+        "check_in_dialog_title" to "Location Check-In",
+        "confirm_delete_anniversary" to "Delete Anniversary?",
+        "confirm_delete_btn" to "Delete",
+        "days_passed" to "Days Passed",
+        "days_upcoming" to "Days Remaining",
+        "next_anniversary_remains" to "Next Anniversary in",
+        "stage_remark_hint" to "Notes (e.g. Planning / Stop 1)",
+        "timeline_title" to "Timeline Overview",
+        "total_duration" to "Total Duration",
+        "weekend_rest" to "Weekend Rest",
+        "statutory_holiday" to "Holidays",
+        "stage_add_label" to "Add Stage",
+        "stage_sub_label" to "Subtract Stage",
+        "rule_weekend_title" to "Weekend Rule",
+        "rule_five_days" to "5-Day Workweek (Sat & Sun off)",
+        "rule_big_small_weeks" to "Alternating Weeks (Big/Small)",
+        "rule_six_days_sunday" to "6-Day Workweek (Sun off)",
+        "rule_six_days_saturday" to "6-Day Workweek (Sat off)",
+        "rule_seven_days" to "7-Day Continuous (No weekend)",
+        "rule_five_days_desc" to "Mon-Fri workdays, Sat-Sun rest",
+        "rule_big_small_weeks_desc" to "Alternate between 6-day and 5-day workweeks",
+        "rule_six_days_sunday_desc" to "Mon-Sat workdays, Sun rest",
+        "rule_six_days_saturday_desc" to "Sun-Fri workdays, Sat rest",
+        "rule_seven_days_desc" to "All 7 days are workdays",
+        "no_anniversary_record" to "❤️ No Anniversaries Saved",
+        "add_anniversary_hint" to "Tap 'Add Anniversary' or 'Check-in' above",
+        "fortune_suffix" to "Horoscope",
+        "custom_btn" to "Custom",
+        "yi_label" to "Suitable",
+        "ji_label" to "Avoid",
+        "lunar_to_solar_title" to "Solar ➔ Lunar",
+        "solar_to_lunar_title" to "Lunar ➔ Solar",
+        "lunar_convert_title" to "Lunar & Solar Converter",
+        "custom_color" to "Custom Color",
+        "palette_title" to "Palette Presets:"
+    )
+
+    private val stringsJa = mapOf(
+        "app_title" to "日付電卓",
+        "tab_home" to "ホーム",
+        "tab_calc" to "日付計算",
+        "tab_countdown" to "カウントダウン",
+        "tab_anniversary" to "記念日",
+        "tab_lunar" to "旧暦変換",
+        "tab_age" to "年齢計算",
+        "settings_language" to "言語設定",
+        "settings_theme" to "テーマカラー",
+        "settings_dark_mode" to "ダークモード",
+        "settings_home_config" to "ホームカード表示設定",
+        "settings_region" to "国・地域選択",
+        "settings_gps_auto" to "GPS自動位置識別",
+        "settings_sync_holidays" to "最新祝日データ同期",
+        "home_show_screen" to "ホーム画面を表示",
+        "home_calendar" to "カレンダー表示",
+        "home_almanac" to "暦と吉凶",
+        "home_solar_terms" to "二十四節気",
+        "home_lunar" to "旧暦情報",
+        "home_zodiac" to "今日の運勢",
+        "home_weather" to "リアルタイム天気",
+        "history_title" to "計算履歴",
+        "history_empty" to "履歴はありません",
+        "history_clear" to "全履歴削除",
+        "settings_title" to "設定",
+        "select_start_date" to "開始日を選択",
+        "select_target_date" to "目標日を選択",
+        "base_date" to "開始日",
+        "target_date" to "目標日",
+        "today" to "今日",
+        "yesterday" to "昨日",
+        "plus_1w" to "+1週",
+        "minus_1w" to "-1週",
+        "workday" to "稼働日",
+        "natural_day" to "暦日",
+        "mode_forward" to "日数加減",
+        "mode_reverse" to "期間内訳",
+        "multi_stage_btn" to "複数段階計算",
+        "calc_rule_title" to "計算ルール",
+        "add_stage_btn" to "段階追加",
+        "export_csv_btn" to "CSV出力",
+        "common_countdown" to "よく使うカウントダウン",
+        "fixed_countdown" to "固定カウントダウン",
+        "add_countdown" to "カスタムカウントダウン追加",
+        "solar" to "新暦",
+        "lunar" to "旧暦",
+        "birth_date_label" to "生年月日",
+        "select_birth_date" to "生年月日を選択",
+        "exact_age" to "正確な年齢",
+        "age_result" to "正確な年齢の内訳",
+        "years_unit" to "歳",
+        "months_unit" to "ヶ月",
+        "weeks_unit" to "週間",
+        "days_unit" to "日",
+        "total_days" to "総生存日数",
+        "total_weeks" to "総生存週数",
+        "next_birthday_days" to "次の誕生日まで",
+        "zodiac_sign" to "十二支",
+        "constellation" to "星座",
+        "days_until_prefix" to "まで",
+        "days_until_suffix" to "あと",
+        "lucky_number" to "ラッキーナンバー",
+        "lucky_color" to "ラッキーカラー",
+        "forecast_title" to "天気予報",
+        "add_anniversary" to "記念日追加",
+        "check_in" to "チェックイン",
+        "save_anniversary" to "記念日保存",
+        "anniversary_name" to "タイトル",
+        "anniversary_date" to "日付",
+        "dark_mode_system" to "システムに追従",
+        "dark_mode_on" to "オン",
+        "dark_mode_off" to "オフ",
+        "workday_chip" to "稼働日",
+        "weekend_chip" to "休日",
+        "result_title_workday" to "稼働日計算結果",
+        "result_title_natural" to "暦日計算結果",
+        "cancel" to "キャンセル",
+        "confirm" to "確定",
+        "export_csv" to "CSV出力",
+        "close_details" to "閉じる",
+        "edit_history_title" to "履歴名を変更",
+        "enter_new_history_title" to "新しい名前を入力:",
+        "save_title" to "保存",
+        "reverse_end_date_title" to "終了日を選択して期間の内訳を計算:",
+        "end_date_label" to "終了日",
+        "anniversary_dialog_title" to "記念日追加",
+        "check_in_dialog_title" to "位置チェックイン",
+        "confirm_delete_anniversary" to "記念日を削除しますか？",
+        "confirm_delete_btn" to "削除",
+        "days_passed" to "経過日数",
+        "days_upcoming" to "残り日数",
+        "next_anniversary_remains" to "次の周年まであと",
+        "stage_remark_hint" to "メモ (例: 準備 / 最初の目的地)",
+        "timeline_title" to "タイムライン概要",
+        "total_duration" to "総所要期間",
+        "weekend_rest" to "週末休日",
+        "statutory_holiday" to "祝日",
+        "stage_add_label" to "加算",
+        "stage_sub_label" to "減算",
+        "rule_weekend_title" to "週末ルール",
+        "rule_five_days" to "完全週休2日 (土日休み)",
+        "rule_big_small_weeks" to "隔週週休2日",
+        "rule_six_days_sunday" to "週休1日 (日曜日休み)",
+        "rule_six_days_saturday" to "週休1日 (土曜日休み)",
+        "rule_seven_days" to "休みなし (7日連続稼働)",
+        "rule_five_days_desc" to "月～金が稼働日、土日が休日",
+        "rule_big_small_weeks_desc" to "隔週で土曜日が出勤日",
+        "rule_six_days_sunday_desc" to "月～土が稼働日、日曜日が休日",
+        "rule_six_days_saturday_desc" to "日～金が稼働日、土曜日が休日",
+        "rule_seven_days_desc" to "全7日すべてが稼働日",
+        "no_anniversary_record" to "❤️ 保存された記念日はありません",
+        "add_anniversary_hint" to "上の「記念日追加」または「チェックイン」をタップ",
+        "fortune_suffix" to "今日の運勢",
+        "custom_btn" to "カスタム",
+        "yi_label" to "吉",
+        "ji_label" to "凶",
+        "lunar_to_solar_title" to "新暦 ➔ 旧暦",
+        "solar_to_lunar_title" to "旧暦 ➔ 新暦",
+        "lunar_convert_title" to "旧暦・新暦変換",
+        "custom_color" to "カスタムカラー",
+        "palette_title" to "カラーパレット:"
+    )
+
+    private val stringsKo = mapOf(
+        "app_title" to "날짜 계산기",
+        "tab_home" to "홈",
+        "tab_calc" to "날짜 계산",
+        "tab_countdown" to "디데이",
+        "tab_anniversary" to "기념일",
+        "tab_lunar" to "음력 변환",
+        "tab_age" to "나이 계산",
+        "settings_language" to "언어 설정",
+        "settings_theme" to "테마 컬러",
+        "settings_dark_mode" to "다크 모드",
+        "settings_home_config" to "홈 카드 표시 설정",
+        "settings_region" to "국가 / 지역 선택",
+        "settings_gps_auto" to "GPS 자동 위치 감지",
+        "settings_sync_holidays" to "최신 공휴일 데이터 동기화",
+        "home_show_screen" to "홈 화면 표시",
+        "home_calendar" to "달력 보기",
+        "home_almanac" to "오늘의 운세 및 길흉",
+        "home_solar_terms" to "24절기",
+        "home_lunar" to "음력 정보",
+        "home_zodiac" to "별자리 운세",
+        "home_weather" to "실시간 날씨",
+        "history_title" to "계산 기록",
+        "history_empty" to "계산 기록이 없습니다",
+        "history_clear" to "전체 기록 삭제",
+        "settings_title" to "설정",
+        "select_start_date" to "시작일 선택",
+        "select_target_date" to "목표일 선택",
+        "base_date" to "시작일",
+        "target_date" to "목표일",
+        "today" to "오늘",
+        "yesterday" to "어제",
+        "plus_1w" to "+1주",
+        "minus_1w" to "-1주",
+        "workday" to "근무일",
+        "natural_day" to "달력일",
+        "mode_forward" to "일수 계산",
+        "mode_reverse" to "기간 분석",
+        "multi_stage_btn" to "다단계 계산",
+        "calc_rule_title" to "계산 규칙",
+        "add_stage_btn" to "단계 추가",
+        "export_csv_btn" to "CSV 내보내기",
+        "common_countdown" to "자주 쓰는 디데이",
+        "fixed_countdown" to "고정 디데이",
+        "add_countdown" to "사용자 디데이 추가",
+        "solar" to "양력",
+        "lunar" to "음력",
+        "birth_date_label" to "생년월일",
+        "select_birth_date" to "생년월일 선택",
+        "exact_age" to "정확한 나이",
+        "age_result" to "정확한 나이 내역",
+        "years_unit" to "세",
+        "months_unit" to "개월",
+        "weeks_unit" to "주",
+        "days_unit" to "일",
+        "total_days" to "총 살아온 일수",
+        "total_weeks" to "총 살아온 주수",
+        "next_birthday_days" to "다음 생일까지",
+        "zodiac_sign" to "띠",
+        "constellation" to "별자리",
+        "days_until_prefix" to "까지",
+        "days_until_suffix" to "남음",
+        "lucky_number" to "행운의 숫자",
+        "lucky_color" to "행운의 색상",
+        "forecast_title" to "날씨 예보",
+        "add_anniversary" to "기념일 추가",
+        "check_in" to "체크인",
+        "save_anniversary" to "기념일 저장",
+        "anniversary_name" to "제목",
+        "anniversary_date" to "날짜",
+        "dark_mode_system" to "시스템 기본값",
+        "dark_mode_on" to "켜기",
+        "dark_mode_off" to "끄기",
+        "workday_chip" to "근무일",
+        "weekend_chip" to "휴일",
+        "result_title_workday" to "근무일 계산 결과",
+        "result_title_natural" to "달력일 계산 결과",
+        "cancel" to "취소",
+        "confirm" to "확인",
+        "export_csv" to "CSV 내보내기",
+        "close_details" to "닫기",
+        "edit_history_title" to "기록 이름 변경",
+        "enter_new_history_title" to "새 이름을 입력하세요:",
+        "save_title" to "저장",
+        "reverse_end_date_title" to "종료일을 선택하여 기간을 분석합니다:",
+        "end_date_label" to "종료일",
+        "anniversary_dialog_title" to "기념일 추가",
+        "check_in_dialog_title" to "위치 체크인",
+        "confirm_delete_anniversary" to "기념일을 삭제하시겠습니까?",
+        "confirm_delete_btn" to "삭제",
+        "days_passed" to "함께한 일수",
+        "days_upcoming" to "남은 일수",
+        "next_anniversary_remains" to "다음 주기까지 남은 일수",
+        "stage_remark_hint" to "메모 (예: 준비 / 첫 목적지)",
+        "timeline_title" to "타임라인 개요",
+        "total_duration" to "총 소요 기간",
+        "weekend_rest" to "주말 휴일",
+        "statutory_holiday" to "공휴일",
+        "stage_add_label" to "더하기",
+        "stage_sub_label" to "빼기",
+        "rule_weekend_title" to "주말 규칙",
+        "rule_five_days" to "주 5일 근무 (토/일 휴무)",
+        "rule_big_small_weeks" to "격주 휴무",
+        "rule_six_days_sunday" to "주 6일 근무 (일요일 휴무)",
+        "rule_six_days_saturday" to "주 6일 근무 (토요일 휴무)",
+        "rule_seven_days" to "휴무 없음 (7일 근무)",
+        "rule_five_days_desc" to "월~금 근무일, 토~일 휴일",
+        "rule_big_small_weeks_desc" to "격주로 토요일 근무",
+        "rule_six_days_sunday_desc" to "월~토 근무일, 일요일 휴일",
+        "rule_six_days_saturday_desc" to "일~금 근무일, 토요일 휴일",
+        "rule_seven_days_desc" to "7일 모두 근무일",
+        "no_anniversary_record" to "❤️ 저장된 기념일이 없습니다",
+        "add_anniversary_hint" to "상단의 '기념일 추가' 또는 '체크인'을 누르세요",
+        "fortune_suffix" to "오늘의 운세",
+        "custom_btn" to "사용자 정의",
+        "yi_label" to "길",
+        "ji_label" to "흉",
+        "lunar_to_solar_title" to "양력 ➔ 음력",
+        "solar_to_lunar_title" to "음력 ➔ 양력",
+        "lunar_convert_title" to "음력·양력 변환",
+        "custom_color" to "사용자 정의 색상",
+        "palette_title" to "팔레트 프셋:"
+    )
+
+    fun getLocalizedYearMonth(yearMonth: YearMonth, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE -> "${yearMonth.year}年 ${yearMonth.monthValue}月"
+            AppLanguage.ENGLISH -> "${yearMonth.month.name.take(3)} ${yearMonth.year}"
+            AppLanguage.JAPANESE -> "${yearMonth.year}年 ${yearMonth.monthValue}月"
+            AppLanguage.KOREAN -> "${yearMonth.year}년 ${yearMonth.monthValue}월"
+            else -> "${yearMonth.year}年 ${yearMonth.monthValue}月"
+        }
+    }
 
     fun getWeekHeaders(language: AppLanguage): List<String> {
         return when (language.getEffectiveLanguage()) {
@@ -12,163 +657,7 @@ object LanguageUtils {
             AppLanguage.ENGLISH -> listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
             AppLanguage.JAPANESE -> listOf("日", "月", "火", "水", "木", "金", "土")
             AppLanguage.KOREAN -> listOf("일", "월", "화", "수", "목", "금", "토")
-            else -> listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-        }
-    }
-
-    fun getLocalizedYearMonth(yearMonth: YearMonth, language: AppLanguage): String {
-        return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE, AppLanguage.JAPANESE -> "${yearMonth.year}年 ${yearMonth.monthValue}月"
-            AppLanguage.KOREAN -> "${yearMonth.year}년 ${yearMonth.monthValue}월"
-            else -> {
-                val mName = yearMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }
-                "$mName ${yearMonth.year}"
-            }
-        }
-    }
-
-    fun getLocalizedConstellation(name: String, language: AppLanguage): String {
-        val clean = name.replace("♑ ", "").replace("♒ ", "").replace("♓ ", "").replace("♈ ", "").replace("♉ ", "").replace("♊ ", "").replace("♋ ", "").replace("<ctrl42> ", "").replace("♍ ", "").replace("♎ ", "").replace("♏ ", "").replace("♐ ", "").trim()
-        val emoji = when {
-            name.contains("摩羯") -> "♑"
-            name.contains("水瓶") -> "♒"
-            name.contains("双鱼") -> "♓"
-            name.contains("白羊") -> "♈"
-            name.contains("金牛") -> "♉"
-            name.contains("双子") -> "♊"
-            name.contains("巨蟹") -> "♋"
-            name.contains("狮子") -> "♌"
-            name.contains("处女") -> "♍"
-            name.contains("天秤") -> "♎"
-            name.contains("天蝎") -> "♏"
-            name.contains("射手") -> "♐"
-            else -> "✨"
-        }
-
-        val translated = when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> clean
-            AppLanguage.TRADITIONAL_CHINESE -> when (clean) {
-                "摩羯座" -> "摩羯座"; "水瓶座" -> "水瓶座"; "双鱼座" -> "雙魚座"; "白羊座" -> "白羊座"
-                "金牛座" -> "金牛座"; "双子座" -> "雙子座"; "巨蟹座" -> "巨蟹座"; "狮子座" -> "獅子座"
-                "处女座" -> "處女座"; "天秤座" -> "天秤座"; "天蝎座" -> "天蠍座"; "射手座" -> "射手座"; else -> clean
-            }
-            AppLanguage.ENGLISH -> when (clean) {
-                "摩羯座" -> "Capricorn"; "水瓶座" -> "Aquarius"; "双鱼座" -> "Pisces"; "白羊座" -> "Aries"
-                "金牛座" -> "Taurus"; "双子座" -> "Gemini"; "巨蟹座" -> "Cancer"; "狮子座" -> "Leo"
-                "处女座" -> "Virgo"; "天秤座" -> "Libra"; "天蝎座" -> "Scorpio"; "射手座" -> "Sagittarius"; else -> clean
-            }
-            AppLanguage.JAPANESE -> when (clean) {
-                "摩羯座" -> "山羊座"; "水瓶座" -> "水瓶座"; "双鱼座" -> "魚座"; "白羊座" -> "牡羊座"
-                "金牛座" -> "牡牛座"; "双子座" -> "双子座"; "巨蟹座" -> "蟹座"; "狮子座" -> "獅子座"
-                "处女座" -> "乙女座"; "天秤座" -> "天秤座"; "天蝎座" -> "蠍座"; "射手座" -> "射手座"; else -> clean
-            }
-            AppLanguage.KOREAN -> when (clean) {
-                "摩羯座" -> "염소자리"; "水瓶座" -> "물병자리"; "双鱼座" -> "물고기자리"; "白羊座" -> "양자리"
-                "金牛座" -> "황소자리"; "双子座" -> "쌍둥이자리"; "巨蟹座" -> "게자리"; "狮子座" -> "사자자리"
-                "处女座" -> "처녀자리"; "天秤座" -> "천칭자리"; "天蝎座" -> "전갈자리"; "射手座" -> "궁수자리"; else -> clean
-            }
-            else -> clean
-        }
-        return "$emoji $translated"
-    }
-
-    fun getLocalizedAlmanacItem(item: String, language: AppLanguage): String {
-        return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> item
-            AppLanguage.TRADITIONAL_CHINESE -> when (item) {
-                "祭祀" -> "祭祀"; "祈福" -> "祈福"; "出行" -> "出行"; "立券" -> "立券"; "签合同" -> "簽合同"; "纳财" -> "納財"
-                "扫舍" -> "掃舍"; "沐浴" -> "沐浴"; "求医" -> "求醫"; "治病" -> "治病"; "开市" -> "開市"; "交易" -> "交易"
-                "安床" -> "安床"; "入宅" -> "入宅"; "嫁娶" -> "嫁娶"; "安葬" -> "安葬"; "破土" -> "破土"; else -> item
-            }
-            AppLanguage.ENGLISH -> when (item) {
-                "祭祀" -> "Worship"; "祈福" -> "Pray"; "出行" -> "Travel"; "立券" -> "Contract"; "签合同" -> "Sign Agreement"; "纳财" -> "Wealth"
-                "扫舍" -> "Clean House"; "沐浴" -> "Bathing"; "求医" -> "Medical"; "治病" -> "Cure"; "开市" -> "Open Business"; "交易" -> "Trading"
-                "安床" -> "Set Bed"; "入宅" -> "Move In"; "嫁娶" -> "Wedding"; "安葬" -> "Burial"; "破土" -> "Break Ground"; else -> item
-            }
-            AppLanguage.JAPANESE -> when (item) {
-                "祭祀" -> "神事"; "祈福" -> "祈願"; "出行" -> "旅行"; "立券" -> "契約"; "签合同" -> "調印"; "纳财" -> "納財"
-                "扫舍" -> "掃除"; "沐浴" -> "入浴"; "求医" -> "通院"; "治病" -> "治療"; "开市" -> "開店"; "交易" -> "取引"
-                "安床" -> "寝具準備"; "入宅" -> "新居入居"; "嫁娶" -> "婚礼"; "安葬" -> "埋葬"; "破土" -> "起工"; else -> item
-            }
-            AppLanguage.KOREAN -> when (item) {
-                "祭祀" -> "제사"; "祈福" -> "기복"; "出行" -> "외출"; "立券" -> "계약"; "签合同" -> "서명"; "纳财" -> "재물 수합"
-                "扫舍" -> "청소"; "沐浴" -> "목욕"; "求医" -> "진료"; "治病" -> "치료"; "开市" -> "개업"; "交易" -> "거래"
-                "安床" -> "침대 배치"; "入宅" -> "입주"; "嫁娶" -> "혼인"; "安葬" -> "매장"; "破土" -> "개토"; else -> item
-            }
-            else -> item
-        }
-    }
-
-    fun getWeatherCondition(condition: String, language: AppLanguage): String {
-        return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> condition
-            AppLanguage.TRADITIONAL_CHINESE -> when (condition) {
-                "晴朗" -> "晴朗"; "阴天" -> "陰天"; "小雨" -> "小雨"; "雷阵雨" -> "雷陣雨"; "多云" -> "多雲"; else -> condition
-            }
-            AppLanguage.ENGLISH -> when (condition) {
-                "晴朗" -> "Sunny"; "阴天" -> "Overcast"; "小雨" -> "Light Rain"; "雷阵雨" -> "Thunderstorm"; "多云" -> "Cloudy"; else -> condition
-            }
-            AppLanguage.JAPANESE -> when (condition) {
-                "晴朗" -> "快晴"; "阴天" -> "曇り"; "小雨" -> "小雨"; "雷阵雨" -> "雷雨"; "多云" -> "晴れのち曇り"; else -> condition
-            }
-            AppLanguage.KOREAN -> when (condition) {
-                "晴朗" -> "맑음"; "阴天" -> "흐림"; "小雨" -> "가랑비"; "雷阵雨" -> "뇌우"; "多云" -> "구름조금"; else -> condition
-            }
-            else -> condition
-        }
-    }
-
-    fun getDayName(dayName: String, language: AppLanguage): String {
-        return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> dayName
-            AppLanguage.TRADITIONAL_CHINESE -> when (dayName) {
-                "今天" -> "今天"; "明天" -> "明天"; "后天" -> "後天"; "大后天" -> "大後天"; else -> dayName
-            }
-            AppLanguage.ENGLISH -> when (dayName) {
-                "今天" -> "Today"; "明天" -> "Tomorrow"; "后天" -> "Day After"; "大后天" -> "3 Days Later"; else -> dayName
-            }
-            AppLanguage.JAPANESE -> when (dayName) {
-                "今天" -> "今日"; "明天" -> "明日"; "后天" -> "明後日"; "大后天" -> "明々後日"; else -> dayName
-            }
-            AppLanguage.KOREAN -> when (dayName) {
-                "今天" -> "오늘"; "明天" -> "내일"; "后天" -> "모레"; "大后天" -> "글피"; else -> dayName
-            }
-            else -> dayName
-        }
-    }
-
-    fun getLocalizedCityName(cityName: String, language: AppLanguage): String {
-        val clean = cityName.replace("市", "").trim()
-        return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> cityName
-            AppLanguage.TRADITIONAL_CHINESE -> "${clean}市"
-            AppLanguage.ENGLISH -> when (clean) {
-                "北京" -> "Beijing"; "上海" -> "Shanghai"; "广州" -> "Guangzhou"; "深圳" -> "Shenzhen"; "杭州" -> "Hangzhou"; "成都" -> "Chengdu"; "武汉" -> "Wuhan"; "南京" -> "Nanjing"; "重庆" -> "Chongqing"; "天津" -> "Tianjin"; "西安" -> "Xi'an"; "台北" -> "Taipei"; "香港" -> "Hong Kong"; "澳门" -> "Macau"; else -> clean
-            }
-            AppLanguage.JAPANESE -> when (clean) {
-                "北京" -> "北京"; "上海" -> "上海"; "广州" -> "広州"; "深圳" -> "深セン"; "杭州" -> "杭州"; "成都" -> "成都"; "武汉" -> "武漢"; "南京" -> "南京"; "重庆" -> "重慶"; "天津" -> "天津"; "西安" -> "西安"; "台北" -> "台北"; "香港" -> "香港"; "澳门" -> "マカオ"; else -> clean
-            }
-            AppLanguage.KOREAN -> when (clean) {
-                "北京" -> "베이징"; "上海" -> "상하이"; "广州" -> "광저우"; "深圳" -> "선전"; "杭州" -> "항저우"; "成都" -> "청두"; "武汉" -> "우한"; "南京" -> "난징"; "重庆" -> "충칭"; "天津" -> "텐진"; "西安" -> "시안"; "台北" -> "타이베이"; "香港" -> "홍콩"; "澳门" -> "마카오"; else -> clean
-            }
-            else -> clean
-        }
-    }
-
-    fun getLocalizedZodiac(zodiac: String, language: AppLanguage): String {
-        return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> zodiac
-            AppLanguage.TRADITIONAL_CHINESE -> zodiac
-            AppLanguage.ENGLISH -> when (zodiac) {
-                "鼠" -> "Rat"; "牛" -> "Ox"; "虎" -> "Tiger"; "兔" -> "Rabbit"; "龙" -> "Dragon"; "蛇" -> "Snake"; "马" -> "Horse"; "羊" -> "Goat"; "猴" -> "Monkey"; "鸡" -> "Rooster"; "狗" -> "Dog"; "猪" -> "Pig"; else -> zodiac
-            }
-            AppLanguage.JAPANESE -> when (zodiac) {
-                "鼠" -> "子"; "牛" -> "丑"; "虎" -> "寅"; "兔" -> "卯"; "龙" -> "辰"; "蛇" -> "巳"; "马" -> "午"; "羊" -> "未"; "猴" -> "申"; "鸡" -> "酉"; "狗" -> "戌"; "猪" -> "亥"; else -> zodiac
-            }
-            AppLanguage.KOREAN -> when (zodiac) {
-                "鼠" -> "쥐"; "牛" -> "소"; "虎" -> "호랑이"; "兔" -> "토끼"; "龙" -> "용"; "蛇" -> "뱀"; "马" -> "말"; "羊" -> "양"; "猴" -> "원숭이"; "鸡" -> "닭"; "狗" -> "개"; "猪" -> "돼지"; else -> zodiac
-            }
-            else -> zodiac
+            else -> listOf("日", "一", "二", "三", "四", "五", "六")
         }
     }
 
@@ -179,752 +668,205 @@ object LanguageUtils {
             AppLanguage.ENGLISH -> "Stage $index"
             AppLanguage.JAPANESE -> "第${index}段階"
             AppLanguage.KOREAN -> "${index}단계"
-            else -> "Stage $index"
+            else -> "第${index}段时间"
         }
     }
 
-    fun getLocalizedHistoryCategory(category: String, language: AppLanguage): String {
+    fun getLocalizedHolidayName(rawName: String, language: AppLanguage): String {
+        val effective = language.getEffectiveLanguage()
+        if (effective == AppLanguage.SIMPLIFIED_CHINESE || effective == AppLanguage.TRADITIONAL_CHINESE) {
+            return rawName
+        }
+
+        val cleanName = rawName.replace(Regex("[^\\u4e00-\\u9fa5]"), "").trim()
+        return when (cleanName) {
+            "国庆节", "國慶節" -> if (effective == AppLanguage.ENGLISH) "National Day" else if (effective == AppLanguage.JAPANESE) "建国記念日" else "국경절"
+            "元旦" -> if (effective == AppLanguage.ENGLISH) "New Year's Day" else if (effective == AppLanguage.JAPANESE) "元日" else "신정"
+            "春节", "春節" -> if (effective == AppLanguage.ENGLISH) "Spring Festival" else if (effective == AppLanguage.JAPANESE) "旧正月" else "설날"
+            "清明节", "清明節" -> if (effective == AppLanguage.ENGLISH) "Tomb Sweeping Day" else if (effective == AppLanguage.JAPANESE) "清明" else "청명절"
+            "劳动节", "五一劳动节", "勞動節" -> if (effective == AppLanguage.ENGLISH) "Labor Day" else if (effective == AppLanguage.JAPANESE) "メーデー" else "노동절"
+            "端午节", "端午節" -> if (effective == AppLanguage.ENGLISH) "Dragon Boat Festival" else if (effective == AppLanguage.JAPANESE) "端午の節句" else "단오"
+            "高考" -> if (effective == AppLanguage.ENGLISH) "College Entrance Exam" else if (effective == AppLanguage.JAPANESE) "大学入学試験" else "수능"
+            "中考" -> if (effective == AppLanguage.ENGLISH) "High School Entrance Exam" else if (effective == AppLanguage.JAPANESE) "高校入学試験" else "고교 입학 시험"
+            "中秋节", "中秋節" -> if (effective == AppLanguage.ENGLISH) "Mid-Autumn Festival" else if (effective == AppLanguage.JAPANESE) "中秋の名月" else "추석"
+            else -> rawName
+        }
+    }
+
+    fun getDayName(rawDayName: String, language: AppLanguage): String {
         return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> category
-            AppLanguage.TRADITIONAL_CHINESE -> when (category) {
-                "日期计算" -> "日期計算"; "倒数日" -> "倒數日"; "纪念日" -> "紀念日"; "农历公历" -> "農曆公曆"; else -> category
+            AppLanguage.SIMPLIFIED_CHINESE -> rawDayName
+            AppLanguage.TRADITIONAL_CHINESE -> when (rawDayName) {
+                "今天" -> "今天"; "明天" -> "明天"; "后天" -> "後天"; "大后天" -> "大後天"; else -> rawDayName
             }
-            AppLanguage.ENGLISH -> when (category) {
-                "日期计算" -> "Date Calc"; "倒数日" -> "Countdown"; "纪念日" -> "Anniversary"; "农历公历" -> "Lunar/Solar"; else -> category
+            AppLanguage.ENGLISH -> when (rawDayName) {
+                "今天" -> "Today"; "明天" -> "Tomorrow"; "后天" -> "In 2 Days"; "大后天" -> "3 Days Later"; else -> rawDayName
             }
-            AppLanguage.JAPANESE -> when (category) {
-                "日期计算" -> "日付計算"; "倒数日" -> "カウントダウン"; "纪念日" -> "記念日"; "农历公历" -> "旧暦/新暦"; else -> category
+            AppLanguage.JAPANESE -> when (rawDayName) {
+                "今天" -> "今日"; "明天" -> "明日"; "后天" -> "明後日"; "大后天" -> "明々後日"; else -> rawDayName
             }
-            AppLanguage.KOREAN -> when (category) {
-                "日期计算" -> "날짜 계산"; "倒数日" -> "디데이"; "纪念日" -> "기념일"; "农历公历" -> "음력/양력"; else -> category
+            AppLanguage.KOREAN -> when (rawDayName) {
+                "今天" -> "오늘"; "明天" -> "내일"; "后天" -> "모레"; "大后天" -> "글피"; else -> rawDayName
             }
-            else -> category
+            else -> rawDayName
         }
     }
 
-    fun getLocalizedHistoryTitle(title: String, language: AppLanguage): String {
-        var res = title
-        when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> {}
-            AppLanguage.TRADITIONAL_CHINESE -> {
-                res = res.replace("工作日计算结果", "工作日計算結果").replace("自然日计算结果", "自然日計算結果")
+    fun getWeatherCondition(rawCondition: String, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> rawCondition
+            AppLanguage.TRADITIONAL_CHINESE -> when (rawCondition) {
+                "晴朗" -> "晴朗"; "多云" -> "多雲"; "阴天" -> "陰天"; "小雨" -> "小雨"; "雷阵雨" -> "雷陣雨"; else -> rawCondition
             }
-            AppLanguage.ENGLISH -> {
-                res = res.replace("工作日计算结果:", "Workday Result:").replace("自然日计算结果:", "Calendar Day Result:").replace("相差", "Diff:").replace("天", " Days").replace("工作日", " Workdays")
+            AppLanguage.ENGLISH -> when (rawCondition) {
+                "晴朗" -> "Sunny"; "多云" -> "Cloudy"; "阴天" -> "Overcast"; "小雨" -> "Light Rain"; "雷阵雨" -> "Thunderstorm"; else -> rawCondition
             }
-            AppLanguage.JAPANESE -> {
-                res = res.replace("工作日计算结果:", "営業日計算結果:").replace("自然日计算结果:", "自然日計算結果:").replace("相差", "差:").replace("天", "日").replace("工作日", "営業日")
+            AppLanguage.JAPANESE -> when (rawCondition) {
+                "晴朗" -> "快晴"; "多云" -> "晴れ時々曇り"; "阴天" -> "くもり"; "小雨" -> "小雨"; "雷阵雨" -> "雷雨"; else -> rawCondition
             }
-            AppLanguage.KOREAN -> {
-                res = res.replace("工作日计算结果:", "근무일 계산 결과:").replace("自然日计算结果:", "자연일 계산 결과:").replace("相差", "차이:").replace("天", "일").replace("工作日", "근무일")
+            AppLanguage.KOREAN -> when (rawCondition) {
+                "晴朗" -> "맑음"; "多云" -> "구름조금"; "阴天" -> "흐림"; "小雨" -> "가랑비"; "雷阵雨" -> "뇌우"; else -> rawCondition
             }
-            else -> {}
+            else -> rawCondition
         }
-        return res
     }
 
-    fun getLocalizedHistoryDetail(detail: String, language: AppLanguage): String {
-        var result = detail
-        when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> {}
-            AppLanguage.TRADITIONAL_CHINESE -> {
-                result = result.replace("起始日期", "起始日期").replace("目标日期", "目標日期").replace("工作日", "工作日").replace("自然日", "自然日")
+    fun getLocalizedConstellation(rawConstellation: String, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> rawConstellation
+            AppLanguage.TRADITIONAL_CHINESE -> when (rawConstellation) {
+                "白羊座" -> "白羊座"; "金牛座" -> "金牛座"; "双子座" -> "雙子座"; "巨蟹座" -> "巨蟹座"
+                "狮子座" -> "獅子座"; "处女座" -> "處女座"; "天秤座" -> "天秤座"; "天蝎座" -> "天蠍座"
+                "射手座" -> "射手座"; "摩羯座" -> "摩羯座"; "水瓶座" -> "水瓶座"; "双鱼座" -> "雙魚座"
+                else -> rawConstellation
             }
-            AppLanguage.ENGLISH -> {
-                result = result.replace("起始日期:", "Start:").replace("目标日期:", "Target:").replace("工作日", " Workdays").replace("自然日", " Days").replace("加", " + ").replace("减", " - ")
+            AppLanguage.ENGLISH -> when (rawConstellation) {
+                "白羊座" -> "Aries"; "金牛座" -> "Taurus"; "双子座" -> "Gemini"; "巨蟹座" -> "Cancer"
+                "狮子座" -> "Leo"; "处女座" -> "Virgo"; "天秤座" -> "Libra"; "天蝎座" -> "Scorpio"
+                "射手座" -> "Sagittarius"; "摩羯座" -> "Capricorn"; "水瓶座" -> "Aquarius"; "双鱼座" -> "Pisces"
+                else -> rawConstellation
             }
-            AppLanguage.JAPANESE -> {
-                result = result.replace("起始日期:", "開始日:").replace("目标日期:", "目標日:").replace("工作日", "営業日").replace("自然日", "日").replace("加", " 加算 ").replace("减", " 減算 ")
+            AppLanguage.JAPANESE -> when (rawConstellation) {
+                "白羊座" -> "牡羊座"; "金牛座" -> "牡牛座"; "双子座" -> "双子座"; "巨蟹座" -> "蟹座"
+                "狮子座" -> "獅子座"; "处女座" -> "乙女座"; "天秤座" -> "天秤座"; "天蝎座" -> "蠍座"
+                "射手座" -> "射手座"; "摩羯座" -> "山羊座"; "水瓶座" -> "水瓶座"; "双鱼座" -> "魚座"
+                else -> rawConstellation
             }
-            AppLanguage.KOREAN -> {
-                result = result.replace("起始日期:", "시작:").replace("目标日期:", "목표:").replace("工作日", "근무일").replace("自然日", "일").replace("加", " 더하기 ").replace("减", " 빼기 ")
+            AppLanguage.KOREAN -> when (rawConstellation) {
+                "白羊座" -> "양자리"; "金牛座" -> "황소자리"; "双子座" -> "쌍둥이자리"; "巨蟹座" -> "게자리"
+                "狮子座" -> "사자자리"; "处女座" -> "처녀자리"; "天秤座" -> "천칭자리"; "天蝎座" -> "전갈자리"
+                "射手座" -> "궁수자리"; "摩羯座" -> "염소자리"; "水瓶座" -> "물병자리"; "双鱼座" -> "물고기자리"
+                else -> rawConstellation
             }
-            else -> {}
+            else -> rawConstellation
         }
-        return result
     }
 
-    fun getLocalizedRegionTag(tag: String, language: AppLanguage): String {
-        val clean = tag.replace("🇨🇳 ", "").replace("🇹🇼 ", "").replace("🇭🇰 ", "").replace("🇲🇴 ", "").replace("🇸🇬 ", "").replace("🇸🇬 ", "").trim()
-        val icon = if (tag.contains("🇨🇳")) "🇨🇳" else if (tag.contains("🇹🇼")) "🇹🇼" else "📌"
-        val name = when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> clean
-            AppLanguage.TRADITIONAL_CHINESE -> when (clean) { "中国大陆" -> "中國大陸"; "台湾（中国）" -> "台灣（中國）"; else -> clean }
-            AppLanguage.ENGLISH -> when (clean) { "中国大陆" -> "China Mainland"; "台湾（中国）" -> "Taiwan, China"; else -> clean }
-            AppLanguage.JAPANESE -> when (clean) { "中国大陆" -> "中国本土"; "台湾（中国）" -> "台湾"; else -> clean }
-            AppLanguage.KOREAN -> when (clean) { "中国大陆" -> "중국 본토"; "台湾（中国）" -> "대만"; else -> clean }
-            else -> clean
+    fun getLocalizedZodiac(rawZodiac: String, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE -> rawZodiac
+            AppLanguage.ENGLISH -> when (rawZodiac) {
+                "鼠" -> "Rat"; "牛" -> "Ox"; "虎" -> "Tiger"; "兔" -> "Rabbit"
+                "龙" -> "Dragon"; "蛇" -> "Snake"; "马" -> "Horse"; "羊" -> "Goat"
+                "猴" -> "Monkey"; "鸡" -> "Rooster"; "狗" -> "Dog"; "猪" -> "Pig"
+                else -> rawZodiac
+            }
+            AppLanguage.JAPANESE -> when (rawZodiac) {
+                "鼠" -> "子"; "牛" -> "丑"; "虎" -> "寅"; "兔" -> "卯"
+                "龙" -> "辰"; "蛇" -> "巳"; "马" -> "午"; "羊" -> "未"
+                "猴" -> "申"; "鸡" -> "酉"; "狗" -> "戌"; "猪" -> "亥"
+                else -> rawZodiac
+            }
+            AppLanguage.KOREAN -> when (rawZodiac) {
+                "鼠" -> "쥐띠"; "牛" -> "소띠"; "虎" -> "호랑이띠"; "兔" -> "토끼띠"
+                "龙" -> "용띠"; "蛇" -> "뱀띠"; "马" -> "말띠"; "羊" -> "양띠"
+                "猴" -> "원숭이띠"; "鸡" -> "닭띠"; "狗" -> "개띠"; "猪" -> "돼지띠"
+                else -> rawZodiac
+            }
+            else -> rawZodiac
         }
-        return "$icon $name"
     }
 
-    fun getLocalizedHolidayName(label: String, language: AppLanguage): String {
-        val cleanLabel = label.replace("🇨🇳 ", "").replace("🇹🇼 ", "").replace("🎆 ", "").replace("🧧 ", "").replace("🌿 ", "").replace("🛠️ ", "").replace("🎏 ", "").replace("📚 ", "").replace("🥮 ", "").trim()
-        val icon = when {
-            label.contains("国庆") -> "🇨🇳"
-            label.contains("元旦") -> "🎆"
-            label.contains("春节") -> "🧧"
-            label.contains("清明") -> "🌿"
-            label.contains("劳动") -> "🛠️"
-            label.contains("端午") -> "🎏"
-            label.contains("高考") || label.contains("中考") -> "📚"
-            label.contains("中秋") -> "🥮"
-            else -> "📌"
+    fun getLocalizedHistoryTitle(rawTitle: String, language: AppLanguage): String {
+        val effective = language.getEffectiveLanguage()
+        if (effective == AppLanguage.SIMPLIFIED_CHINESE || effective == AppLanguage.TRADITIONAL_CHINESE) {
+            return rawTitle
         }
-
-        val name = when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> cleanLabel
-            AppLanguage.TRADITIONAL_CHINESE -> when (cleanLabel) {
-                "国庆节" -> "國慶節"; "元旦" -> "元旦"; "春节" -> "春節"; "清明节" -> "清明節"
-                "五一劳动节" -> "五一勞動節"; "端午节" -> "端午節"; "高考" -> "高考"; "中考" -> "中考"; "中秋节" -> "中秋節"; else -> cleanLabel
-            }
-            AppLanguage.ENGLISH -> when (cleanLabel) {
-                "国庆节" -> "National Day"; "元旦" -> "New Year's Day"; "春节" -> "Spring Festival"; "清明节" -> "Tomb Sweeping Day"
-                "五一劳动节" -> "Labor Day"; "端午节" -> "Dragon Boat Festival"; "高考" -> "College Entrance Exam"; "中考" -> "High School Exam"; "中秋节" -> "Mid-Autumn Festival"; else -> cleanLabel
-            }
-            AppLanguage.JAPANESE -> when (cleanLabel) {
-                "国庆节" -> "国慶節"; "元旦" -> "元日"; "春节" -> "春節"; "清明节" -> "清明節"
-                "五一劳动节" -> "メーデー"; "端午节" -> "端午節"; "高考" -> "大学入試"; "中考" -> "高校入試"; "中秋节" -> "中秋節"; else -> cleanLabel
-            }
-            AppLanguage.KOREAN -> when (cleanLabel) {
-                "国庆节" -> "국경절"; "元旦" -> "신정"; "春节" -> "설날"; "清明节" -> "청명절"
-                "五一劳动节" -> "노동절"; "端午节" -> "단오절"; "高考" -> "수능"; "中考" -> "고입시험"; "中秋节" -> "추석"; else -> cleanLabel
-            }
-            else -> cleanLabel
-        }
-        return "$icon $name"
+        var title = rawTitle
+        title = title.replace("工作日计算结果", "Workday Result")
+            .replace("自然日计算结果", "Calendar Day Result")
+            .replace("工作日", " Workdays")
+            .replace("自然日", " Days")
+        return title
     }
 
-    fun getString(key: String, language: AppLanguage): String {
-        val effectiveLang = language.getEffectiveLanguage()
+    fun getLocalizedHistoryDetail(rawDetail: String, language: AppLanguage): String {
+        val effective = language.getEffectiveLanguage()
+        if (effective == AppLanguage.SIMPLIFIED_CHINESE || effective == AppLanguage.TRADITIONAL_CHINESE) {
+            return rawDetail
+        }
+        var detail = rawDetail
+        detail = detail.replace("起始日期:", "Start:").replace("目标日期:", "Target:").replace("工作日", " Workdays").replace("自然日", " Days")
+        return detail
+    }
 
-        val stringsZhCn = mapOf(
-            "app_title" to "日期计算器",
-            "tab_home" to "首页",
-            "tab_calc" to "日期计算",
-            "tab_countdown" to "倒数日",
-            "tab_anniversary" to "纪念日",
-            "tab_lunar" to "农历转换",
-            "tab_age" to "年龄计算",
-            "settings_language" to "语言设置",
-            "settings_theme" to "主题配色方案",
-            "settings_dark_mode" to "深色模式",
-            "settings_home_config" to "首页功能显示与显隐设置",
-            "settings_region" to "选择国家/地区",
-            "settings_gps_auto" to "GPS 自动识别所在地",
-            "settings_sync_holidays" to "同步最新节假日数据",
-            "home_show_screen" to "显示首页 (Home Screen)",
-            "home_calendar" to "月历 (Monthly Calendar)",
-            "home_almanac" to "当日黄历 (Almanac)",
-            "home_solar_terms" to "二十四节气 (Solar Terms)",
-            "home_lunar" to "农历日期 (Lunar Date)",
-            "home_zodiac" to "星座与运势 (Zodiac & Fortune)",
-            "home_weather" to "当日及未来三日天气 (Weather Forecast)",
-            "workday" to "工作日",
-            "natural_day" to "自然日",
-            "solar" to "公历",
-            "lunar" to "农历",
-            "target_date" to "目标日期",
-            "base_date" to "起始日期",
-            "settings_title" to "系统设置",
-            "history_title" to "历史记录",
-            "add_countdown" to "新增倒数日",
-            "common_countdown" to "常用倒数日",
-            "fixed_countdown" to "固定倒数日",
-            "today" to "今天",
-            "yesterday" to "昨天",
-            "plus_1w" to "+1周",
-            "minus_1w" to "-1周",
-            "mode_forward" to "加减天数",
-            "mode_reverse" to "区间拆算",
-            "multi_stage_btn" to "多段加减",
-            "add_stage_btn" to "添加下一段时间",
-            "save_record" to "保存到记录",
-            "diff_natural" to "相差自然日",
-            "diff_workday" to "相差工作日",
-            "clear_history" to "清空历史",
-            "clear_history_confirm" to "确认清空所有历史记录？",
-            "no_history" to "暂无历史记录",
-            "select_birth_date" to "选择出生日期",
-            "select_start_date" to "选择起始日期",
-            "select_target_date" to "选择目标日期",
-            "exact_age" to "当前精准年龄",
-            "next_birthday_days" to "距离下次生日还有",
-            "days_unit" to "天",
-            "weeks_unit" to "周",
-            "months_unit" to "个月",
-            "years_unit" to "岁",
-            "total_days" to "生存总天数",
-            "total_weeks" to "生存总周数",
-            "zodiac_sign" to "生肖属相",
-            "constellation" to "星座",
-            "days_until_prefix" to "距离",
-            "days_until_suffix" to "还有",
-            "lucky_number" to "幸运数字",
-            "lucky_color" to "幸运颜色",
-            "forecast_title" to "当地及未来三日天气推算",
-            "add_anniversary" to "新增纪念日",
-            "check_in" to "打卡",
-            "save_anniversary" to "保存纪念日",
-            "anniversary_name" to "纪念日名称",
-            "anniversary_date" to "纪念日日期",
-            "dark_mode_system" to "跟随系统",
-            "dark_mode_on" to "开启",
-            "dark_mode_off" to "关闭",
-            "workday_chip" to "工作日",
-            "weekend_chip" to "休息日",
-            "result_title_workday" to "工作日计算结果",
-            "result_title_natural" to "自然日计算结果",
-            "cancel" to "取消",
-            "confirm" to "确定",
-            "export_csv" to "导出 CSV",
-            "close_details" to "关闭详情",
-            "edit_history_title" to "修改历史记录名称",
-            "enter_new_history_title" to "请输入新的历史记录名称:",
-            "save_title" to "保存名称",
-            "reverse_end_date_title" to "选择终止日期拆算包含的天数:",
-            "end_date_label" to "终止日期",
-            "anniversary_dialog_title" to "添加重要纪念日",
-            "check_in_dialog_title" to "精准打卡",
-            "confirm_delete_anniversary" to "确认删除纪念日？",
-            "confirm_delete_btn" to "确认删除",
-            "days_passed" to "已陪伴过去",
-            "days_upcoming" to "距离即将到来",
-            "next_anniversary_remains" to "下个周年还剩",
-            "stage_remark_hint" to "记下这段时间要安排的事 (如: 方案准备 / 旅程第一站)",
-            "timeline_title" to "总时间安排示意",
-            "total_duration" to "总历时",
-            "weekend_rest" to "周末双休",
-            "statutory_holiday" to "法定节假日",
-            "stage_add_label" to "多段加",
-            "stage_sub_label" to "多段减",
-            "rule_weekend_title" to "周末休息模式",
-            "rule_five_days" to "双休 (周六日休息)",
-            "rule_big_small_weeks" to "大小周 (单双休轮替)",
-            "rule_six_days_sunday" to "单休 (仅周日休息)",
-            "rule_six_days_saturday" to "单休 (仅周六休息)",
-            "rule_seven_days" to "无休 (七天工作)",
-            "rule_five_days_desc" to "每周一至周五为工作日，周六周日休息",
-            "rule_big_small_weeks_desc" to "一周单休 (仅周日休)，次周双休 (周六日休)，隔周轮替",
-            "rule_six_days_sunday_desc" to "每周一至周六为工作日，仅周日休息",
-            "rule_six_days_saturday_desc" to "每周日及周一至周五为工作日，仅周六休息",
-            "rule_seven_days_desc" to "一周七天均为工作日，不计周末",
-            "no_anniversary_record" to "❤️ 暂无记录的重要纪念日",
-            "add_anniversary_hint" to "点击上方“新增纪念日”或“打卡”保存美好时刻",
-            "fortune_suffix" to "每日运势",
-            "custom_btn" to "自定义",
-            "yi_label" to "宜",
-            "ji_label" to "忌",
-            "lunar_to_solar_title" to "公历 ➔ 农历",
-            "solar_to_lunar_title" to "农历 ➔ 公历",
-            "lunar_convert_title" to "农历与公历转换",
-            "custom_color" to "自定义色彩",
-            "palette_title" to "调色盘 (14 款精选主色调):"
-        )
+    fun getLocalizedHistoryCategory(rawCat: String, language: AppLanguage): String {
+        val effective = language.getEffectiveLanguage()
+        if (effective == AppLanguage.SIMPLIFIED_CHINESE || effective == AppLanguage.TRADITIONAL_CHINESE) {
+            return rawCat
+        }
+        return when (rawCat) {
+            "日期计算" -> "Date Calc"
+            "农历公历" -> "Lunar & Solar"
+            "倒数日" -> "Countdown"
+            "年龄计算" -> "Age Calc"
+            else -> rawCat
+        }
+    }
 
-        val stringsZhTw = mapOf(
-            "app_title" to "日期計算器",
-            "tab_home" to "首頁",
-            "tab_calc" to "日期計算",
-            "tab_countdown" to "倒數日",
-            "tab_anniversary" to "紀念日",
-            "tab_lunar" to "農曆轉換",
-            "tab_age" to "年齡計算",
-            "settings_language" to "語言設定",
-            "settings_theme" to "主題配色方案",
-            "settings_dark_mode" to "深色模式",
-            "settings_home_config" to "首頁功能顯示與顯隱設定",
-            "settings_region" to "選擇國家/地區",
-            "settings_gps_auto" to "GPS 自動識別所在地",
-            "settings_sync_holidays" to "同步最新節假日數據",
-            "home_show_screen" to "顯示首頁 (Home Screen)",
-            "home_calendar" to "月曆 (Monthly Calendar)",
-            "home_almanac" to "當日黃曆 (Almanac)",
-            "home_solar_terms" to "二十四節氣 (Solar Terms)",
-            "home_lunar" to "農曆日期 (Lunar Date)",
-            "home_zodiac" to "星座與運勢 (Zodiac & Fortune)",
-            "home_weather" to "當日及未來三日天氣 (Weather Forecast)",
-            "workday" to "工作日",
-            "natural_day" to "自然日",
-            "solar" to "公曆",
-            "lunar" to "農曆",
-            "target_date" to "目標日期",
-            "base_date" to "起始日期",
-            "settings_title" to "系統設定",
-            "history_title" to "歷史記錄",
-            "add_countdown" to "新增倒數日",
-            "common_countdown" to "常用倒數日",
-            "fixed_countdown" to "固定倒數日",
-            "today" to "今天",
-            "yesterday" to "昨天",
-            "plus_1w" to "+1周",
-            "minus_1w" to "-1周",
-            "mode_forward" to "加減天數",
-            "mode_reverse" to "區間拆算",
-            "multi_stage_btn" to "多段加減",
-            "add_stage_btn" to "添加下一段時間",
-            "save_record" to "保存到記錄",
-            "diff_natural" to "相差自然日",
-            "diff_workday" to "相差工作日",
-            "clear_history" to "清空歷史",
-            "clear_history_confirm" to "確認清空所有歷史記錄？",
-            "no_history" to "暫無歷史記錄",
-            "select_birth_date" to "選擇出生日期",
-            "select_start_date" to "選擇起始日期",
-            "select_target_date" to "選擇目標日期",
-            "exact_age" to "當前准確年齡",
-            "next_birthday_days" to "距離下次生日還有",
-            "days_unit" to "天",
-            "weeks_unit" to "周",
-            "months_unit" to "個月",
-            "years_unit" to "歲",
-            "total_days" to "生存總天數",
-            "total_weeks" to "生存總周數",
-            "zodiac_sign" to "生肖屬相",
-            "constellation" to "星座",
-            "days_until_prefix" to "距離",
-            "days_until_suffix" to "還有",
-            "lucky_number" to "幸運數字",
-            "lucky_color" to "幸運顏色",
-            "forecast_title" to "當地及未來三日天氣推算",
-            "add_anniversary" to "新增紀念日",
-            "check_in" to "打卡",
-            "save_anniversary" to "保存紀念日",
-            "anniversary_name" to "紀念日名稱",
-            "anniversary_date" to "紀念日日期",
-            "dark_mode_system" to "跟隨系統",
-            "dark_mode_on" to "開啟",
-            "dark_mode_off" to "關閉",
-            "workday_chip" to "工作日",
-            "weekend_chip" to "休息日",
-            "result_title_workday" to "工作日計算結果",
-            "result_title_natural" to "自然日計算結果",
-            "cancel" to "取消",
-            "confirm" to "確定",
-            "export_csv" to "匯出 CSV",
-            "close_details" to "關閉詳情",
-            "edit_history_title" to "修改歷史記錄名稱",
-            "enter_new_history_title" to "請輸入新的歷史記錄名稱:",
-            "save_title" to "保存名稱",
-            "reverse_end_date_title" to "選擇終止日期拆算包含的天數:",
-            "end_date_label" to "終止日期",
-            "anniversary_dialog_title" to "添加重要紀念日",
-            "check_in_dialog_title" to "精準打卡",
-            "confirm_delete_anniversary" to "確認刪除紀念日？",
-            "confirm_delete_btn" to "確認刪除",
-            "days_passed" to "已陪伴過去",
-            "days_upcoming" to "距離即將到來",
-            "next_anniversary_remains" to "下個周年還剩",
-            "stage_remark_hint" to "記下這段時間要安排的事 (如: 方案準備 / 旅程第一站)",
-            "timeline_title" to "總時間安排示意",
-            "total_duration" to "總歷時",
-            "weekend_rest" to "周末雙休",
-            "statutory_holiday" to "法定節假日",
-            "stage_add_label" to "多段加",
-            "stage_sub_label" to "多段減",
-            "rule_weekend_title" to "周末休息模式",
-            "rule_five_days" to "雙休 (周六日休息)",
-            "rule_big_small_weeks" to "大小周 (單雙休輪替)",
-            "rule_six_days_sunday" to "單休 (僅周日休息)",
-            "rule_six_days_saturday" to "單休 (僅周六休息)",
-            "rule_seven_days" to "無休 (七天工作)",
-            "rule_five_days_desc" to "每周一至周五為工作日，周六周日休息",
-            "rule_big_small_weeks_desc" to "一周單休 (僅周日休)，次周雙休 (周六日休)，隔周輪替",
-            "rule_six_days_sunday_desc" to "每周一至周六為工作日，僅周日休息",
-            "rule_six_days_saturday_desc" to "每周日及周一至周五為工作日，僅周六休息",
-            "rule_seven_days_desc" to "一周七天均為工作日，不計周末",
-            "no_anniversary_record" to "❤️ 暫無記錄的重要紀念日",
-            "add_anniversary_hint" to "點擊上方“新增紀念日”或“打卡”保存美好時刻",
-            "fortune_suffix" to "每日運勢",
-            "custom_btn" to "自定義",
-            "yi_label" to "宜",
-            "ji_label" to "忌",
-            "lunar_to_solar_title" to "公曆 ➔ 農曆",
-            "solar_to_lunar_title" to "農曆 ➔ 公曆",
-            "lunar_convert_title" to "農曆與公曆轉換",
-            "custom_color" to "自定義色彩",
-            "palette_title" to "調色盤 (14 款精選主色調):"
-        )
+    fun getLocalizedRegionTag(rawTag: String, language: AppLanguage): String {
+        val effective = language.getEffectiveLanguage()
+        if (effective == AppLanguage.SIMPLIFIED_CHINESE || effective == AppLanguage.TRADITIONAL_CHINESE) {
+            return rawTag
+        }
+        return rawTag
+    }
 
-        val stringsEn = mapOf(
-            "app_title" to "Date Calculator",
-            "tab_home" to "Home",
-            "tab_calc" to "Date Calc",
-            "tab_countdown" to "Countdown",
-            "tab_anniversary" to "Anniversary",
-            "tab_lunar" to "Lunar Conv",
-            "tab_age" to "Age Calc",
-            "settings_language" to "Language Settings",
-            "settings_theme" to "Theme Presets",
-            "settings_dark_mode" to "Dark Mode",
-            "settings_home_config" to "Home Screen Module Visibility",
-            "settings_region" to "Select Region",
-            "settings_gps_auto" to "Auto-Detect Region (GPS)",
-            "settings_sync_holidays" to "Sync Holiday Data",
-            "home_show_screen" to "Show Home Screen",
-            "home_calendar" to "Monthly Calendar",
-            "home_almanac" to "Daily Almanac",
-            "home_solar_terms" to "Solar Terms",
-            "home_lunar" to "Lunar Date",
-            "home_zodiac" to "Zodiac & Fortune",
-            "home_weather" to "Weather Forecast",
-            "workday" to "Workday",
-            "natural_day" to "Calendar Day",
-            "solar" to "Solar",
-            "lunar" to "Lunar",
-            "target_date" to "Target Date",
-            "base_date" to "Start Date",
-            "settings_title" to "Settings",
-            "history_title" to "History",
-            "add_countdown" to "Add Countdown",
-            "common_countdown" to "Preset Countdowns",
-            "fixed_countdown" to "Pinned Countdowns",
-            "today" to "Today",
-            "yesterday" to "Yest",
-            "plus_1w" to "+1 Wk",
-            "minus_1w" to "-1 Wk",
-            "mode_forward" to "Add/Sub Days",
-            "mode_reverse" to "Range Breakdown",
-            "multi_stage_btn" to "Multi-Stage Calc",
-            "add_stage_btn" to "Add Next Stage",
-            "save_record" to "Save to History",
-            "diff_natural" to "Diff Calendar Days",
-            "diff_workday" to "Diff Workdays",
-            "clear_history" to "Clear History",
-            "clear_history_confirm" to "Clear all calculation history?",
-            "no_history" to "No history records yet",
-            "select_birth_date" to "Select Birth Date",
-            "select_start_date" to "Select Start Date",
-            "select_target_date" to "Select Target Date",
-            "exact_age" to "Exact Age",
-            "next_birthday_days" to "Days to Next Birthday",
-            "days_unit" to "Days",
-            "weeks_unit" to "Weeks",
-            "months_unit" to "Months",
-            "years_unit" to "Years",
-            "total_days" to "Total Days Lived",
-            "total_weeks" to "Total Weeks Lived",
-            "zodiac_sign" to "Chinese Zodiac",
-            "constellation" to "Zodiac Sign",
-            "days_until_prefix" to "",
-            "days_until_suffix" to "Days Left",
-            "lucky_number" to "Lucky Number",
-            "lucky_color" to "Lucky Color",
-            "forecast_title" to "Local 3-Day Weather Forecast",
-            "add_anniversary" to "Add Anniversary",
-            "check_in" to "Check-in",
-            "save_anniversary" to "Save Anniversary",
-            "anniversary_name" to "Anniversary Title",
-            "anniversary_date" to "Anniversary Date",
-            "dark_mode_system" to "System",
-            "dark_mode_on" to "On",
-            "dark_mode_off" to "Off",
-            "workday_chip" to "Workday",
-            "weekend_chip" to "Weekend",
-            "result_title_workday" to "Workday Calculation Result",
-            "result_title_natural" to "Calendar Day Calculation Result",
-            "cancel" to "Cancel",
-            "confirm" to "Confirm",
-            "export_csv" to "Export CSV",
-            "close_details" to "Close Details",
-            "edit_history_title" to "Edit History Title",
-            "enter_new_history_title" to "Enter new title:",
-            "save_title" to "Save Title",
-            "reverse_end_date_title" to "Select end date to breakdown range:",
-            "end_date_label" to "End Date",
-            "anniversary_dialog_title" to "Add Important Anniversary",
-            "check_in_dialog_title" to "GPS Check-In",
-            "confirm_delete_anniversary" to "Delete this anniversary?",
-            "confirm_delete_btn" to "Confirm Delete",
-            "days_passed" to "Days Passed",
-            "days_upcoming" to "Days Remaining",
-            "next_anniversary_remains" to "Next Anniversary In",
-            "stage_remark_hint" to "Add remark for this stage",
-            "timeline_title" to "Schedule Overview Diagram",
-            "total_duration" to "Total Duration",
-            "weekend_rest" to "Weekends",
-            "statutory_holiday" to "Holidays",
-            "stage_add_label" to "Add Stage",
-            "stage_sub_label" to "Sub Stage",
-            "rule_weekend_title" to "Weekend Rest Rule",
-            "rule_five_days" to "5-Day Workweek (Sat/Sun Rest)",
-            "rule_big_small_weeks" to "Big/Small Weeks (Alternating Sat)",
-            "rule_six_days_sunday" to "6-Day Workweek (Sun Rest)",
-            "rule_six_days_saturday" to "6-Day Workweek (Sat Rest)",
-            "rule_seven_days" to "7-Day Workweek (No Rest)",
-            "rule_five_days_desc" to "Mon-Fri workdays, Sat & Sun rest",
-            "rule_big_small_weeks_desc" to "Alternating single (Sun) & double (Sat/Sun) weekend rest",
-            "rule_six_days_sunday_desc" to "Mon-Sat workdays, Sun rest",
-            "rule_six_days_saturday_desc" to "Sun-Fri workdays, Sat rest",
-            "rule_seven_days_desc" to "All 7 days workdays, no weekend rest",
-            "no_anniversary_record" to "❤️ No Anniversaries Saved",
-            "add_anniversary_hint" to "Click 'Add Anniversary' or 'Check-in' to record special moments",
-            "fortune_suffix" to "Daily Horoscope",
-            "custom_btn" to "Custom",
-            "yi_label" to "Good",
-            "ji_label" to "Avoid",
-            "lunar_to_solar_title" to "Solar ➔ Lunar",
-            "solar_to_lunar_title" to "Lunar ➔ Solar",
-            "lunar_convert_title" to "Lunar & Solar Converter",
-            "custom_color" to "Custom Color",
-            "palette_title" to "Theme Color Palette (14):"
-        )
+    fun getLocalizedCityName(rawCityName: String, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> rawCityName
+            AppLanguage.TRADITIONAL_CHINESE -> when (rawCityName) {
+                "北京市" -> "北京市"; "上海市" -> "上海市"; "广州市" -> "廣州市"; "深圳市" -> "深圳市"; else -> rawCityName
+            }
+            AppLanguage.ENGLISH -> when (rawCityName) {
+                "北京市" -> "Beijing"; "上海市" -> "Shanghai"; "广州市" -> "Guangzhou"; "深圳市" -> "Shenzhen"; else -> rawCityName
+            }
+            AppLanguage.JAPANESE -> when (rawCityName) {
+                "北京市" -> "北京"; "上海市" -> "上海"; "广州市" -> "広州"; "深圳市" -> "深セン"; else -> rawCityName
+            }
+            AppLanguage.KOREAN -> when (rawCityName) {
+                "北京市" -> "베이징"; "上海市" -> "상하이"; "广州市" -> "광저우"; "深圳市" -> "선전"; else -> rawCityName
+            }
+            else -> rawCityName
+        }
+    }
 
-        val stringsJa = mapOf(
-            "app_title" to "日付電卓",
-            "tab_home" to "ホーム",
-            "tab_calc" to "日付計算",
-            "tab_countdown" to "カウントダウン",
-            "tab_anniversary" to "記念日",
-            "tab_lunar" to "旧暦変換",
-            "tab_age" to "年齢計算",
-            "settings_language" to "言語設定",
-            "settings_theme" to "テーマ色設定",
-            "settings_dark_mode" to "ダークモード",
-            "settings_home_config" to "ホーム画面モジュール表示設定",
-            "settings_region" to "国・地域選択",
-            "settings_gps_auto" to "GPS位置自動判定",
-            "settings_sync_holidays" to "最新祝日データを同期",
-            "home_show_screen" to "ホーム画面を表示 (Home Screen)",
-            "home_calendar" to "カレンダー (Monthly Calendar)",
-            "home_almanac" to "今日の暦 (Almanac)",
-            "home_solar_terms" to "二十四節気 (Solar Terms)",
-            "home_lunar" to "旧暦日付 (Lunar Date)",
-            "home_zodiac" to "星座と運勢 (Zodiac & Fortune)",
-            "home_weather" to "天気予報 (Weather Forecast)",
-            "workday" to "平日",
-            "natural_day" to "日数",
-            "solar" to "新暦",
-            "lunar" to "旧暦",
-            "target_date" to "目標日",
-            "base_date" to "開始日",
-            "settings_title" to "システム設定",
-            "history_title" to "履歴",
-            "add_countdown" to "カウントダウン追加",
-            "common_countdown" to "よく使うカウントダウン",
-            "fixed_countdown" to "固定済みカウントダウン",
-            "today" to "今日",
-            "yesterday" to "昨日",
-            "plus_1w" to "+1週",
-            "minus_1w" to "-1週",
-            "mode_forward" to "日数計算",
-            "mode_reverse" to "期間分析",
-            "multi_stage_btn" to "多段階加減",
-            "add_stage_btn" to "次の期間を追加",
-            "save_record" to "履歴に保存",
-            "diff_natural" to "自然日数差",
-            "diff_workday" to "営業日数差",
-            "clear_history" to "履歴を消去",
-            "clear_history_confirm" to "すべての履歴を消去しますか？",
-            "no_history" to "履歴はありません",
-            "select_birth_date" to "生年月日を選択",
-            "select_start_date" to "開始日を選択",
-            "select_target_date" to "目標日を選択",
-            "exact_age" to "現在の年齢",
-            "next_birthday_days" to "次の誕生日まであと",
-            "days_unit" to "日",
-            "weeks_unit" to "週",
-            "months_unit" to "ヶ月",
-            "years_unit" to "歳",
-            "total_days" to "総通算日数",
-            "total_weeks" to "総通算週数",
-            "zodiac_sign" to "十二支",
-            "constellation" to "星座",
-            "days_until_prefix" to "あと",
-            "days_until_suffix" to "日",
-            "lucky_number" to "ラッキーナンバー",
-            "lucky_color" to "ラッキーカラー",
-            "forecast_title" to "現地と3日間の天気予報",
-            "add_anniversary" to "記念日追加",
-            "check_in" to "チェックイン",
-            "save_anniversary" to "記念日を保存",
-            "anniversary_name" to "記念日名",
-            "anniversary_date" to "記念日",
-            "dark_mode_system" to "システムに従う",
-            "dark_mode_on" to "オン",
-            "dark_mode_off" to "オフ",
-            "workday_chip" to "平日",
-            "weekend_chip" to "休日",
-            "result_title_workday" to "営業日計算結果",
-            "result_title_natural" to "自然日計算結果",
-            "cancel" to "キャンセル",
-            "confirm" to "確認",
-            "export_csv" to "CSV出力",
-            "close_details" to "詳細を閉じる",
-            "edit_history_title" to "履歴タイトル編集",
-            "enter_new_history_title" to "新しいタイトルを入力:",
-            "save_title" to "タイトル保存",
-            "reverse_end_date_title" to "終了日を選択して期間を分析:",
-            "end_date_label" to "終了日",
-            "anniversary_dialog_title" to "重要な記念日を追加",
-            "check_in_dialog_title" to "GPSチェックイン",
-            "confirm_delete_anniversary" to "この記念日を削除しますか？",
-            "confirm_delete_btn" to "削除確認",
-            "days_passed" to "経過日数",
-            "days_upcoming" to "残り日数",
-            "next_anniversary_remains" to "次の周年まであと",
-            "stage_remark_hint" to "この期間のメモを入力",
-            "timeline_title" to "スケジュール概要図",
-            "total_duration" to "総期間",
-            "weekend_rest" to "週末休業",
-            "statutory_holiday" to "祝日",
-            "stage_add_label" to "加算ステージ",
-            "stage_sub_label" to "減算ステージ",
-            "rule_weekend_title" to "週末休日モード",
-            "rule_five_days" to "完全週休2日制（土日祝休み）",
-            "rule_big_small_weeks" to "隔週隔日休み",
-            "rule_six_days_sunday" to "週休1日制（日曜日休み）",
-            "rule_six_days_saturday" to "週休1日制（土曜日休み）",
-            "rule_seven_days" to "年中無休（7日勤務）",
-            "rule_five_days_desc" to "月曜〜金曜勤務、土日休み",
-            "rule_big_small_weeks_desc" to "日曜日休みと土日休みを交互に実施",
-            "rule_six_days_sunday_desc" to "月曜〜土曜勤務、日曜日休み",
-            "rule_six_days_saturday_desc" to "日曜・月〜金勤務、土曜日休み",
-            "rule_seven_days_desc" to "毎日勤務、週末休みなし",
-            "no_anniversary_record" to "❤️ 保存された記念日はありません",
-            "add_anniversary_hint" to "「記念日追加」または「チェックイン」をクリック",
-            "fortune_suffix" to "今日の運勢",
-            "custom_btn" to "カスタム",
-            "yi_label" to "吉",
-            "ji_label" to "凶",
-            "lunar_to_solar_title" to "新暦 ➔ 旧暦",
-            "solar_to_lunar_title" to "旧暦 ➔ 新暦",
-            "lunar_convert_title" to "旧暦と新暦の相互変換",
-            "custom_color" to "カスタムカラー",
-            "palette_title" to "テーマカラーパレット (14):"
-        )
-
-        val stringsKo = mapOf(
-            "app_title" to "날짜 계산기",
-            "tab_home" to "홈",
-            "tab_calc" to "날짜 계산",
-            "tab_countdown" to "디데이",
-            "tab_anniversary" to "기념일",
-            "tab_lunar" to "음력 변환",
-            "tab_age" to "나이 계산",
-            "settings_language" to "언어 설정",
-            "settings_theme" to "테마 색상 설정",
-            "settings_dark_mode" to "다크 모드",
-            "settings_home_config" to "홈 화면 모듈 표시 설정",
-            "settings_region" to "국가/지역 선택",
-            "settings_gps_auto" to "GPS 위치 자동 인식",
-            "settings_sync_holidays" to "최신 공휴일 데이터 동기화",
-            "home_show_screen" to "홈 화면 표시 (Home Screen)",
-            "home_calendar" to "달력 (Monthly Calendar)",
-            "home_almanac" to "오늘의 운세 (Almanac)",
-            "home_solar_terms" to "24절기 (Solar Terms)",
-            "home_lunar" to "음력 날짜 (Lunar Date)",
-            "home_zodiac" to "별자리 및 운세 (Zodiac & Fortune)",
-            "home_weather" to "날씨 예보 (Weather Forecast)",
-            "workday" to "근무일",
-            "natural_day" to "일수",
-            "solar" to "양력",
-            "lunar" to "음력",
-            "target_date" to "목표 날짜",
-            "base_date" to "시작 날짜",
-            "settings_title" to "시스템 설정",
-            "history_title" to "히스토리",
-            "add_countdown" to "디데이 추가",
-            "common_countdown" to "자주 쓰는 디데이",
-            "fixed_countdown" to "고정된 디데이",
-            "today" to "오늘",
-            "yesterday" to "어제",
-            "plus_1w" to "+1주",
-            "minus_1w" to "-1주",
-            "mode_forward" to "일수 더하기/빼기",
-            "mode_reverse" to "기간 분석",
-            "multi_stage_btn" to "다단계 가감",
-            "add_stage_btn" to "다음 단계 추가",
-            "save_record" to "기록에 저장",
-            "diff_natural" to "자연일 차이",
-            "diff_workday" to "근무일 차이",
-            "clear_history" to "기록 전체 삭제",
-            "clear_history_confirm" to "모든 기록을 삭제하시겠습니까?",
-            "no_history" to "저장된 기록이 없습니다",
-            "select_birth_date" to "생년월일 선택",
-            "select_start_date" to "시작 날짜 선택",
-            "select_target_date" to "목표 날짜 선택",
-            "exact_age" to "현재 정확한 나이",
-            "next_birthday_days" to "다음 생일까지 남은 일수",
-            "days_unit" to "일",
-            "weeks_unit" to "주",
-            "months_unit" to "개월",
-            "years_unit" to "세",
-            "total_days" to "총 생존 일수",
-            "total_weeks" to "총 생존 주수",
-            "zodiac_sign" to "띠",
-            "constellation" to "별자리",
-            "days_until_prefix" to "남은 시간",
-            "days_until_suffix" to "일",
-            "lucky_number" to "행운의 숫자",
-            "lucky_color" to "행운의 색상",
-            "forecast_title" to "현지 및 향후 3일 날씨 예보",
-            "add_anniversary" to "기념일 추가",
-            "check_in" to "체크인",
-            "save_anniversary" to "기념일 저장",
-            "anniversary_name" to "기념일 이름",
-            "anniversary_date" to "기념일 날짜",
-            "dark_mode_system" to "시스템 설정 따름",
-            "dark_mode_on" to "켜짐",
-            "dark_mode_off" to "꺼짐",
-            "workday_chip" to "근무일",
-            "weekend_chip" to "휴일",
-            "result_title_workday" to "근무일 계산 결과",
-            "result_title_natural" to "자연일 계산 결과",
-            "cancel" to "취소",
-            "confirm" to "확인",
-            "export_csv" to "CSV 내보내기",
-            "close_details" to "상세 닫기",
-            "edit_history_title" to "기록 제목 수정",
-            "enter_new_history_title" to "새로운 제목 입력:",
-            "save_title" to "제목 저장",
-            "reverse_end_date_title" to "종료 날짜를 선택하여 기간 분석:",
-            "end_date_label" to "종료 날짜",
-            "anniversary_dialog_title" to "중요 기념일 추가",
-            "check_in_dialog_title" to "GPS 체크인",
-            "confirm_delete_anniversary" to "이 기념일을 삭제하시겠습니까?",
-            "confirm_delete_btn" to "삭제 확인",
-            "days_passed" to "함께한 일수",
-            "days_upcoming" to "남은 일수",
-            "next_anniversary_remains" to "다음 1주년까지",
-            "stage_remark_hint" to "이 단계의 메모를 입력하세요",
-            "timeline_title" to "일정 개요 다이어그램",
-            "total_duration" to "총 기간",
-            "weekend_rest" to "주말 휴무",
-            "statutory_holiday" to "공휴일",
-            "stage_add_label" to "단계 추가",
-            "stage_sub_label" to "단계 차감",
-            "rule_weekend_title" to "주말 휴무 규칙",
-            "rule_five_days" to "주 5일 근무 (토/일 휴무)",
-            "rule_big_small_weeks" to "격주 근무",
-            "rule_six_days_sunday" to "주 6일 근무 (일요일 휴무)",
-            "rule_six_days_saturday" to "주 6일 근무 (토요일 휴무)",
-            "rule_seven_days" to "연중무휴 (7일 근무)",
-            "rule_five_days_desc" to "월~금 근무, 토/일 휴무",
-            "rule_big_small_weeks_desc" to "일요일 휴무와 토/일 휴무를 교대로 진행",
-            "rule_six_days_sunday_desc" to "월~토 근무, 일요일 휴무",
-            "rule_six_days_saturday_desc" to "생년월일 및 휴무일 적용",
-            "rule_seven_days_desc" to "매일 근무, 주말 휴무 없음",
-            "no_anniversary_record" to "❤️ 저장된 기념일이 없습니다",
-            "add_anniversary_hint" to "'기념일 추가' 또는 '체크인'을 클릭하세요",
-            "fortune_suffix" to "오늘의 운세",
-            "custom_btn" to "커스텀",
-            "yi_label" to "길",
-            "ji_label" to "흉",
-            "lunar_to_solar_title" to "양력 ➔ 음력",
-            "solar_to_lunar_title" to "음력 ➔ 양력",
-            "lunar_convert_title" to "음력/양력 상호 변환",
-            "custom_color" to "사용자 지정 색상",
-            "palette_title" to "테마 색상 팔레트 (14):"
-        )
-
-        return when (effectiveLang) {
-            AppLanguage.SIMPLIFIED_CHINESE -> stringsZhCn[key] ?: key
-            AppLanguage.TRADITIONAL_CHINESE -> stringsZhTw[key] ?: key
-            AppLanguage.ENGLISH -> stringsEn[key] ?: key
-            AppLanguage.JAPANESE -> stringsJa[key] ?: key
-            AppLanguage.KOREAN -> stringsKo[key] ?: key
-            else -> stringsEn[key] ?: key
+    fun getLocalizedAlmanacItem(rawItem: String, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> rawItem
+            AppLanguage.TRADITIONAL_CHINESE -> when (rawItem) {
+                "祭祀" -> "祭祀"; "祈福" -> "祈福"; "求嗣" -> "求嗣"; "开光" -> "開光"
+                "出行" -> "出行"; "拆卸" -> "拆卸"; "修造" -> "修造"; "动土" -> "動土"
+                "进人口" -> "進人口"; "开市" -> "開市"; "交易" -> "交易"; "立券" -> "立券"
+                "挂匾" -> "掛匾"; "入宅" -> "入宅"; "移徙" -> "移徙"; "安床" -> "安床"
+                "栽种" -> "栽種"; "纳畜" -> "納畜"; "入殓" -> "入殮"; "移柩" -> "移柩"
+                "安葬" -> "安葬"; "谢土" -> "謝土"; "求医" -> "求醫"; "治病" -> "治病"
+                "作灶" -> "作灶"; "扫舍" -> "掃舍"; "纳财" -> "納財"; "签合同" -> "簽合同"
+                "探病" -> "探病"; "开仓" -> "開倉"; "乘船" -> "乘船"; "伐木" -> "伐木"
+                "筑堤" -> "築堤"; "预期" -> "預期"
+                else -> rawItem
+            }
+            else -> rawItem
         }
     }
 }

@@ -87,7 +87,8 @@ import me.paco.datecalculator.util.LocationUtils
 fun SettingsScreen(
     viewModel: DateCalculatorViewModel,
     uiState: DateCalculatorUiState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showTitleHeader: Boolean = true
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -118,44 +119,47 @@ fun SettingsScreen(
             .verticalScroll(scrollState)
             .padding(14.dp)
     ) {
-        // 顶栏 (36dp 高度, 15sp 标题)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = null,
-                tint = NeumorphicAccent,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = LanguageUtils.getString("settings_title", lang),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = NeumorphicTextPrimary
-            )
+        if (showTitleHeader) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = null,
+                    tint = NeumorphicAccent,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = LanguageUtils.getString("settings_title", lang),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 0. 语言设置 Card (新增：跟随系统选项，排在第1位)
+        // 0. 语言设置 Card (统一 3D 新拟物 20dp 曲面圆角卡片材质)
+        val cardShape = RoundedCornerShape(20.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                .clip(RoundedCornerShape(20.dp))
+                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
+                .background(NeumorphicBg, shape = cardShape)
+                .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = cardShape)
+                .clip(cardShape)
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Language, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(LanguageUtils.getString("settings_language", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(LanguageUtils.getString("settings_language", lang), fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -182,20 +186,21 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 1. 首页功能模块显隐配置 Card
+        // 1. 首页功能模块显隐配置 Card (材质统一)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                .clip(RoundedCornerShape(20.dp))
+                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
+                .background(NeumorphicBg, shape = cardShape)
+                .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = cardShape)
+                .clip(cardShape)
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Home, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(LanguageUtils.getString("settings_home_config", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(LanguageUtils.getString("settings_home_config", lang), fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -266,14 +271,15 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 2. 节假日地区选择 Card
+        // 2. 节假日地区选择 Card (材质统一)
         val selected = uiState.holidayRegion
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                .clip(RoundedCornerShape(20.dp))
+                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
+                .background(NeumorphicBg, shape = cardShape)
+                .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = cardShape)
+                .clip(cardShape)
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -288,7 +294,7 @@ fun SettingsScreen(
                     Text(
                         text = LanguageUtils.getString("settings_region", lang),
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = NeumorphicAccent
                     )
                 }
@@ -434,20 +440,21 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 3. 常用倒计时节日配置 Card
+        // 3. 常用倒计时节日配置 Card (材质统一)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                .clip(RoundedCornerShape(20.dp))
+                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
+                .background(NeumorphicBg, shape = cardShape)
+                .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = cardShape)
+                .clip(cardShape)
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Celebration, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(LanguageUtils.getString("common_countdown", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(LanguageUtils.getString("common_countdown", lang), fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -474,19 +481,20 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 4. 周末休息模式 Card
+        // 4. 周末休息模式 Card (材质统一)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                .clip(RoundedCornerShape(20.dp))
+                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
+                .background(NeumorphicBg, shape = cardShape)
+                .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = cardShape)
+                .clip(cardShape)
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = LanguageUtils.getString("rule_weekend_title", lang),
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.ExtraBold,
                     color = NeumorphicAccent,
                     fontSize = 14.sp
                 )
@@ -561,20 +569,21 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 5. Material 3 主题配色与调色盘设置 Card
+        // 5. Material 3 主题配色与调色盘设置 Card (材质统一 + 3D 拟物全色块)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 5.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
-                .clip(RoundedCornerShape(20.dp))
+                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
+                .background(NeumorphicBg, shape = cardShape)
+                .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = cardShape)
+                .clip(cardShape)
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Palette, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(LanguageUtils.getString("settings_theme", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(LanguageUtils.getString("settings_theme", lang), fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -597,7 +606,7 @@ fun SettingsScreen(
                     }
                 }
 
-                // 调色盘 Picker (14 款精美调色盘选择)
+                // 调色盘 Picker (14 款 3D 胶囊色块)
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(LanguageUtils.getString("palette_title", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -628,12 +637,12 @@ fun SettingsScreen(
                         val isCurrentColor = (uiState.customPrimaryColorHex == colorHex)
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(34.dp)
                                 .then(
                                     if (isCurrentColor) {
                                         Modifier
-                                            .border(2.5.dp, Color.White, shape = CircleShape)
-                                            .neumorphicInset(shape = CircleShape, elevation = 4.dp)
+                                            .border(2.dp, Color.White, shape = CircleShape)
+                                            .neumorphicInset(shape = CircleShape, elevation = 3.dp)
                                     } else {
                                         Modifier.neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
                                     }
@@ -655,7 +664,7 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.DarkMode, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(LanguageUtils.getString("settings_dark_mode", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                    Text(LanguageUtils.getString("settings_dark_mode", lang), fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 14.sp)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

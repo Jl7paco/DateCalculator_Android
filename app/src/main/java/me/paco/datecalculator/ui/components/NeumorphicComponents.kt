@@ -33,8 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,7 +50,59 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import me.paco.datecalculator.util.LanguageUtils
+
+/**
+ * 图标按钮专属 3D 浮雕立体渲染修饰符 (消除左上角白色发光晕染，左右上下边缘清晰干练)
+ */
+@Composable
+fun Modifier.neumorphicButton3D(
+    elevation: Dp = 3.5.dp
+): Modifier {
+    val isDark = LocalDarkTheme.current
+    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.55f)
+    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.65f) else Color(0xFF94A3B8).copy(alpha = 0.65f)
+
+    return this.drawBehind {
+        val shadowRadius = elevation.toPx()
+        val shapeOutline = CircleShape.createOutline(size, layoutDirection, this)
+
+        // 1. 右下 3D 悬浮清晰投影
+        drawIntoCanvas { canvas ->
+            val paint = Paint().apply {
+                asFrameworkPaint().apply {
+                    isAntiAlias = true
+                    color = android.graphics.Color.TRANSPARENT
+                    setShadowLayer(
+                        shadowRadius * 1.1f,
+                        shadowRadius * 0.5f,
+                        shadowRadius * 0.5f,
+                        darkShadowColor.toArgb()
+                    )
+                }
+            }
+            canvas.drawOutline(shapeOutline, paint)
+        }
+
+        // 2. 左上克制定向高光 (缩减扩散半径，彻底无光晕/无晕染感)
+        drawIntoCanvas { canvas ->
+            val paint = Paint().apply {
+                asFrameworkPaint().apply {
+                    isAntiAlias = true
+                    color = android.graphics.Color.TRANSPARENT
+                    setShadowLayer(
+                        shadowRadius * 0.9f,
+                        -shadowRadius * 0.45f,
+                        -shadowRadius * 0.45f,
+                        lightShadowColor.toArgb()
+                    )
+                }
+            }
+            canvas.drawOutline(shapeOutline, paint)
+        }
+    }
+}
 
 /**
  * 具有按压 3D 弹簧弹性缩放与微调动画的新拟物图标按钮
@@ -59,6 +116,7 @@ fun NeumorphicIconButton(
     size: Dp = 36.dp,
     tint: Color = NeumorphicAccent
 ) {
+    val isDark = LocalDarkTheme.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
@@ -85,8 +143,9 @@ fun NeumorphicIconButton(
                 scaleY = scale
                 rotationZ = rotation
             }
-            .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+            .neumorphicButton3D(elevation = 3.5.dp)
             .background(NeumorphicBg, shape = CircleShape)
+            .border(1.dp, if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.80f), CircleShape)
             .clip(CircleShape)
             .clickable(
                 interactionSource = interactionSource,
@@ -304,10 +363,7 @@ fun NeumorphicSegmentedRow(
                         text = title,
                         fontSize = 12.sp,
                         fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                        color = if (isSelected) Color.White else NeumorphicTextPrimary.copy(alpha = 0.75f),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        softWrap = false
+                        color = if (isSelected) Color.White else NeumorphicTextPrimary
                     )
                 }
             }

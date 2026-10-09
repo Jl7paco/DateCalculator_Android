@@ -1,26 +1,25 @@
 package me.paco.datecalculator.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,26 +32,27 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Close
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,41 +63,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import me.paco.datecalculator.R
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.DateMode
-import me.paco.datecalculator.data.StageSegmentResult
-import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.ui.components.DatePickerModal
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
+import me.paco.datecalculator.ui.components.NeumorphicIconButton
 import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
-import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.NumericCalculatorInput
 import me.paco.datecalculator.ui.components.QuickDateChips
-import me.paco.datecalculator.ui.components.RangeBreakdownCard
 import me.paco.datecalculator.ui.components.ResultCard
 import me.paco.datecalculator.ui.components.SettingsOverlayDialog
-import me.paco.datecalculator.ui.components.TimelineDiagram
 import me.paco.datecalculator.ui.components.WorkdayNaturalSwitch
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
@@ -106,63 +95,10 @@ import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LanguageUtils
+import me.paco.datecalculator.util.ShareUtils
+import java.time.LocalDate
 
-@Composable
-fun InsertDaysTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    placeholder: String = "15"
-) {
-    val isDefault = (value.isEmpty() || value == placeholder)
-    val displayValue = if (value.isEmpty()) placeholder else value
-
-    var isFocused by remember { mutableStateOf(false) }
-
-    var textFieldValueState by remember(displayValue, isFocused) {
-        mutableStateOf(
-            TextFieldValue(
-                text = displayValue,
-                selection = if (isFocused && isDefault) TextRange(0, displayValue.length) else TextRange(displayValue.length)
-            )
-        )
-    }
-
-    val isDark = isSystemInDarkTheme()
-    val textColor = if (isDefault) {
-        if (isDark) Color(0xFF808D9E) else Color(0xFF94A3B8)
-    } else {
-        NeumorphicTextPrimary
-    }
-
-    BasicTextField(
-        value = textFieldValueState,
-        onValueChange = { newTFV ->
-            val newText = newTFV.text
-            if (newText.isEmpty() || newText.all { it.isDigit() }) {
-                val nextSelection = if (newText != placeholder && isDefault) {
-                    TextRange(newText.length)
-                } else {
-                    newTFV.selection
-                }
-                textFieldValueState = newTFV.copy(selection = nextSelection)
-                onValueChange(newText)
-            }
-        },
-        singleLine = true,
-        textStyle = TextStyle(
-            fontSize = 15.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = textColor
-        ),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = modifier.onFocusChanged { focusState ->
-            isFocused = focusState.isFocused
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun DateCalculationScreen(
     viewModel: DateCalculatorViewModel,
@@ -172,6 +108,7 @@ fun DateCalculationScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val lang = uiState.appLanguage
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showReverseEndDatePicker by remember { mutableStateOf(false) }
     var showHistoryDialog by remember { mutableStateOf(false) }
@@ -344,15 +281,19 @@ fun DateCalculationScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 1. 基准起算日期面板
+            // 1. 基准起算日期面板 (与其他页面100%统一的 3D 新拟物内凹槽输入框，高度 58dp，圆角 18dp)
+            val inputShape18 = RoundedCornerShape(18.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
-                    .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
+                    .height(58.dp)
+                    .neumorphicInset(shape = inputShape18, elevation = 4.dp)
+                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape18)
+                    .background(NeumorphicBg, shape = inputShape18)
+                    .clip(inputShape18)
                     .clickable { showDatePicker = true }
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -364,58 +305,53 @@ fun DateCalculationScreen(
                             imageVector = Icons.Default.CalendarMonth,
                             contentDescription = null,
                             tint = NeumorphicAccent,
-                            modifier = Modifier.padding(end = 10.dp)
+                            modifier = Modifier.padding(end = 8.dp)
                         )
-                        Column {
-                            Text(
-                                text = LanguageUtils.getString("select_start_date", lang),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(uiState.baseDate, lang)
-                            Text(
-                                text = dateFormattedWithWeek,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = NeumorphicTextPrimary
-                            )
-                        }
+                        Text(
+                            text = "${LanguageUtils.getString("base_date", lang)}: ${DateCalculatorUtils.formatDateWithWeek(uiState.baseDate, lang)}",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NeumorphicTextPrimary
+                        )
                     }
 
                     Icon(
                         imageVector = Icons.Default.EditCalendar,
-                        contentDescription = "选择日期",
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        contentDescription = "Select Date",
+                        tint = NeumorphicAccent.copy(alpha = 0.8f)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 工作日和自然日切换拨动开关
+            // 快捷起算日期 Chip 规则
+            QuickDateChips(
+                selectedDate = uiState.baseDate,
+                onSelectDate = { date ->
+                    viewModel.updateBaseDate(date)
+                    viewModel.performCalculation()
+                },
+                language = lang
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 工作日 / 自然日同页胶囊拨动开关
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    QuickDateChips(
-                        selectedDate = uiState.baseDate,
-                        onSelectDate = { date ->
-                            viewModel.updateBaseDate(date)
-                            viewModel.performCalculation()
-                        },
-                        language = lang
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = LanguageUtils.getString("calc_rule_title", lang),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary
+                )
 
                 WorkdayNaturalSwitch(
-                    isWorkday = uiState.dateMode == DateMode.WORKDAY,
+                    isWorkday = (uiState.dateMode == DateMode.WORKDAY),
                     onWorkdayChanged = { isWorkday ->
                         viewModel.updateDateMode(if (isWorkday) DateMode.WORKDAY else DateMode.NATURAL_DAY)
                     },
@@ -438,7 +374,7 @@ fun DateCalculationScreen(
                 )
             }
 
-            // 2. 模式 B: 区间拆算面板
+            // 2. 模式 B: 区间拆算面板 (统一使用 18dp 圆角 3D 凹槽材质)
             if (!uiState.isMultiStageExtensionEnabled && uiState.calcSubMode == CalcSubMode.REVERSE_RANGE) {
                 val cardShape18 = RoundedCornerShape(18.dp)
                 Box(
@@ -466,11 +402,11 @@ fun DateCalculationScreen(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(52.dp)
-                                    .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
-                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.3f), shape = RoundedCornerShape(14.dp))
-                                    .background(NeumorphicBg, shape = RoundedCornerShape(14.dp))
-                                    .clip(RoundedCornerShape(14.dp))
+                                    .height(58.dp)
+                                    .neumorphicInset(shape = inputShape18, elevation = 4.dp)
+                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape18)
+                                    .background(NeumorphicBg, shape = inputShape18)
+                                    .clip(inputShape18)
                                     .clickable { showReverseEndDatePicker = true }
                                     .padding(horizontal = 14.dp),
                                 contentAlignment = Alignment.CenterStart
@@ -478,23 +414,28 @@ fun DateCalculationScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("${LanguageUtils.getString("end_date_label", lang)}: ${DateCalculatorUtils.formatDate(uiState.reverseEndDate, lang)}", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = NeumorphicTextPrimary)
+                                    Text(
+                                        text = "${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(uiState.reverseEndDate, lang)}",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NeumorphicTextPrimary
+                                    )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
 
                             Box(
                                 modifier = Modifier
-                                    .width(56.dp)
-                                    .height(52.dp)
-                                    .neumorphicExtruded(shape = RoundedCornerShape(14.dp), elevation = 4.dp)
-                                    .background(Color(0xFFEF4444), shape = RoundedCornerShape(14.dp))
-                                    .clip(RoundedCornerShape(14.dp))
+                                    .width(60.dp)
+                                    .height(58.dp)
+                                    .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
+                                    .background(NeumorphicAccent, shape = RoundedCornerShape(16.dp))
+                                    .clip(RoundedCornerShape(16.dp))
                                     .clickable { viewModel.performCalculation() },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("=", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                                Text("=", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                     }
@@ -562,237 +503,148 @@ fun DateCalculationScreen(
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (uiState.multiStagePlanTitle.isEmpty()) {
-                                Text(planPlaceholder, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f))
+                                Text(planPlaceholder, fontSize = 12.sp, color = NeumorphicTextPrimary.copy(alpha = 0.5f))
                             }
                             BasicTextField(
                                 value = uiState.multiStagePlanTitle,
                                 onValueChange = { viewModel.updateMultiStagePlanTitle(it) },
                                 singleLine = true,
-                                textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                                textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        val planSubtitle = when (lang) {
-                            AppLanguage.ENGLISH -> "Set days and notes for each stage to calculate milestone dates:"
-                            AppLanguage.JAPANESE -> "各段階の日数とノートを設定してマイルストーン日程を算定:"
-                            AppLanguage.KOREAN -> "각 단계별 일수와 메모를 설정하여 마일스톤 날짜 산출:"
-                            AppLanguage.TRADITIONAL_CHINESE -> "設置不同時間段的天數與想法，為你智能推算各個節點日期:"
-                            else -> "设置不同时间段的天数与想法，为你智能推算各个节点日期:"
-                        }
-                        Text(
-                            text = planSubtitle,
-                            fontSize = 11.sp,
-                            color = NeumorphicTextPrimary.copy(alpha = 0.7f)
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        uiState.stages.forEachIndexed { index, stage ->
-                            val defaultRemark = LanguageUtils.getLocalizedStageTitle(index + 1, lang)
-                            val stageShape16 = RoundedCornerShape(16.dp)
-
-                            Column(
+                        // 多阶段列表
+                        uiState.stages.forEachIndexed { _, stage ->
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .neumorphicInset(shape = stageShape16, elevation = 3.dp)
-                                    .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = stageShape16)
-                                    .background(NeumorphicBg, shape = stageShape16)
-                                    .clip(stageShape16)
-                                    .padding(12.dp)
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    val actionLabel = if (stage.type == CalculationType.ADD) LanguageUtils.getString("stage_add_label", lang) else LanguageUtils.getString("stage_sub_label", lang)
-                                    Text("${stage.remark.ifBlank { defaultRemark }} ($actionLabel)", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = NeumorphicAccent)
-
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        if (index > 0) {
-                                            Icon(
-                                                imageVector = Icons.Default.KeyboardArrowUp,
-                                                contentDescription = "Up",
-                                                tint = NeumorphicAccent,
-                                                modifier = Modifier
-                                                    .size(18.dp)
-                                                    .clickable {
-                                                        viewModel.reorderCalculationStages(index, index - 1)
-                                                    }
-                                            )
-                                        }
-
-                                        if (index < uiState.stages.size - 1) {
-                                            Icon(
-                                                imageVector = Icons.Default.KeyboardArrowDown,
-                                                contentDescription = "Down",
-                                                tint = NeumorphicAccent,
-                                                modifier = Modifier
-                                                    .size(18.dp)
-                                                    .clickable {
-                                                        viewModel.reorderCalculationStages(index, index + 1)
-                                                    }
-                                            )
-                                        }
-
-                                        if (uiState.stages.size > 1) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Delete",
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier
-                                                    .size(18.dp)
-                                                    .clickable { viewModel.removeCalculationStage(stage.id) }
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.width(110.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        val isAdd = stage.type == CalculationType.ADD
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(36.dp)
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(if (isAdd) NeumorphicAccent else NeumorphicSunkenBg)
-                                                .clickable { viewModel.updateStageType(stage.id, CalculationType.ADD) },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text("+", fontWeight = FontWeight.ExtraBold, color = if (isAdd) Color.White else NeumorphicTextPrimary, fontSize = 14.sp)
-                                        }
-
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(36.dp)
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(if (!isAdd) Color(0xFFEF4444) else NeumorphicSunkenBg)
-                                                .clickable { viewModel.updateStageType(stage.id, CalculationType.SUBTRACT) },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text("-", fontWeight = FontWeight.ExtraBold, color = if (!isAdd) Color.White else NeumorphicTextPrimary, fontSize = 14.sp)
-                                        }
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(36.dp)
-                                            .neumorphicInset(shape = RoundedCornerShape(8.dp), elevation = 2.dp)
-                                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 10.dp),
-                                        contentAlignment = Alignment.CenterStart
-                                    ) {
-                                        InsertDaysTextField(
-                                            value = stage.daysInput,
-                                            onValueChange = { viewModel.updateStageDaysInput(stage.id, it) },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            placeholder = "15"
-                                        )
-                                    }
-
-                                    val modeUnit = if (uiState.dateMode == DateMode.WORKDAY) LanguageUtils.getString("workday", lang) else LanguageUtils.getString("natural_day", lang)
-                                    Text(modeUnit, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Icon(
+                                    imageVector = Icons.Default.DragHandle,
+                                    contentDescription = "Reorder",
+                                    tint = NeumorphicAccent.copy(alpha = 0.7f),
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .padding(end = 4.dp)
+                                )
 
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                        .width(36.dp)
+                                        .height(38.dp)
+                                        .neumorphicExtruded(shape = RoundedCornerShape(8.dp), elevation = 2.dp)
+                                        .background(
+                                            if (stage.type == CalculationType.ADD) Color(0xFF10B981) else Color(0xFFEF4444),
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            val newType = if (stage.type == CalculationType.ADD) CalculationType.SUBTRACT else CalculationType.ADD
+                                            viewModel.updateStageType(stage.id, newType)
+                                            viewModel.performCalculation()
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (stage.type == CalculationType.ADD) Icons.Default.Add else Icons.Default.Remove,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(70.dp)
                                         .height(38.dp)
                                         .neumorphicInset(shape = RoundedCornerShape(8.dp), elevation = 2.dp)
                                         .background(NeumorphicSunkenBg, shape = RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 10.dp),
+                                        .padding(horizontal = 8.dp),
                                     contentAlignment = Alignment.CenterStart
                                 ) {
-                                    if (stage.remark.isEmpty()) {
-                                        Text(LanguageUtils.getString("stage_remark_hint", lang), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f))
-                                    }
                                     BasicTextField(
-                                        value = stage.remark,
-                                        onValueChange = { viewModel.updateStageRemark(stage.id, it) },
+                                        value = stage.daysInput,
+                                        onValueChange = {
+                                            viewModel.updateStageDaysInput(stage.id, it)
+                                            viewModel.performCalculation()
+                                        },
                                         singleLine = true,
-                                        textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary),
+                                        textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
-                            }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(38.dp)
+                                        .neumorphicInset(shape = RoundedCornerShape(8.dp), elevation = 2.dp)
+                                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 8.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    BasicTextField(
+                                        value = stage.remark,
+                                        onValueChange = {
+                                            viewModel.updateStageRemark(stage.id, it)
+                                            viewModel.performCalculation()
+                                        },
+                                        singleLine = true,
+                                        textStyle = TextStyle(fontSize = 12.sp, color = NeumorphicTextPrimary),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(4.dp))
+
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Delete Stage",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .clickable {
+                                            viewModel.removeCalculationStage(stage.id)
+                                            viewModel.performCalculation()
+                                        }
+                                )
+                            }
                         }
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(42.dp)
-                                    .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 4.dp)
-                                    .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable { viewModel.addCalculationStage() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(LanguageUtils.getString("add_stage_btn", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(42.dp)
-                                    .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 4.dp)
-                                    .background(NeumorphicAccent, shape = RoundedCornerShape(12.dp))
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .height(32.dp)
+                                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                    .background(NeumorphicAccent, shape = CircleShape)
+                                    .clip(CircleShape)
                                     .clickable {
-                                        val customTitle = uiState.multiStagePlanTitle.ifBlank {
-                                            when (lang) {
-                                                AppLanguage.ENGLISH -> "Multi-Stage Calculation"
-                                                AppLanguage.JAPANESE -> "マルチステージ計算"
-                                                AppLanguage.KOREAN -> "다단계 날짜 계산"
-                                                AppLanguage.TRADITIONAL_CHINESE -> "多段天數計算"
-                                                else -> "多段天数计算"
-                                            }
-                                        }
-                                        val detailStr = multiSegments.joinToString(" ➔ ") { seg ->
-                                            val symbol = if (seg.type == CalculationType.ADD) "+" else "-"
-                                            val remark = if (seg.remark.isNotBlank()) " (${seg.remark})" else ""
-                                            "$symbol${seg.daysCount}${if (uiState.dateMode == DateMode.WORKDAY) "工作日" else "自然日"}$remark: ${DateCalculatorUtils.formatDate(seg.endDate, lang)}"
-                                        }
-
-                                        viewModel.saveToHistory(
-                                            category = LanguageUtils.getString("tab_calc", lang),
-                                            title = customTitle,
-                                            detail = detailStr,
-                                            resultDate = multiFinalDate
-                                        )
-
-                                        Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
-                                    },
+                                        viewModel.addCalculationStage()
+                                        viewModel.performCalculation()
+                                    }
+                                    .padding(horizontal = 10.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(LanguageUtils.getString("save_record", lang), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.5.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(LanguageUtils.getString("add_stage_btn", lang), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
                         }
                     }
@@ -801,10 +653,10 @@ fun DateCalculationScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. 模式 A 结果卡片
-            if (!uiState.isMultiStageExtensionEnabled && uiState.calcSubMode == CalcSubMode.FORWARD_DAYS) {
+            // 4. 计算结果展示层
+            if (uiState.showResult) {
                 ResultCard(
-                    visible = uiState.showResult,
+                    visible = true,
                     baseDate = uiState.baseDate,
                     resultDate = resultDate,
                     calculationType = uiState.calculationType,
@@ -813,33 +665,12 @@ fun DateCalculationScreen(
                     weekendRule = uiState.weekendRule,
                     enableHolidays = uiState.enableChineseHolidays,
                     holidayRegion = uiState.holidayRegion,
-                    appLanguage = lang
-                )
-            }
-
-            // 4. 模式 B 结果卡片 (区间拆算)
-            if (!uiState.isMultiStageExtensionEnabled && uiState.calcSubMode == CalcSubMode.REVERSE_RANGE) {
-                RangeBreakdownCard(
-                    visible = uiState.showResult,
-                    result = rangeBreakdown,
-                    regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.getLocalizedName(lang)}",
-                    language = lang
-                )
-            }
-
-            // 4. 模式 C 结果卡片 (多段连算排期主时间轴)
-            if (uiState.isMultiStageExtensionEnabled) {
-                val modeLabel = if (uiState.dateMode == DateMode.WORKDAY) LanguageUtils.getString("workday", lang) else LanguageUtils.getString("natural_day", lang)
-                val regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.getLocalizedName(lang)}"
-
-                TimelineDiagram(
-                    baseDate = uiState.baseDate,
-                    finalDate = multiFinalDate,
-                    segments = multiSegments,
-                    modeLabel = modeLabel,
-                    regionLabel = regionLabel,
-                    showOuterCard = true,
-                    language = lang
+                    isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek,
+                    appLanguage = uiState.appLanguage,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = cardScale.value
+                        scaleY = cardAlpha.value
+                    }
                 )
             }
 

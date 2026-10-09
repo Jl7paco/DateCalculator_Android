@@ -17,54 +17,56 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
 
-// 明亮冰雪白底色与深色背景底色，依据 LocalDarkTheme 动态感知
+// 明亮浅色底色与深色背景底色
 val NeumorphicBg @Composable get() = if (LocalDarkTheme.current) {
     Color(0xFF1B232A)
 } else {
-    Color(0xFFF2F5FA)
+    Color(0xFFF0F4F8)
 }
 
 // 凹陷按下沉降底色
 val NeumorphicSunkenBg @Composable get() = if (LocalDarkTheme.current) {
-    Color(0xFF151C22)
+    Color(0xFF13191E)
 } else {
-    Color(0xFFDDE3EC)
+    Color(0xFFDCE2E9)
 }
 
 val NeumorphicAccent @Composable get() = MaterialTheme.colorScheme.primary
 
 val NeumorphicTextPrimary @Composable get() = if (LocalDarkTheme.current) {
-    Color(0xFFE2E8F0)
+    Color(0xFFF8FAFC)
 } else {
-    Color(0xFF2D3748)
+    Color(0xFF1E293B)
 }
 
 /**
- * 凸起悬浮 3D 新拟物效果 (四角平滑弥散高光与暗影，彻底消除右上角光影断层)
+ * 3D 浮雕悬浮新拟物效果 (浅色模式下专门强化高对比双重透视发光与冷灰沉降阴影；深色模式保持优异体验)
  */
 @Composable
 fun Modifier.neumorphicExtruded(
-    shape: Shape = RoundedCornerShape(16.dp),
-    elevation: Dp = 4.dp
+    shape: Shape = RoundedCornerShape(22.dp),
+    elevation: Dp = 6.dp
 ): Modifier {
     val isDark = LocalDarkTheme.current
-    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.55f)
-    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.50f) else Color(0xFFB0BDCC).copy(alpha = 0.45f)
+
+    // 浅色模式专属：强化 100% 纯白顶边定向高光与板岩蓝灰底部 3D 悬浮立面投影
+    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.98f)
+    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.70f) else Color(0xFF8C9BAE).copy(alpha = 0.78f)
 
     return this.drawBehind {
         val shadowRadius = elevation.toPx()
         val shapeOutline = shape.createOutline(size, layoutDirection, this)
 
-        // 1. 柔和全向底边自然暗影 (增加平滑弥散半径，消除右上角断层)
+        // 1. 右下自然投影暗影 (浅色模式下加大偏移，营造强烈的 3D 浮雕立体感)
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius * 1.25f,
-                        shadowRadius * 0.35f,
-                        shadowRadius * 0.35f,
+                        shadowRadius * if (isDark) 1.25f else 1.45f,
+                        shadowRadius * if (isDark) 0.35f else 0.75f,
+                        shadowRadius * if (isDark) 0.35f else 0.75f,
                         darkShadowColor.toArgb()
                     )
                 }
@@ -72,16 +74,16 @@ fun Modifier.neumorphicExtruded(
             canvas.drawOutline(shapeOutline, paint)
         }
 
-        // 2. 柔和全向顶边自然高光 (4 角全覆盖，无干瘪挂边)
+        // 2. 左上透视定向高光 (浅色模式下强反光，浮雕边缘清晰爆表)
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius * 1.0f,
-                        -shadowRadius * 0.30f,
-                        -shadowRadius * 0.30f,
+                        shadowRadius * if (isDark) 1.0f else 1.25f,
+                        -shadowRadius * if (isDark) 0.30f else 0.70f,
+                        -shadowRadius * if (isDark) 0.30f else 0.70f,
                         lightShadowColor.toArgb()
                     )
                 }
@@ -92,16 +94,16 @@ fun Modifier.neumorphicExtruded(
 }
 
 /**
- * 凹陷凹槽 3D 新拟物效果 (去除硬描边，完全贴合原素材图效)
+ * 3D 沉降凹槽刻痕效果 (浅色模式下强化深刻痕沉降)
  */
 @Composable
 fun Modifier.neumorphicInset(
-    shape: Shape = RoundedCornerShape(16.dp),
-    elevation: Dp = 4.dp
+    shape: Shape = RoundedCornerShape(14.dp),
+    elevation: Dp = 5.dp
 ): Modifier {
     val isDark = LocalDarkTheme.current
-    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.50f)
-    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.65f) else Color(0xFFA2B0C2).copy(alpha = 0.55f)
+    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.90f)
+    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.65f) else Color(0xFF818CF8).copy(alpha = 0.45f)
 
     return this.drawBehind {
         val shadowRadius = elevation.toPx()
@@ -115,30 +117,30 @@ fun Modifier.neumorphicInset(
             }
             canvas.clipPath(path)
 
-            // 1. 左上内侧自然沉降暗影
+            // 1. 左上内侧深刻痕沉降暗影
             val darkPaint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius * 1.1f,
-                        shadowRadius * 0.6f,
-                        shadowRadius * 0.6f,
+                        shadowRadius * 1.3f,
+                        shadowRadius * 0.75f,
+                        shadowRadius * 0.75f,
                         darkShadowColor.toArgb()
                     )
                 }
             }
             canvas.drawPath(path, darkPaint)
 
-            // 2. 右下内侧柔和反射高光
+            // 2. 右下内侧透视反光高光
             val lightPaint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius * 1.1f,
-                        -shadowRadius * 0.6f,
-                        -shadowRadius * 0.6f,
+                        shadowRadius * 1.3f,
+                        -shadowRadius * 0.75f,
+                        -shadowRadius * 0.75f,
                         lightShadowColor.toArgb()
                     )
                 }

@@ -418,7 +418,7 @@ fun DateDiffScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(14.dp)
+                .padding(16.dp)
         ) {
             // 顶栏 (36dp 高度, 15sp 标题)
             Row(
@@ -481,7 +481,7 @@ fun DateDiffScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // 预计算常用节假日列表
             val base = uiState.baseDate
@@ -528,7 +528,7 @@ fun DateDiffScreen(
             )
 
             if (allPinnedCards.isNotEmpty()) {
-                Text(LanguageUtils.getString("fixed_countdown", lang), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NeumorphicAccent)
+                Text(LanguageUtils.getString("fixed_countdown", lang), fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = NeumorphicAccent)
                 Spacer(modifier = Modifier.height(6.dp))
 
                 allPinnedCards.forEachIndexed { pIdx, (customItem, pair) ->
@@ -536,22 +536,23 @@ fun DateDiffScreen(
                     val diffDays = DateCalculatorUtils.naturalDaysBetween(uiState.baseDate, upcoming)
                     val cardBgColor = cardColorPalette[pIdx % cardColorPalette.size]
 
+                    val cardShape = RoundedCornerShape(22.dp)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
-                            .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
-                            .background(cardBgColor, shape = RoundedCornerShape(16.dp))
-                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.3f), shape = RoundedCornerShape(16.dp))
-                            .clip(RoundedCornerShape(16.dp))
+                            .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
+                            .background(NeumorphicBg, shape = cardShape)
+                            .background(cardBgColor, shape = cardShape)
+                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = cardShape)
+                            .clip(cardShape)
                             .clickable {
                                 targetCalendarType = 0
                                 viewModel.updateEndDate(upcoming)
                                 currentTargetEventName = pinnedName
                                 addResultCard(pinnedName, upcoming)
                             }
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -560,17 +561,17 @@ fun DateDiffScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.PushPin, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Column {
-                                    Text(pinnedName, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = NeumorphicTextPrimary)
-                                    Text("Target: ${DateCalculatorUtils.formatDate(upcoming, lang)}", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
+                                    Text(pinnedName, fontWeight = FontWeight.ExtraBold, fontSize = 14.5.sp, color = NeumorphicTextPrimary)
+                                    Text("${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(upcoming, lang)}", fontSize = 11.5.sp, color = NeumorphicTextPrimary.copy(alpha = 0.65f))
                                 }
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("${abs(diffDays)} ${LanguageUtils.getString("days_unit", lang)}", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                                Text("${abs(diffDays)} ${LanguageUtils.getString("days_unit", lang)}", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
 
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
 
                                 Icon(
                                     imageVector = Icons.Default.Close,
@@ -592,16 +593,21 @@ fun DateDiffScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // 1. 起始日期 Header
+            // 1. 起始日期 Header (高对比高清文本)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(LanguageUtils.getString("select_start_date", lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                Text(
+                    text = LanguageUtils.getString("select_start_date", lang),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = NeumorphicTextPrimary
+                )
 
                 SolarLunarSwitch(
                     isSolar = (startCalendarType == 0),
@@ -615,14 +621,18 @@ fun DateDiffScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             if (startCalendarType == 0) {
+                val inputShape = RoundedCornerShape(18.dp)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .neumorphicExtruded(shape = RoundedCornerShape(16.dp), elevation = 5.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f), shape = RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
+                        .height(58.dp)
+                        .neumorphicInset(shape = inputShape, elevation = 4.dp)
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape)
+                        .background(NeumorphicBg, shape = inputShape)
+                        .clip(inputShape)
                         .clickable { showPickerForStart = true }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.CenterStart
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -634,31 +644,20 @@ fun DateDiffScreen(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = null,
                                 tint = NeumorphicAccent,
-                                modifier = Modifier.padding(end = 10.dp)
+                                modifier = Modifier.padding(end = 8.dp)
                             )
-                            Column {
-                                Text(
-                                    text = LanguageUtils.getString("base_date", lang),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                val dateFormattedWithWeek = DateCalculatorUtils.formatDateWithWeek(uiState.baseDate, lang)
-                                Text(
-                                    text = dateFormattedWithWeek,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                            Text(
+                                text = "${LanguageUtils.getString("base_date", lang)}: ${DateCalculatorUtils.formatDateWithWeek(uiState.baseDate, lang)}",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeumorphicTextPrimary
+                            )
                         }
 
                         Icon(
                             imageVector = Icons.Default.EditCalendar,
                             contentDescription = "Select Date",
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                            tint = NeumorphicAccent.copy(alpha = 0.8f)
                         )
                     }
                 }
@@ -737,7 +736,12 @@ fun DateDiffScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(LanguageUtils.getString("select_target_date", lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                Text(
+                    text = LanguageUtils.getString("select_target_date", lang),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = NeumorphicTextPrimary
+                )
 
                 SolarLunarSwitch(
                     isSolar = (targetCalendarType == 0),
@@ -754,14 +758,15 @@ fun DateDiffScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val inputShape = RoundedCornerShape(18.dp)
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(58.dp)
-                        .neumorphicInset(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
-                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(18.dp))
-                        .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
-                        .clip(RoundedCornerShape(18.dp))
+                        .neumorphicInset(shape = inputShape, elevation = 4.dp)
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape)
+                        .background(NeumorphicBg, shape = inputShape)
+                        .clip(inputShape)
                         .clickable { showPickerForEnd = true }
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart
@@ -784,20 +789,21 @@ fun DateDiffScreen(
 
                 Spacer(modifier = Modifier.width(10.dp))
 
+                val btnShape = RoundedCornerShape(18.dp)
                 Box(
                     modifier = Modifier
                         .width(64.dp)
                         .height(58.dp)
-                        .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
-                        .background(Color(0xFFEF4444), shape = RoundedCornerShape(18.dp))
-                        .clip(RoundedCornerShape(18.dp))
+                        .neumorphicExtruded(shape = btnShape, elevation = 5.dp)
+                        .background(Color(0xFFEF4444), shape = btnShape)
+                        .clip(btnShape)
                         .clickable {
                             val targetName = if (currentTargetEventName.isNotBlank()) currentTargetEventName else LanguageUtils.getString("target_date", lang)
                             addResultCard(targetName, effectiveEndDate)
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("=", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    Text("=", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                 }
             }
 
@@ -807,7 +813,7 @@ fun DateDiffScreen(
             Text(
                 text = LanguageUtils.getString("common_countdown", lang),
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
                 color = NeumorphicTextPrimary
             )
 
@@ -877,7 +883,7 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. 多卡片推栈倒计时结果展示层 (纯图标固定按钮，无文字)
+            // 4. 多卡片推栈倒计时结果展示层 (纯图标固定按钮，无文字，多语言全覆盖，36sp ExtraBold 巨幕数字)
             if (resultCardList.isNotEmpty()) {
                 resultCardList.forEachIndexed { cardIdx, cardData ->
                     val natDays = DateCalculatorUtils.naturalDaysBetween(cardData.baseDate, cardData.targetDate)
@@ -896,7 +902,7 @@ fun DateDiffScreen(
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = resultCardShape)
                             .border(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f), shape = resultCardShape)
                             .clip(resultCardShape)
-                            .padding(16.dp)
+                            .padding(18.dp)
                     ) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
@@ -913,8 +919,8 @@ fun DateDiffScreen(
                                     Text(
                                         text = cardData.eventName,
                                         style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 }
 
@@ -961,34 +967,47 @@ fun DateDiffScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
                                 text = "${abs(natDays)} ${LanguageUtils.getString("days_unit", lang)}",
-                                fontSize = 34.sp,
+                                fontSize = 38.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
 
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            val chipLabelText = if (isPast) {
+                                when (lang.getEffectiveLanguage()) {
+                                    AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE -> "${LanguageUtils.getString("days_passed", lang)} ${abs(natDays)} 天"
+                                    AppLanguage.JAPANESE -> "${abs(natDays)} 日経過"
+                                    AppLanguage.KOREAN -> "${abs(natDays)} 일 지나옴"
+                                    else -> "Passed ${abs(natDays)} days"
+                                }
+                            } else {
+                                "≈ ${abs(workDays)} ${LanguageUtils.getString("workday", lang)}"
+                            }
 
                             SuggestionChip(
                                 onClick = {},
                                 shape = CircleShape,
                                 label = {
                                     Text(
-                                        text = if (isPast) "Passed ${abs(natDays)} days" else "≈ ${abs(workDays)} ${LanguageUtils.getString("workday", lang)}",
-                                        fontWeight = FontWeight.Bold
+                                        text = chipLabelText,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.5.sp
                                     )
                                 }
                             )
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
                                 text = "${LanguageUtils.getString("base_date", lang)}: ${DateCalculatorUtils.formatDate(cardData.baseDate, lang)}  ➔  ${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(cardData.targetDate, lang)}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                             )
                         }
                     }

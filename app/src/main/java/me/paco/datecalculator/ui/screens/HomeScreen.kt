@@ -4,6 +4,13 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,6 +68,7 @@ import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
+import me.paco.datecalculator.ui.components.NeumorphicIconButton
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.SettingsOverlayDialog
@@ -93,6 +102,28 @@ fun HomeScreen(
 
     var showHistoryDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "IconAnimation")
+
+    val weatherFloatScale by infiniteTransition.animateFloat(
+        initialValue = 0.94f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "WeatherFloatScale"
+    )
+
+    val starPulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.90f,
+        targetValue = 1.12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "StarPulseScale"
+    )
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -148,7 +179,7 @@ fun HomeScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
         // 顶栏 (36dp 高度, 15sp 标题，跟随语言设置动态翻译)
         Row(
@@ -175,50 +206,30 @@ fun HomeScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
-                        .clip(CircleShape)
-                        .clickable { showHistoryDialog = true },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = LanguageUtils.getString("history_title", lang),
-                        tint = NeumorphicAccent,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+                NeumorphicIconButton(
+                    icon = Icons.Default.History,
+                    onClick = { showHistoryDialog = true },
+                    contentDescription = LanguageUtils.getString("history_title", lang),
+                    size = 32.dp
+                )
 
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
-                        .clip(CircleShape)
-                        .clickable { showSettingsDialog = true },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = LanguageUtils.getString("settings_title", lang),
-                        tint = NeumorphicAccent,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+                NeumorphicIconButton(
+                    icon = Icons.Default.Settings,
+                    onClick = { showSettingsDialog = true },
+                    contentDescription = LanguageUtils.getString("settings_title", lang),
+                    size = 32.dp
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // ================= 月历视图 (全新规则：仅在 简体/繁体中文 界面设置下展示农历) =================
         if (homeConfig.showCalendar) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp, horizontal = 2.dp)
+                    .padding(vertical = 2.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -236,7 +247,7 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = LanguageUtils.getLocalizedYearMonth(currentYearMonth, lang),
-                                fontSize = 15.sp,
+                                fontSize = 15.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
                             )
@@ -289,7 +300,7 @@ fun HomeScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     val weekTitles = LanguageUtils.getWeekHeaders(lang)
                     Row(modifier = Modifier.fillMaxWidth()) {
@@ -299,14 +310,14 @@ fun HomeScreen(
                                 text = w,
                                 modifier = Modifier.weight(1f),
                                 textAlign = TextAlign.Center,
-                                fontSize = 11.sp,
+                                fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isWeekendCol) Color(0xFFEF4444) else NeumorphicTextPrimary.copy(alpha = 0.7f)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     val firstDayOfMonth = currentYearMonth.atDay(1)
                     val daysInMonth = currentYearMonth.lengthOfMonth()
@@ -342,7 +353,7 @@ fun HomeScreen(
                                         else dayLunar.lunarDayName
                                     } else ""
 
-                                    val cellShape = RoundedCornerShape(8.dp)
+                                    val cellShape = RoundedCornerShape(10.dp)
                                     val cellModifier = if (isSelected) {
                                         Modifier
                                             .neumorphicExtruded(shape = cellShape, elevation = 3.dp)
@@ -415,21 +426,22 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
         }
 
         // ================= 当日黄历、节气、农历、天气、星座运势 =================
 
         // 1. 当日农历、节气与老黄历宜忌 Card (核心规则：仅在简体中文/繁体中文界面设置下展示)
         if (isChineseLanguage && (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac)) {
-            val combinedShape = RoundedCornerShape(18.dp)
+            val combinedShape = RoundedCornerShape(22.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .neumorphicExtruded(shape = combinedShape, elevation = 4.dp)
+                    .neumorphicExtruded(shape = combinedShape, elevation = 5.dp)
                     .background(NeumorphicBg, shape = combinedShape)
+                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = combinedShape)
                     .clip(combinedShape)
-                    .padding(10.dp)
+                    .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -440,7 +452,7 @@ fun HomeScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate, lang),
-                                fontSize = 14.5.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicTextPrimary
                             )
@@ -547,18 +559,20 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // 2. 当日及未来三日天气预报 Card (城市地名多语言翻译)
+        // 2. 当日及未来三日天气预报 Card (城市地名多语言翻译 + 图标浮动呼吸动效)
         if (homeConfig.showWeather) {
+            val weatherShape = RoundedCornerShape(22.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
-                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
-                    .clip(RoundedCornerShape(18.dp))
-                    .padding(10.dp)
+                    .neumorphicExtruded(shape = weatherShape, elevation = 5.dp)
+                    .background(NeumorphicBg, shape = weatherShape)
+                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = weatherShape)
+                    .clip(weatherShape)
+                    .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -571,7 +585,7 @@ fun HomeScreen(
                         Text("📍 $localizedCity · ${LanguageUtils.getString("forecast_title", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -583,17 +597,24 @@ fun HomeScreen(
                                     .weight(1f)
                                     .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
                                     .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
-                                    .padding(vertical = 6.dp, horizontal = 2.dp),
+                                    .padding(vertical = 8.dp, horizontal = 2.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(LanguageUtils.getDayName(weather.dayName, lang), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(weather.iconEmoji, fontSize = 16.sp)
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(
+                                        text = weather.iconEmoji,
+                                        fontSize = 17.sp,
+                                        modifier = Modifier.graphicsLayer {
+                                            scaleX = weatherFloatScale
+                                            scaleY = weatherFloatScale
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text(LanguageUtils.getWeatherCondition(weather.condition, lang), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text("${weather.tempMin}°~${weather.tempMax}°", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text("${weather.tempMin}°~${weather.tempMax}°", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                                 }
                             }
                         }
@@ -601,18 +622,20 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // 3. 星座与运势 Card (星座名称多语言翻译)
+        // 3. 星座与运势 Card (星座名称多语言翻译 + 星动微缩放)
         if (homeConfig.showZodiacFortune) {
+            val fortuneShape = RoundedCornerShape(22.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
-                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
-                    .clip(RoundedCornerShape(18.dp))
-                    .padding(12.dp)
+                    .neumorphicExtruded(shape = fortuneShape, elevation = 5.dp)
+                    .background(NeumorphicBg, shape = fortuneShape)
+                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = fortuneShape)
+                    .clip(fortuneShape)
+                    .padding(14.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -621,7 +644,17 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = NeumorphicAccent,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .graphicsLayer {
+                                        scaleX = starPulseScale
+                                        scaleY = starPulseScale
+                                    }
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
                             val localizedConstellation = LanguageUtils.getLocalizedConstellation(fortune.constellation, lang)
                             Text("$localizedConstellation (${fortune.dateRange}) ${LanguageUtils.getString("fortune_suffix", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
@@ -634,24 +667,24 @@ fun HomeScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = fortune.summary,
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Medium,
                         color = NeumorphicTextPrimary,
-                        lineHeight = 17.sp
+                        lineHeight = 18.sp
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("${LanguageUtils.getString("lucky_number", lang)}: ${fortune.luckyNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                        Text("${LanguageUtils.getString("lucky_color", lang)}: ${fortune.luckyColor}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                        Text("${LanguageUtils.getString("lucky_number", lang)}: ${fortune.luckyNumber}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                        Text("${LanguageUtils.getString("lucky_color", lang)}: ${fortune.luckyColor}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                     }
                 }
             }
