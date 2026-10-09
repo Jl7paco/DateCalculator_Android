@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "me.paco.datecalculator"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "me.paco.datecalculator"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 302
         versionName = "3.0.2"
 
