@@ -1,7 +1,7 @@
 package me.paco.datecalculator.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -58,68 +59,86 @@ fun HistoryOverlayDialog(
             onDismissRequest = onDismiss,
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
+            val scrimColor = if (isDark) {
+                Color.Black.copy(alpha = 0.55f)
+            } else {
+                Color(0xFFCBD5E1).copy(alpha = 0.40f)
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.28f))
+                    .background(scrimColor)
                     .clickable { onDismiss() },
                 contentAlignment = Alignment.Center
             ) {
-                val dialogShape = RoundedCornerShape(24.dp)
+                val dialogShape = RoundedCornerShape(26.dp)
+
+                // 弹窗专属 DropShadow 修饰符：彻底清除左上角向外发光的白色阴影，边框严丝合缝
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.92f)
                         .fillMaxHeight(0.86f)
                         .clickable(enabled = false) {}
-                        .neumorphicExtruded(shape = dialogShape, elevation = 3.5.dp)
-                        .background(NeumorphicBg, shape = dialogShape)
-                        .border(1.dp, if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f), shape = dialogShape)
-                        .clip(dialogShape)
-                        .padding(16.dp)
+                        .dialogDropShadow3D(shape = dialogShape)
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = dialogShape,
+                        color = NeumorphicBg,
+                        border = BorderStroke(
+                            1.dp,
+                            if (isDark) Color.White.copy(alpha = 0.12f) else NeumorphicAccent.copy(alpha = 0.20f)
+                        ),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.History,
-                                    contentDescription = null,
-                                    tint = NeumorphicAccent,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(R.string.label_history),
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = NeumorphicTextPrimary
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                                    .background(NeumorphicBg, shape = CircleShape)
-                                    .clip(CircleShape)
-                                    .clickable { onDismiss() },
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "关闭",
-                                    tint = NeumorphicAccent,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = null,
+                                        tint = NeumorphicAccent,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.label_history),
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = NeumorphicTextPrimary
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                        .background(NeumorphicBg, shape = CircleShape)
+                                        .clip(CircleShape)
+                                        .clickable { onDismiss() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "关闭",
+                                        tint = NeumorphicAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            HistoryScreen(viewModel = viewModel, uiState = uiState)
                         }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        HistoryScreen(viewModel = viewModel, uiState = uiState)
                     }
                 }
             }

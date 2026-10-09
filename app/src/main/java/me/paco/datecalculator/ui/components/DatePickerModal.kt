@@ -1,12 +1,15 @@
 package me.paco.datecalculator.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -28,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import me.paco.datecalculator.util.LanguageUtils
 import java.time.Instant
 import java.time.LocalDate
@@ -47,88 +52,116 @@ fun DatePickerModal(
         initialSelectedDateMillis = initialMillis,
         yearRange = 1900..2100
     )
+    val isDark = LocalDarkTheme.current
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        val scrimColor = if (isDark) {
+            Color.Black.copy(alpha = 0.55f)
+        } else {
+            Color(0xFFCBD5E1).copy(alpha = 0.40f)
+        }
+
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .neumorphicExtruded(shape = RoundedCornerShape(28.dp), elevation = 8.dp)
-                .background(NeumorphicBg, shape = RoundedCornerShape(28.dp))
-                .clip(RoundedCornerShape(28.dp))
-                .padding(16.dp)
+                .fillMaxSize()
+                .background(scrimColor)
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+            val dialogShape = RoundedCornerShape(26.dp)
+
+            // 图层分工架构：外层纯 Shadow 图层，内层原生 Surface 物理严丝合缝剪裁防溢出
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .clickable(enabled = false) {}
+                    .dialogDropShadow3D(shape = dialogShape)
             ) {
-                // 新拟物定制版 DatePicker 视觉适配
-                DatePicker(
-                    state = datePickerState,
-                    colors = DatePickerDefaults.colors(
-                        containerColor = NeumorphicBg,
-                        titleContentColor = NeumorphicTextPrimary,
-                        headlineContentColor = NeumorphicAccent,
-                        weekdayContentColor = NeumorphicTextPrimary,
-                        subheadContentColor = NeumorphicTextPrimary,
-                        yearContentColor = NeumorphicTextPrimary,
-                        currentYearContentColor = NeumorphicAccent,
-                        selectedYearContentColor = Color.White,
-                        selectedYearContainerColor = NeumorphicAccent,
-                        dayContentColor = NeumorphicTextPrimary,
-                        disabledDayContentColor = NeumorphicTextPrimary.copy(alpha = 0.3f),
-                        selectedDayContentColor = Color.White,
-                        selectedDayContainerColor = NeumorphicAccent,
-                        todayDateBorderColor = NeumorphicAccent,
-                        todayContentColor = NeumorphicAccent
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 新拟物确认与取消双胶囊按钮
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                Surface(
+                    shape = dialogShape,
+                    color = NeumorphicBg,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isDark) Color.White.copy(alpha = 0.12f) else NeumorphicAccent.copy(alpha = 0.20f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    // 取消按钮
-                    Box(
+                    Column(
                         modifier = Modifier
-                            .height(42.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { onDismiss() }
-                            .padding(horizontal = 20.dp),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(LanguageUtils.getString("cancel", language), color = NeumorphicTextPrimary, fontWeight = FontWeight.Bold)
-                    }
+                        // 新拟物定制版 DatePicker 视觉适配
+                        DatePicker(
+                            state = datePickerState,
+                            colors = DatePickerDefaults.colors(
+                                containerColor = NeumorphicBg,
+                                titleContentColor = NeumorphicTextPrimary,
+                                headlineContentColor = NeumorphicAccent,
+                                weekdayContentColor = NeumorphicTextPrimary,
+                                subheadContentColor = NeumorphicTextPrimary,
+                                yearContentColor = NeumorphicTextPrimary,
+                                currentYearContentColor = NeumorphicAccent,
+                                selectedYearContentColor = Color.White,
+                                selectedYearContainerColor = NeumorphicAccent,
+                                dayContentColor = NeumorphicTextPrimary,
+                                disabledDayContentColor = NeumorphicTextPrimary.copy(alpha = 0.3f),
+                                selectedDayContentColor = Color.White,
+                                selectedDayContainerColor = NeumorphicAccent,
+                                todayDateBorderColor = NeumorphicAccent,
+                                todayContentColor = NeumorphicAccent
+                            )
+                        )
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    // 确定按钮 (亮蓝高亮按键)
-                    Box(
-                        modifier = Modifier
-                            .height(42.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
-                            .background(NeumorphicAccent, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable {
-                                datePickerState.selectedDateMillis?.let { millis ->
-                                    val localDate = Instant.ofEpochMilli(millis)
-                                        .atZone(ZoneId.of("UTC"))
-                                        .toLocalDate()
-                                    onDateSelected(localDate)
-                                }
-                                onDismiss()
+                        // 新拟物确认与取消双胶囊按钮
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            // 取消按钮
+                            Box(
+                                modifier = Modifier
+                                    .height(42.dp)
+                                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                    .background(NeumorphicBg, shape = CircleShape)
+                                    .clip(CircleShape)
+                                    .clickable { onDismiss() }
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(LanguageUtils.getString("cancel", language), color = NeumorphicTextPrimary, fontWeight = FontWeight.Bold)
                             }
-                            .padding(horizontal = 24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(LanguageUtils.getString("confirm", language), color = Color.White, fontWeight = FontWeight.ExtraBold)
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // 确定按钮 (亮蓝高亮按键)
+                            Box(
+                                modifier = Modifier
+                                    .height(42.dp)
+                                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                    .background(NeumorphicAccent, shape = CircleShape)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        datePickerState.selectedDateMillis?.let { millis ->
+                                            val localDate = Instant.ofEpochMilli(millis)
+                                                .atZone(ZoneId.of("UTC"))
+                                                .toLocalDate()
+                                            onDateSelected(localDate)
+                                        }
+                                        onDismiss()
+                                    }
+                                    .padding(horizontal = 24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(LanguageUtils.getString("confirm", language), color = Color.White, fontWeight = FontWeight.ExtraBold)
+                            }
+                        }
                     }
                 }
             }
