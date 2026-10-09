@@ -6,14 +6,14 @@ plugins {
 
 android {
     namespace = "me.paco.datecalculator"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "me.paco.datecalculator"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 303
-        versionName = "3.0.3"
+        targetSdk = 36
+        versionCode = 304
+        versionName = "3.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
