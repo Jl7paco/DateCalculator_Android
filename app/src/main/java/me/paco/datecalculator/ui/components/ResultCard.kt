@@ -182,6 +182,7 @@ fun ResultCard(
                     finalDate = resultDate,
                     segments = listOf(singleSegment),
                     planTitle = "",
+                    isEmbedded = true,
                     language = appLanguage
                 )
 

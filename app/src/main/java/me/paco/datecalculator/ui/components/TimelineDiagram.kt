@@ -48,6 +48,7 @@ import kotlin.math.abs
 
 /**
  * 1:1 还原参考图的高质感多段/单段时序安排示意图 (配色 100% 随主题色 NeumorphicAccent 动态切换)
+ * 支持 isEmbedded 嵌入模式：在 ResultCard 内部内嵌时完美消除白底背板溢出
  */
 @Composable
 fun TimelineDiagram(
@@ -55,6 +56,7 @@ fun TimelineDiagram(
     finalDate: LocalDate,
     baseDate: LocalDate,
     planTitle: String = "",
+    isEmbedded: Boolean = false,
     language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
@@ -84,13 +86,17 @@ fun TimelineDiagram(
         allBlocks.filter { it.type == TimelineBlockType.STATUTORY_HOLIDAY || it.type == TimelineBlockType.WEEKEND }.sumOf { it.daysCount }
     }
 
-    Box(
-        modifier = modifier
+    val containerModifier = if (isEmbedded) {
+        modifier.fillMaxWidth()
+    } else {
+        modifier
             .fillMaxWidth()
             .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
             .background(NeumorphicBg, shape = cardShape)
             .padding(16.dp)
-    ) {
+    }
+
+    Box(modifier = containerModifier) {
         Column(modifier = Modifier.fillMaxWidth()) {
             // 1. 标头行：图标 + 标题 + 右侧 3D 导出 CSV 按钮
             Row(
@@ -108,7 +114,7 @@ fun TimelineDiagram(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = planTitle.ifBlank { LanguageUtils.getString("timeline_title", language) },
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = NeumorphicAccent
                     )
@@ -116,15 +122,15 @@ fun TimelineDiagram(
 
                 Box(
                     modifier = Modifier
-                        .height(30.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                        .height(28.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
                         .background(NeumorphicBg, shape = CircleShape)
                         .clip(CircleShape)
                         .clickable {
                             val exportTitle = planTitle.ifBlank { LanguageUtils.getString("timeline_title", language) }
                             CsvExportUtils.exportMultiStageCsv(context, exportTitle, baseDate, finalDate, segments)
                         }
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -132,12 +138,12 @@ fun TimelineDiagram(
                             imageVector = Icons.Default.FileDownload,
                             contentDescription = null,
                             tint = NeumorphicAccent,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = LanguageUtils.getString("export_csv", language),
-                            fontSize = 11.5.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = NeumorphicAccent
                         )
@@ -145,7 +151,7 @@ fun TimelineDiagram(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // 2. 总历时与类型汇总行 (对照参考图：● 工作日: 3 天  ● 法定节假日: 7 天  总历时: 10 自然日)
             val workdayLabel = when (effectiveLang) {
@@ -260,7 +266,7 @@ fun TimelineDiagram(
             HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.12f))
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 4. 多段/单段子项目详细清单 (对照参考图 1:1 精确排版：左侧主题色竖条 + 名称类型 + 天数拆算 + 专属子进度条 + 日期区间)
+            // 4. 多段/单段子项目详细清单
             segments.forEachIndexed { idx, seg ->
                 val isAdd = (seg.type == CalculationType.ADD)
                 val typeTag = if (isAdd) LanguageUtils.getString("stage_add_label", language) else LanguageUtils.getString("stage_sub_label", language)
@@ -269,6 +275,10 @@ fun TimelineDiagram(
                 val segTotalDays = abs(ChronoUnit.DAYS.between(seg.startDate, seg.endDate)).coerceAtLeast(1L)
                 val segWorkdays = seg.daysCount
                 val segRestDays = (segTotalDays - segWorkdays).coerceAtLeast(0L)
+
+                // 核心修复：单段推算时，不显示“(多段加)”标头字样
+                val isSingleStage = (segments.size == 1 && (seg.remark == "单段推算" || isEmbedded))
+                val titleText = if (isSingleStage) seg.remark else "${seg.remark} ($typeTag)"
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -293,7 +303,7 @@ fun TimelineDiagram(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "${seg.remark} ($typeTag)",
+                                text = titleText,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicAccent,
