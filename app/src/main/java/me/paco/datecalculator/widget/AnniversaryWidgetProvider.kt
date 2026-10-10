@@ -53,17 +53,12 @@ class AnniversaryWidgetProvider : AppWidgetProvider() {
 
                 views.setTextViewText(R.id.widget_anniversary_name, "${topItem.iconEmoji} ${topItem.title}")
                 views.setTextViewText(R.id.widget_anniversary_days, "${abs(elapsed)} 天")
-                views.setTextViewText(R.id.widget_anniversary_sub, "下个周年还剩 $nextRemains 天")
+                views.setTextViewText(R.id.widget_anniversary_base, "起始: ${topItem.date} | 下个周年还剩 $nextRemains 天")
             } else {
                 views.setTextViewText(R.id.widget_anniversary_name, "❤️ 暂无纪念日")
                 views.setTextViewText(R.id.widget_anniversary_days, "0 天")
-                views.setTextViewText(R.id.widget_anniversary_sub, "点击添加记录美好时刻")
+                views.setTextViewText(R.id.widget_anniversary_base, "点击添加记录美好时刻")
             }
-
-            // Next button intent
-            val nextIntent = Intent(context, AnniversaryWidgetProvider::class.java).apply { action = ACTION_NEXT_ANNIVERSARY }
-            val nextPi = PendingIntent.getBroadcast(context, 202, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            views.setOnClickPendingIntent(R.id.btn_next_anniversary, nextPi)
 
             // Open App intent
             val appIntent = Intent(context, MainActivity::class.java)

@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +52,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
+import me.paco.datecalculator.util.HapticUtils
 import me.paco.datecalculator.util.LanguageUtils
 
 /**
@@ -132,7 +134,7 @@ fun Modifier.neumorphicButton3D(
 }
 
 /**
- * 具有按压 3D 弹簧弹性缩放与微调动画的新拟物图标按钮
+ * 具有按压 3D 弹簧弹性缩放、微调动画与清脆物理触感按压震动的新拟物图标按钮
  */
 @Composable
 fun NeumorphicIconButton(
@@ -143,6 +145,7 @@ fun NeumorphicIconButton(
     size: Dp = 36.dp,
     tint: Color = NeumorphicAccent
 ) {
+    val context = LocalContext.current
     val isDark = LocalDarkTheme.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -177,7 +180,10 @@ fun NeumorphicIconButton(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
-            ) { onClick() },
+            ) {
+                HapticUtils.performCrispClick(context)
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -190,7 +196,7 @@ fun NeumorphicIconButton(
 }
 
 /**
- * 3D 新拟物圆润拨动开关 (消除左上角白色阴影溢出，颜色跟随全局设置 NeumorphicAccent)
+ * 3D 新拟物圆润拨动开关 (清脆触感按压震动，消除左上角白色阴影溢出)
  */
 @Composable
 fun NeumorphicSwitch(
@@ -198,6 +204,7 @@ fun NeumorphicSwitch(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val isDark = LocalDarkTheme.current
     val thumbOffset by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
@@ -214,7 +221,10 @@ fun NeumorphicSwitch(
             .neumorphicInset(shape = trackShape, elevation = 2.dp)
             .background(if (checked) NeumorphicAccent else NeumorphicSunkenBg, shape = trackShape)
             .clip(trackShape)
-            .clickable { onCheckedChange(!checked) }
+            .clickable {
+                HapticUtils.performCrispClick(context)
+                onCheckedChange(!checked)
+            }
             .padding(3.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -261,7 +271,7 @@ fun NeumorphicSwitch(
 }
 
 /**
- * 紧凑型胶囊切页开关
+ * 紧凑型胶囊切页开关 (清脆触感震动，完美裁剪消隐滑动时底部的矩形阴影框)
  */
 @Composable
 fun NeumorphicCapsuleSwitch(
@@ -272,25 +282,32 @@ fun NeumorphicCapsuleSwitch(
     modifier: Modifier = Modifier,
     height: Dp = 30.dp
 ) {
+    val context = LocalContext.current
     val transitionOffset by animateFloatAsState(
         targetValue = if (isOption1Selected) 0f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "CapsuleSwitchOffset"
     )
 
-    val trackShape = CircleShape
+    val capsuleShape = CircleShape
 
     Box(
         modifier = modifier
             .height(height)
-            .background(NeumorphicSunkenBg, shape = trackShape)
-            .clip(trackShape)
-            .clickable { onOptionChanged(!isOption1Selected) }
+            .background(NeumorphicSunkenBg, shape = capsuleShape)
+            .clip(capsuleShape)
+            .clickable {
+                HapticUtils.performCrispClick(context)
+                onOptionChanged(!isOption1Selected)
+            }
             .padding(2.dp),
         contentAlignment = Alignment.CenterStart
     ) {
+        // 滑动的高光 3D 胶囊滑块 (通过 clip 彻底裁剪，杜绝任何方框阴影残留)
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(capsuleShape),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (transitionOffset > 0f) {
@@ -300,14 +317,15 @@ fun NeumorphicCapsuleSwitch(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .neumorphicExtruded(shape = trackShape, elevation = 2.dp)
-                    .background(NeumorphicAccent, shape = trackShape)
+                    .clip(capsuleShape)
+                    .background(NeumorphicAccent, shape = capsuleShape)
             )
             if (transitionOffset < 1f) {
                 Spacer(modifier = Modifier.weight(1f - transitionOffset))
             }
         }
 
+        // 上层文字标识行
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically
@@ -316,7 +334,10 @@ fun NeumorphicCapsuleSwitch(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clickable { onOptionChanged(true) },
+                    .clickable {
+                        HapticUtils.performCrispClick(context)
+                        onOptionChanged(true)
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -335,7 +356,10 @@ fun NeumorphicCapsuleSwitch(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clickable { onOptionChanged(false) },
+                    .clickable {
+                        HapticUtils.performCrispClick(context)
+                        onOptionChanged(false)
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -396,7 +420,7 @@ fun WorkdayNaturalSwitch(
 }
 
 /**
- * 模式三向切页器
+ * 模式三向切页器 (融入微型清脆按压震动)
  */
 @Composable
 fun NeumorphicSegmentedRow(
@@ -406,6 +430,7 @@ fun NeumorphicSegmentedRow(
     modifier: Modifier = Modifier,
     height: Dp = 36.dp
 ) {
+    val context = LocalContext.current
     val containerShape = RoundedCornerShape(12.dp)
 
     Box(
@@ -454,7 +479,10 @@ fun NeumorphicSegmentedRow(
                         .clickable(
                             interactionSource = interactionSource,
                             indication = null
-                        ) { onIndexSelected(index) },
+                        ) {
+                            HapticUtils.performCrispClick(context)
+                            onIndexSelected(index)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -470,7 +498,7 @@ fun NeumorphicSegmentedRow(
 }
 
 /**
- * 新拟物单选框
+ * 新拟物单选框 (融入微型清脆按压震动)
  */
 @Composable
 fun NeumorphicRadioButton(
@@ -478,6 +506,7 @@ fun NeumorphicRadioButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val boxModifier = if (selected) {
         Modifier
             .neumorphicInset(shape = CircleShape, elevation = 4.dp)
@@ -496,7 +525,10 @@ fun NeumorphicRadioButton(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) { onClick() },
+            ) {
+                HapticUtils.performCrispClick(context)
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
         if (selected) {
@@ -511,7 +543,7 @@ fun NeumorphicRadioButton(
 }
 
 /**
- * 新拟物全圆角胶囊 Chip 按钮
+ * 新拟物全圆角胶囊 Chip 按钮 (融入微型清脆按压震动)
  */
 @Composable
 fun NeumorphicChip(
@@ -521,6 +553,7 @@ fun NeumorphicChip(
     modifier: Modifier = Modifier,
     height: Dp = 34.dp
 ) {
+    val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -551,7 +584,10 @@ fun NeumorphicChip(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
-            ) { onClick() }
+            ) {
+                HapticUtils.performCrispClick(context)
+                onClick()
+            }
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {

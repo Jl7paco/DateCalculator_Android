@@ -2,45 +2,121 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:background="@drawable/widget_bg_neumorphic"
     android:padding="12dp"
-    android:gravity="center">
+    android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/widget_almanac_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="📜 今日黄历"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:textColor="#2563EB" />
+    <!-- 左侧 3D 日历日期卡片 (如同 iOS/One UI 旗舰日历 Block) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@drawable/widget_card_inset"
+        android:padding="10dp"
+        android:gravity="center">
 
-    <TextView
-        android:id="@+id/widget_solar_date"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="2026年09月25日 星期五"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:textColor="#1E293B"
-        android:layout_marginTop="4dp" />
+        <TextView
+            android:id="@+id/widget_month_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="10月 · OCT"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#2563EB" />
 
-    <TextView
-        android:id="@+id/widget_lunar_date"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="农历 丙午(马)年 九月十五"
-        android:textSize="12sp"
-        android:textColor="#2563EB"
-        android:layout_marginTop="2dp" />
+        <TextView
+            android:id="@+id/widget_day_number"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="10"
+            android:textSize="38sp"
+            android:textStyle="bold"
+            android:textColor="#1E293B"
+            android:includeFontPadding="false" />
 
-    <TextView
-        android:id="@+id/widget_yi_ji"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="宜: 祭祀·祈福 | 忌: 词讼·安葬"
-        android:textSize="11sp"
-        android:textColor="#047857"
-        android:layout_marginTop="4dp" />
+        <TextView
+            android:id="@+id/widget_week_lunar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="周六 · 九月初二"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#2563EB" />
+    </LinearLayout>
+
+    <Space
+        android:layout_width="10dp"
+        android:layout_height="match_parent" />
+
+    <!-- 右侧 天气与黄历指南面板 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.3"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <!-- 顶部定位地名 -->
+        <TextView
+            android:id="@+id/widget_location"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📍 深圳市 · 南山区"
+            android:textSize="11.5sp"
+            android:textStyle="bold"
+            android:textColor="#2563EB"
+            android:singleLine="true"
+            android:ellipsize="end" />
+
+        <!-- 实时天气与气温 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="2dp">
+
+            <TextView
+                android:id="@+id/widget_weather_temp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☀️ 25°C"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#1E293B" />
+
+            <TextView
+                android:id="@+id/widget_weather_feels"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" (体感 27°C)"
+                android:textSize="11sp"
+                android:textColor="#64748B" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_weather_range"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="晴朗 · 22°C~28°C"
+            android:textSize="11sp"
+            android:textColor="#64748B" />
+
+        <!-- 宜忌指导 -->
+        <TextView
+            android:id="@+id/widget_yi_ji"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="宜: 祭祀·祈福 | 忌: 安门·词讼"
+            android:textSize="11sp"
+            android:textColor="#047857"
+            android:background="@drawable/widget_chip_sunken"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="3dp"
+            android:layout_marginTop="4dp"
+            android:singleLine="true"
+            android:ellipsize="end" />
+    </LinearLayout>
 </LinearLayout>

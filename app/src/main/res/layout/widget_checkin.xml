@@ -4,37 +4,37 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg_neumorphic"
-    android:padding="12dp"
+    android:padding="14dp"
     android:gravity="center">
 
     <TextView
         android:id="@+id/widget_checkin_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="纪念日打卡"
-        android:textSize="13sp"
+        android:text="📍 纪念日精准打卡"
+        android:textSize="12sp"
         android:textStyle="bold"
-        android:textColor="#EC4899" />
+        android:textColor="#0D9488" />
 
     <TextView
         android:id="@+id/widget_checkin_location"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="当前位置: 深圳市"
-        android:textSize="11.5sp"
+        android:text="深圳市 · 南山区"
+        android:textSize="14sp"
+        android:textStyle="bold"
         android:textColor="#1E293B"
-        android:layout_marginTop="4dp" />
+        android:layout_marginTop="8dp" />
 
     <TextView
-        android:id="@+id/widget_checkin_btn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="1键打卡"
-        android:textSize="12sp"
+        android:id="@+id/btn_do_checkin"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:text="📍 快捷打卡"
+        android:textSize="13sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
-        android:background="@drawable/widget_btn_neumorphic_pink"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="6dp"
-        android:layout_marginTop="6dp" />
+        android:background="@drawable/widget_btn_neumorphic_accent"
+        android:gravity="center"
+        android:layout_marginTop="12dp" />
 </LinearLayout>

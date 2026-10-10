@@ -4,64 +4,53 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg_neumorphic"
-    android:padding="12dp"
+    android:padding="14dp"
     android:gravity="center">
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/widget_anniversary_title"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:id="@+id/widget_anniversary_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="❤️ 重要纪念日"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="#EC4899" />
-
-        <TextView
-            android:id="@+id/btn_next_anniversary"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="切换 ➔"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:textColor="#EC4899"
-            android:background="@drawable/widget_chip_sunken"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp" />
-    </LinearLayout>
+        android:text="❤️ 重要纪念日"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="#EC4899" />
 
     <TextView
         android:id="@+id/widget_anniversary_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="相识相伴"
+        android:text="💍 结婚纪念日"
         android:textSize="15sp"
         android:textStyle="bold"
         android:textColor="#1E293B"
-        android:layout_marginTop="4dp" />
+        android:layout_marginTop="6dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_card_inset"
+        android:paddingVertical="8dp"
+        android:paddingHorizontal="12dp"
+        android:layout_marginTop="6dp"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/widget_anniversary_days"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1314 天"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="#EC4899" />
+    </LinearLayout>
 
     <TextView
-        android:id="@+id/widget_anniversary_days"
+        android:id="@+id/widget_anniversary_base"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="520 天"
-        android:textSize="26sp"
-        android:textStyle="bold"
-        android:textColor="#EC4899"
-        android:layout_marginTop="2dp" />
-
-    <TextView
-        android:id="@+id/widget_anniversary_sub"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="下个周年还剩 145 天"
+        android:text="起始: 2022-01-01"
         android:textSize="11sp"
         android:textColor="#64748B"
-        android:layout_marginTop="2dp" />
+        android:layout_marginTop="6dp" />
 </LinearLayout>

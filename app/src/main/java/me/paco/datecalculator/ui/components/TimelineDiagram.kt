@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -36,8 +38,10 @@ import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.ChronologicalBlock
+import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.TimelineBlockType
+import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.data.decomposeChronologicalBlocks
 import me.paco.datecalculator.util.CsvExportUtils
 import me.paco.datecalculator.util.DateCalculatorUtils
@@ -47,9 +51,9 @@ import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 
 /**
- * 1:1 还原参考图的高质感多段/单段时序安排示意图 (配色 100% 随主题色 NeumorphicAccent 动态切换)
- * 支持 isEmbedded 嵌入模式：在 ResultCard 内部内嵌时完美消除白底背板溢出
+ * 1:1 还原参考图的高质感多段/单段时序安排示意图 (包含黄色的周末双休图例与每段休假解构，配色 100% 随主题色 NeumorphicAccent 动态切换)
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TimelineDiagram(
     segments: List<StageSegmentResult>,
@@ -57,20 +61,33 @@ fun TimelineDiagram(
     baseDate: LocalDate,
     planTitle: String = "",
     isEmbedded: Boolean = false,
+    weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
+    enableHolidays: Boolean = true,
+    holidayRegion: HolidayRegion = HolidayRegion.CHINA,
     language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
-    if (segments.isEmpty()) return
+    // 校验：若未输入任何有效天数 (segments 为空或总天数为 0)，严禁渲染多段结果卡片
+    val hasValidDays = segments.any { it.daysCount > 0L }
+    if (segments.isEmpty() || !hasValidDays) return
 
     val context = LocalContext.current
     val cardShape = RoundedCornerShape(22.dp)
     val effectiveLang = language.getEffectiveLanguage()
 
+    // 过滤出有有效天数的段落进行展示
+    val validSegments = remember(segments) {
+        segments.filter { it.daysCount > 0L }
+    }
+
     // 全量时序分解块
     val allBlocks = remember(baseDate, finalDate) {
         decomposeChronologicalBlocks(
             startDate = baseDate,
-            endDate = finalDate
+            endDate = finalDate,
+            weekendRule = weekendRule,
+            enableHolidays = enableHolidays,
+            holidayRegion = holidayRegion
         )
     }
 
@@ -82,8 +99,12 @@ fun TimelineDiagram(
         allBlocks.filter { it.type == TimelineBlockType.WORKDAY || it.type == TimelineBlockType.SHIFT_WORKDAY }.sumOf { it.daysCount }
     }
 
-    val totalHolidays = remember(allBlocks) {
-        allBlocks.filter { it.type == TimelineBlockType.STATUTORY_HOLIDAY || it.type == TimelineBlockType.WEEKEND }.sumOf { it.daysCount }
+    val totalWeekends = remember(allBlocks) {
+        allBlocks.filter { it.type == TimelineBlockType.WEEKEND }.sumOf { it.daysCount }
+    }
+
+    val totalStatutoryHolidays = remember(allBlocks) {
+        allBlocks.filter { it.type == TimelineBlockType.STATUTORY_HOLIDAY }.sumOf { it.daysCount }
     }
 
     val containerModifier = if (isEmbedded) {
@@ -128,7 +149,7 @@ fun TimelineDiagram(
                         .clip(CircleShape)
                         .clickable {
                             val exportTitle = planTitle.ifBlank { LanguageUtils.getString("timeline_title", language) }
-                            CsvExportUtils.exportMultiStageCsv(context, exportTitle, baseDate, finalDate, segments)
+                            CsvExportUtils.exportMultiStageCsv(context, exportTitle, baseDate, finalDate, validSegments)
                         }
                         .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center
@@ -153,7 +174,7 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 2. 总历时与类型汇总行 (对照参考图：● 工作日: 3 天  ● 法定节假日: 7 天  总历时: 10 自然日)
+            // 2. 总历时与类型汇总行 (包含：● 工作日: X 天  ● 周末双休: Y 天  ● 法定节假日: Z 天  总历时: N 自然日)
             val workdayLabel = when (effectiveLang) {
                 AppLanguage.ENGLISH -> "Workday"
                 AppLanguage.JAPANESE -> "稼働日"
@@ -162,10 +183,18 @@ fun TimelineDiagram(
                 else -> "工作日"
             }
 
+            val weekendLabel = when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Weekend"
+                AppLanguage.JAPANESE -> "週末"
+                AppLanguage.KOREAN -> "주말"
+                AppLanguage.TRADITIONAL_CHINESE -> "週末雙休"
+                else -> "周末双休"
+            }
+
             val holidayLabel = when (effectiveLang) {
                 AppLanguage.ENGLISH -> "Holidays"
-                AppLanguage.JAPANESE -> "祝日・休日"
-                AppLanguage.KOREAN -> "휴일"
+                AppLanguage.JAPANESE -> "祝日"
+                AppLanguage.KOREAN -> "공휴일"
                 AppLanguage.TRADITIONAL_CHINESE -> "法定節假日"
                 else -> "法定节假日"
             }
@@ -180,11 +209,12 @@ fun TimelineDiagram(
 
             val daysUnit = LanguageUtils.getString("days_unit", language)
 
-            Row(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                // 1. 工作日 (主题色)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -201,7 +231,27 @@ fun TimelineDiagram(
                     )
                 }
 
-                if (totalHolidays > 0) {
+                // 2. 黄色的周末双休图例 (#F59E0B)
+                if (totalWeekends > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF59E0B))
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "$weekendLabel: $totalWeekends $daysUnit",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFD97706)
+                        )
+                    }
+                }
+
+                // 3. 红色的法定节假日图例 (#EF4444)
+                if (totalStatutoryHolidays > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
@@ -211,7 +261,7 @@ fun TimelineDiagram(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "$holidayLabel: $totalHolidays $daysUnit",
+                            text = "$holidayLabel: $totalStatutoryHolidays $daysUnit",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFEF4444)
@@ -219,6 +269,7 @@ fun TimelineDiagram(
                     }
                 }
 
+                // 4. 总历时
                 Text(
                     text = "$durationLabel: $totalDurationDays $daysUnit",
                     fontSize = 12.sp,
@@ -229,7 +280,7 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 3. 全局总时序进度条 (对照参考图：圆角胶囊进度条，工作日跟随 NeumorphicAccent 主题色)
+            // 3. 全局总时序进度条 (工作日跟随 NeumorphicAccent，周末黄 #F59E0B，节假日红 #EF4444)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -266,19 +317,38 @@ fun TimelineDiagram(
             HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.12f))
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 4. 多段/单段子项目详细清单
-            segments.forEachIndexed { idx, seg ->
+            // 4. 多段/单段子项目详细清单 (包含每段具体包含的休假天数解构)
+            validSegments.forEachIndexed { idx, seg ->
                 val isAdd = (seg.type == CalculationType.ADD)
                 val typeTag = if (isAdd) LanguageUtils.getString("stage_add_label", language) else LanguageUtils.getString("stage_sub_label", language)
                 val signSymbol = if (isAdd) "+" else "-"
 
                 val segTotalDays = abs(ChronoUnit.DAYS.between(seg.startDate, seg.endDate)).coerceAtLeast(1L)
                 val segWorkdays = seg.daysCount
-                val segRestDays = (segTotalDays - segWorkdays).coerceAtLeast(0L)
+
+                // 精准拆算该段包含的周末与法定节假日天数
+                val (_, segStat, segWeek) = DateCalculatorUtils.calculateBreakdown(
+                    startDate = seg.startDate,
+                    endDate = seg.endDate,
+                    weekendRule = weekendRule,
+                    enableHolidays = enableHolidays,
+                    holidayRegion = holidayRegion
+                )
+                val segRestTotal = segStat + segWeek
 
                 // 核心修复：单段推算时，不显示“(多段加)”标头字样
-                val isSingleStage = (segments.size == 1 && (seg.remark == "单段推算" || isEmbedded))
+                val isSingleStage = (validSegments.size == 1 && (seg.remark == "单段推算" || isEmbedded))
                 val titleText = if (isSingleStage) seg.remark else "${seg.remark} ($typeTag)"
+
+                val restText = if (segRestTotal > 0) {
+                    when (effectiveLang) {
+                        AppLanguage.ENGLISH -> " (incl. $segRestTotal days rest)"
+                        AppLanguage.JAPANESE -> " (休日${segRestTotal}日含む)"
+                        AppLanguage.KOREAN -> " (휴일 ${segRestTotal}일 포함)"
+                        AppLanguage.TRADITIONAL_CHINESE -> " (含 $segRestTotal 天休假)"
+                        else -> " (含 $segRestTotal 天休假)"
+                    }
+                } else ""
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -322,7 +392,7 @@ fun TimelineDiagram(
 
                         Spacer(modifier = Modifier.height(5.dp))
 
-                        // 子项专属时序比例条 (1:1 还原参考图)
+                        // 子项专属时序比例条 (工作日跟随 NeumorphicAccent，休假日展现红色 #EF4444)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -332,7 +402,7 @@ fun TimelineDiagram(
                                 .clip(CircleShape)
                         ) {
                             val workWeight = (segWorkdays.toFloat() / segTotalDays).coerceAtLeast(0.01f)
-                            val restWeight = (segRestDays.toFloat() / segTotalDays).coerceAtLeast(0.01f)
+                            val restWeight = (segRestTotal.toFloat() / segTotalDays).coerceAtLeast(0.01f)
 
                             Box(
                                 modifier = Modifier
@@ -340,7 +410,7 @@ fun TimelineDiagram(
                                     .fillMaxHeight()
                                     .background(NeumorphicAccent)
                             )
-                            if (segRestDays > 0) {
+                            if (segRestTotal > 0) {
                                 Box(
                                     modifier = Modifier
                                         .weight(restWeight)
@@ -352,9 +422,9 @@ fun TimelineDiagram(
 
                         Spacer(modifier = Modifier.height(5.dp))
 
-                        // 日期区间底纹 (2026年09月27日 ➔ 2026年09月29日)
+                        // 日期区间底纹与包含休假描述 (如：2026年09月27日 ➔ 2026年09月29日 (含 2 天休假))
                         Text(
-                            text = "${DateCalculatorUtils.formatDate(seg.startDate, language)}  ➔  ${DateCalculatorUtils.formatDate(seg.endDate, language)}",
+                            text = "${DateCalculatorUtils.formatDate(seg.startDate, language)}  ➔  ${DateCalculatorUtils.formatDate(seg.endDate, language)}$restText",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Medium,
                             color = NeumorphicTextPrimary.copy(alpha = 0.65f)
@@ -362,7 +432,7 @@ fun TimelineDiagram(
                     }
                 }
 
-                if (idx < segments.size - 1) {
+                if (idx < validSegments.size - 1) {
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             }

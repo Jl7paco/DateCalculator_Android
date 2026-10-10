@@ -4,9 +4,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg_neumorphic"
-    android:padding="12dp"
+    android:padding="14dp"
     android:gravity="center">
 
+    <!-- 顶部 3D 标头行 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -44,17 +45,27 @@
         android:textSize="14sp"
         android:textStyle="bold"
         android:textColor="#1E293B"
-        android:layout_marginTop="4dp" />
+        android:layout_marginTop="8dp" />
 
-    <TextView
-        android:id="@+id/widget_days"
-        android:layout_width="wrap_content"
+    <!-- 3D 凹槽巨幕倒数天数数字卡片 -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="9 天"
-        android:textSize="26sp"
-        android:textStyle="bold"
-        android:textColor="#2563EB"
-        android:layout_marginTop="2dp" />
+        android:background="@drawable/widget_card_inset"
+        android:paddingVertical="8dp"
+        android:paddingHorizontal="12dp"
+        android:layout_marginTop="6dp"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/widget_days"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="9 天"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:textColor="#2563EB" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/widget_date_detail"
@@ -63,5 +74,5 @@
         android:text="目标: 2026-10-01"
         android:textSize="11sp"
         android:textColor="#64748B"
-        android:layout_marginTop="2dp" />
+        android:layout_marginTop="6dp" />
 </LinearLayout>

@@ -68,15 +68,15 @@ class CheckInWidgetProvider : AppWidgetProvider() {
             val lastCheckIn = checkIns.firstOrNull()
 
             if (lastCheckIn != null && lastCheckIn.locationName.isNotEmpty()) {
-                views.setTextViewText(R.id.widget_checkin_location, "当前位置: ${lastCheckIn.locationName}")
+                views.setTextViewText(R.id.widget_checkin_location, "上次打卡: ${lastCheckIn.locationName}")
             } else {
-                views.setTextViewText(R.id.widget_checkin_location, "点击一键进入打卡")
+                views.setTextViewText(R.id.widget_checkin_location, "深圳市 · 南山区")
             }
 
             // 1-Click Checkin intent
             val checkInIntent = Intent(context, CheckInWidgetProvider::class.java).apply { action = ACTION_QUICK_CHECKIN }
             val checkInPi = PendingIntent.getBroadcast(context, 303, checkInIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            views.setOnClickPendingIntent(R.id.widget_checkin_btn, checkInPi)
+            views.setOnClickPendingIntent(R.id.btn_do_checkin, checkInPi)
 
             // Open App intent
             val appIntent = Intent(context, MainActivity::class.java)

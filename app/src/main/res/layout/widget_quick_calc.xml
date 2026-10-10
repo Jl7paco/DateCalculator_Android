@@ -5,73 +5,106 @@
     android:orientation="vertical"
     android:background="@drawable/widget_bg_neumorphic"
     android:padding="12dp"
-    android:gravity="center">
+    android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/widget_calc_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="📅 桌面快速日期计算器"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:textColor="#2563EB" />
-
-    <TextView
-        android:id="@+id/widget_calc_result"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="点击下方按钮计算目标日期"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:textColor="#1E293B"
-        android:layout_marginTop="4dp" />
-
+    <!-- 顶部 3D 标头行 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginTop="6dp">
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_calc_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⚡ 日期快速计算器"
+            android:textSize="12.5sp"
+            android:textStyle="bold"
+            android:textColor="#2563EB" />
+
+        <TextView
+            android:id="@+id/widget_today_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="今 2026-10-10"
+            android:textSize="11sp"
+            android:textColor="#64748B" />
+    </LinearLayout>
+
+    <!-- 3D 凹槽结果屏幕 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_card_inset"
+        android:paddingVertical="10dp"
+        android:paddingHorizontal="12dp"
+        android:layout_marginTop="6dp"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/widget_calc_result"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="点击下方快捷键算目标日期"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#1E293B"
+            android:singleLine="true"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- 3D 快捷计算粒度按键行 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:gravity="center">
 
         <TextView
             android:id="@+id/btn_calc_15"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="32dp"
             android:layout_weight="1"
-            android:text="+15天"
-            android:textSize="11sp"
+            android:text="+15 天"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:background="@drawable/widget_btn_neumorphic_accent"
-            android:gravity="center"
-            android:paddingVertical="5dp"
-            android:layout_marginEnd="4dp" />
+            android:gravity="center" />
+
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="match_parent" />
 
         <TextView
             android:id="@+id/btn_calc_30"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="32dp"
             android:layout_weight="1"
-            android:text="+30天"
-            android:textSize="11sp"
+            android:text="+30 天"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:background="@drawable/widget_btn_neumorphic_accent"
-            android:gravity="center"
-            android:paddingVertical="5dp"
-            android:layout_marginEnd="4dp" />
+            android:gravity="center" />
+
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="match_parent" />
 
         <TextView
             android:id="@+id/btn_calc_100"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="32dp"
             android:layout_weight="1"
-            android:text="+100天"
-            android:textSize="11sp"
+            android:text="+100 天"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:background="@drawable/widget_btn_neumorphic_accent"
-            android:gravity="center"
-            android:paddingVertical="5dp" />
+            android:gravity="center" />
     </LinearLayout>
 </LinearLayout>

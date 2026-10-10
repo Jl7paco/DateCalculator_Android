@@ -49,7 +49,6 @@ import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
@@ -120,6 +119,7 @@ fun DateCalculationScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val keyboardController = LocalSoftwareKeyboardController.current
     val isDark = LocalDarkTheme.current
     val lang = uiState.appLanguage
 
@@ -274,16 +274,18 @@ fun DateCalculationScreen(
                         0 -> {
                             viewModel.toggleMultiStageExtension(false)
                             viewModel.updateCalcSubMode(CalcSubMode.FORWARD_DAYS)
+                            viewModel.performCalculation()
                         }
                         1 -> {
                             viewModel.toggleMultiStageExtension(false)
                             viewModel.updateCalcSubMode(CalcSubMode.REVERSE_RANGE)
+                            viewModel.performCalculation()
                         }
                         2 -> {
                             viewModel.toggleMultiStageExtension(true)
+                            // 切换至多段模式时，先清空旧的单段结果，等待用户点击等于号生成
                         }
                     }
-                    viewModel.performCalculation()
                 },
                 height = 36.dp
             )
@@ -466,11 +468,12 @@ fun DateCalculationScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(LanguageUtils.getString("multi_stage_btn", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
-                            }
+                            Text(
+                                text = LanguageUtils.getString("multi_stage_btn", lang),
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeumorphicAccent,
+                                fontSize = 14.sp
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -528,7 +531,6 @@ fun DateCalculationScreen(
                                             if (uiState.stages.size > 1) {
                                                 val nextIndex = (index + 1) % uiState.stages.size
                                                 viewModel.reorderCalculationStages(index, nextIndex)
-                                                viewModel.performCalculation()
                                             }
                                         }
                                 )
@@ -546,7 +548,6 @@ fun DateCalculationScreen(
                                         .clickable {
                                             val newType = if (stage.type == CalculationType.ADD) CalculationType.SUBTRACT else CalculationType.ADD
                                             viewModel.updateStageType(stage.id, newType)
-                                            viewModel.performCalculation()
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -588,7 +589,6 @@ fun DateCalculationScreen(
                                         value = stage.daysInput,
                                         onValueChange = {
                                             viewModel.updateStageDaysInput(stage.id, it)
-                                            viewModel.performCalculation()
                                         },
                                         singleLine = true,
                                         textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
@@ -626,7 +626,6 @@ fun DateCalculationScreen(
                                         value = stage.remark,
                                         onValueChange = {
                                             viewModel.updateStageRemark(stage.id, it)
-                                            viewModel.performCalculation()
                                         },
                                         singleLine = true,
                                         textStyle = TextStyle(fontSize = 12.sp, color = NeumorphicTextPrimary),
@@ -644,14 +643,14 @@ fun DateCalculationScreen(
                                         .size(18.dp)
                                         .clickable {
                                             viewModel.removeCalculationStage(stage.id)
-                                            viewModel.performCalculation()
                                         }
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
+                        // 底部操作行：左侧“添加阶段”按键 + 右下角等于号“=”计算主按键
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -659,22 +658,38 @@ fun DateCalculationScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .height(32.dp)
+                                    .height(36.dp)
                                     .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
                                     .background(NeumorphicAccent, shape = CircleShape)
                                     .clip(CircleShape)
                                     .clickable {
                                         viewModel.addCalculationStage()
-                                        viewModel.performCalculation()
                                     }
-                                    .padding(horizontal = 10.dp),
+                                    .padding(horizontal = 12.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(LanguageUtils.getString("add_stage_btn", lang), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text(LanguageUtils.getString("add_stage_btn", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
+                            }
+
+                            // 右下角 3D 新拟物等于号按键
+                            Box(
+                                modifier = Modifier
+                                    .width(64.dp)
+                                    .height(38.dp)
+                                    .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 4.dp)
+                                    .background(NeumorphicAccent, shape = RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        keyboardController?.hide()
+                                        viewModel.performCalculation()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("=", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             }
                         }
                     }
@@ -686,16 +701,19 @@ fun DateCalculationScreen(
             // 4. 计算结果展示层 (根据 Mode 严格渲染：单段加减天数 / 区间拆算 / 多段时间轴)
             if (uiState.showResult) {
                 if (uiState.isMultiStageExtensionEnabled) {
-                    // 多段加减模式：渲染多段 TimelineDiagram (包含五彩横轴时间线)
-                    val (finalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
-                    TimelineDiagram(
-                        segments = multiSegments,
-                        finalDate = finalDate,
-                        baseDate = uiState.baseDate,
-                        planTitle = uiState.multiStagePlanTitle,
-                        language = lang,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    val hasValidInput = uiState.stages.any { it.daysInput.isNotBlank() && (it.daysInput.toLongOrNull() ?: 0L) > 0L }
+                    if (hasValidInput) {
+                        // 多段加减模式：仅当存在有效天数且用户点击等于号时渲染多段 TimelineDiagram
+                        val (finalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
+                        TimelineDiagram(
+                            segments = multiSegments,
+                            finalDate = finalDate,
+                            baseDate = uiState.baseDate,
+                            planTitle = uiState.multiStagePlanTitle,
+                            language = lang,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 } else if (uiState.calcSubMode == CalcSubMode.REVERSE_RANGE) {
                     // 区间拆算模式：渲染 RangeBreakdownCard
                     val breakdown = viewModel.calculateRangeBreakdown()
@@ -708,7 +726,7 @@ fun DateCalculationScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
-                    // 单段加减天数模式：渲染 ResultCard (包含五彩横轴时间线)
+                    // 单段加减天数模式：渲染 ResultCard
                     ResultCard(
                         visible = true,
                         baseDate = uiState.baseDate,
