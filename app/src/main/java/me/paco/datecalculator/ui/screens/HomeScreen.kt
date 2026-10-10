@@ -483,6 +483,15 @@ fun HomeScreen(
                         HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
                         Spacer(modifier = Modifier.height(6.dp))
 
+                        val isDark = LocalDarkTheme.current
+                        val yiChipBg = if (isDark) Color(0xFF065F46).copy(alpha = 0.55f) else Color(0xFFD1FAE5)
+                        val yiChipBorder = if (isDark) Color(0xFF10B981).copy(alpha = 0.5f) else Color(0xFF10B981).copy(alpha = 0.35f)
+                        val yiChipText = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
+
+                        val jiChipBg = if (isDark) Color(0xFF334155).copy(alpha = 0.65f) else Color(0xFFF1F5F9)
+                        val jiChipBorder = if (isDark) Color(0xFF94A3B8).copy(alpha = 0.5f) else Color(0xFF94A3B8).copy(alpha = 0.35f)
+                        val jiChipText = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+
                         // 老黄历宜忌 (跟随语言翻译)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -510,10 +519,11 @@ fun HomeScreen(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                            .background(yiChipBg)
+                                            .border(0.5.dp, yiChipBorder, shape = RoundedCornerShape(6.dp))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
-                                        Text(translatedYi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
+                                        Text(translatedYi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = yiChipText)
                                     }
                                 }
                             }
@@ -547,10 +557,11 @@ fun HomeScreen(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0xFF64748B).copy(alpha = 0.15f))
+                                            .background(jiChipBg)
+                                            .border(0.5.dp, jiChipBorder, shape = RoundedCornerShape(6.dp))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
-                                        Text(translatedJi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                        Text(translatedJi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = jiChipText)
                                     }
                                 }
                             }
