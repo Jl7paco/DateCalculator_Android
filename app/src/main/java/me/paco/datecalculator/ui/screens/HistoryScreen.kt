@@ -6,6 +6,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +62,7 @@ import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicIconButton
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
+import me.paco.datecalculator.ui.components.neumorphicButton3D
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
@@ -370,22 +372,29 @@ fun HistoryScreen(
             }
 
             if (uiState.historyList.isNotEmpty()) {
+                // 统一 3D 拟物按键渲染修饰符，确保与全软件顶部图标按钮阴影 100% 对齐
                 Box(
                     modifier = Modifier
-                        .height(30.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), shape = CircleShape)
+                        .height(32.dp)
+                        .neumorphicButton3D(elevation = 3.5.dp)
+                        .background(NeumorphicBg, shape = CircleShape)
+                        .border(1.dp, if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.80f), CircleShape)
                         .clip(CircleShape)
                         .clickable { showClearConfirmDialog = true }
-                        .padding(horizontal = 10.dp),
+                        .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.DeleteSweep, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(15.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = LanguageUtils.getString("history_clear", lang),
-                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.5.sp,
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Bold
                         )

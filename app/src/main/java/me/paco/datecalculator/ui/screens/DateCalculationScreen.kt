@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,8 +34,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Calculate
@@ -49,6 +54,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -68,8 +75,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import androidx.compose.ui.unit.sp
@@ -86,8 +96,10 @@ import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NumericCalculatorInput
 import me.paco.datecalculator.ui.components.QuickDateChips
+import me.paco.datecalculator.ui.components.RangeBreakdownCard
 import me.paco.datecalculator.ui.components.ResultCard
 import me.paco.datecalculator.ui.components.SettingsOverlayDialog
+import me.paco.datecalculator.ui.components.TimelineDiagram
 import me.paco.datecalculator.ui.components.WorkdayNaturalSwitch
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
@@ -108,6 +120,7 @@ fun DateCalculationScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val isDark = LocalDarkTheme.current
     val lang = uiState.appLanguage
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -115,26 +128,21 @@ fun DateCalculationScreen(
     var showHistoryDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
 
-    val resultDate = viewModel.calculateTargetDate()
-    val (multiFinalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
-    val rangeBreakdown = viewModel.calculateRangeBreakdown()
+    val targetDate = viewModel.calculateTargetDate()
 
     val cardScale = remember { Animatable(1.0f) }
     val cardAlpha = remember { Animatable(1.0f) }
-    var isInitialLoad by remember { mutableStateOf(true) }
 
-    LaunchedEffect(uiState.baseDate) {
-        if (isInitialLoad) {
-            isInitialLoad = false
-            return@LaunchedEffect
-        }
-        launch {
-            cardScale.animateTo(1.04f, animationSpec = tween(100))
-            cardScale.animateTo(1.00f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-        }
-        launch {
-            cardAlpha.snapTo(0.4f)
-            cardAlpha.animateTo(1.0f, animationSpec = tween(250))
+    LaunchedEffect(uiState.showResult) {
+        if (uiState.showResult) {
+            launch {
+                cardScale.animateTo(1.03f, animationSpec = tween(120))
+                cardScale.animateTo(1.00f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+            }
+            launch {
+                cardAlpha.snapTo(0.6f)
+                cardAlpha.animateTo(1.0f, animationSpec = tween(180))
+            }
         }
     }
 
@@ -282,7 +290,7 @@ fun DateCalculationScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 1. 基准起算日期面板 (与其他页面100%统一的 3D 新拟物内凹槽输入框，高度 58dp，圆角 18dp)
+            // 1. 基准起算日期面板
             val inputShape18 = RoundedCornerShape(18.dp)
             Box(
                 modifier = Modifier
@@ -338,7 +346,7 @@ fun DateCalculationScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 工作日 / 自然日同页胶囊拨动开关
+            // 推算规则选择器行 (工作日/自然日胶囊开关)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -375,23 +383,21 @@ fun DateCalculationScreen(
                 )
             }
 
-            // 2. 模式 B: 区间拆算面板 (统一使用 18dp 圆角 3D 凹槽材质)
+            // 模式 B: 区间拆算输入面板
             if (!uiState.isMultiStageExtensionEnabled && uiState.calcSubMode == CalcSubMode.REVERSE_RANGE) {
-                val cardShape18 = RoundedCornerShape(18.dp)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .neumorphicExtruded(shape = cardShape18, elevation = 4.dp)
-                        .background(NeumorphicBg, shape = cardShape18)
-                        .clip(cardShape18)
+                        .neumorphicInset(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
+                        .background(NeumorphicBg, shape = RoundedCornerShape(18.dp))
                         .padding(12.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = LanguageUtils.getString("reverse_end_date_title", lang),
-                            style = MaterialTheme.typography.bodySmall,
                             fontSize = 12.sp,
-                            color = NeumorphicTextPrimary.copy(alpha = 0.75f)
+                            fontWeight = FontWeight.Bold,
+                            color = NeumorphicAccent
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -436,7 +442,7 @@ fun DateCalculationScreen(
                                     .clickable { viewModel.performCalculation() },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("=", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("=", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             }
                         }
                     }
@@ -444,24 +450,12 @@ fun DateCalculationScreen(
             }
 
             // 3. 模式 C: 高级多段计算模式
-            val multiStageAlpha by animateFloatAsState(
-                targetValue = if (uiState.isMultiStageExtensionEnabled) 1f else 0f,
-                animationSpec = tween(
-                    durationMillis = if (uiState.isMultiStageExtensionEnabled) 160 else 120,
-                    easing = if (uiState.isMultiStageExtensionEnabled) FastOutSlowInEasing else FastOutLinearInEasing
-                ),
-                label = "MultiStageAlphaGpuAnim"
-            )
-
             val cardShape22 = RoundedCornerShape(22.dp)
 
             if (uiState.isMultiStageExtensionEnabled) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .graphicsLayer {
-                            alpha = multiStageAlpha
-                        }
                         .neumorphicExtruded(shape = cardShape22, elevation = 5.dp)
                         .background(NeumorphicBg, shape = cardShape22)
                         .padding(14.dp)
@@ -689,25 +683,47 @@ fun DateCalculationScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. 计算结果展示层
+            // 4. 计算结果展示层 (根据 Mode 严格渲染：单段加减天数 / 区间拆算 / 多段时间轴)
             if (uiState.showResult) {
-                ResultCard(
-                    visible = true,
-                    baseDate = uiState.baseDate,
-                    resultDate = resultDate,
-                    calculationType = uiState.calculationType,
-                    daysInput = uiState.daysInput,
-                    dateMode = uiState.dateMode,
-                    weekendRule = uiState.weekendRule,
-                    enableHolidays = uiState.enableChineseHolidays,
-                    holidayRegion = uiState.holidayRegion,
-                    isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek,
-                    appLanguage = uiState.appLanguage,
-                    modifier = Modifier.graphicsLayer {
-                        scaleX = cardScale.value
-                        scaleY = cardAlpha.value
-                    }
-                )
+                if (uiState.isMultiStageExtensionEnabled) {
+                    // 多段加减模式：渲染多段 TimelineDiagram (包含五彩横轴时间线)
+                    val (finalDate, multiSegments) = viewModel.calculateMultiStageTimeline()
+                    TimelineDiagram(
+                        segments = multiSegments,
+                        finalDate = finalDate,
+                        baseDate = uiState.baseDate,
+                        planTitle = uiState.multiStagePlanTitle,
+                        language = lang,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else if (uiState.calcSubMode == CalcSubMode.REVERSE_RANGE) {
+                    // 区间拆算模式：渲染 RangeBreakdownCard
+                    val breakdown = viewModel.calculateRangeBreakdown()
+                    val regionLabel = "${uiState.holidayRegion.flagEmoji} ${uiState.holidayRegion.getLocalizedName(lang)}"
+                    RangeBreakdownCard(
+                        visible = true,
+                        result = breakdown,
+                        regionLabel = regionLabel,
+                        language = lang,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    // 单段加减天数模式：渲染 ResultCard (包含五彩横轴时间线)
+                    ResultCard(
+                        visible = true,
+                        baseDate = uiState.baseDate,
+                        resultDate = targetDate,
+                        calculationType = uiState.calculationType,
+                        daysInput = uiState.daysInput,
+                        dateMode = uiState.dateMode,
+                        weekendRule = uiState.weekendRule,
+                        enableHolidays = uiState.enableChineseHolidays,
+                        holidayRegion = uiState.holidayRegion,
+                        isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek,
+                        appLanguage = lang,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

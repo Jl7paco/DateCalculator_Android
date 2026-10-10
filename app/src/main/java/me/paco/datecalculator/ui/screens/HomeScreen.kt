@@ -69,7 +69,6 @@ import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicIconButton
-import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.SettingsOverlayDialog
@@ -174,7 +173,7 @@ fun HomeScreen(
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
-        // 顶栏 (36dp 高度, 15sp 标题，包含 3D 拟物勋章图标)
+        // 顶栏 (36dp 高度, 15sp 标题，包含经典微图标)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -183,10 +182,11 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                NeumorphicIconHeaderBadge(
-                    icon = Icons.Default.Home,
-                    size = 28.dp,
-                    iconSize = 14.dp
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = null,
+                    tint = NeumorphicAccent,
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -229,12 +229,13 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 左侧组：3D 勋章日历图标 + 上个月 [<] 年月标题 [>] 下个月
+                        // 左侧组：日历图标 + 上个月 [<] 年月标题 [>] 下个月
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            NeumorphicIconHeaderBadge(
-                                icon = Icons.Default.CalendarMonth,
-                                size = 28.dp,
-                                iconSize = 14.dp
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = NeumorphicAccent,
+                                modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
 
@@ -440,7 +441,7 @@ fun HomeScreen(
                 }
             }
 
-            // 增加透气拉开的舒适间距（放大至 28dp），完全消除下方信息卡片紧贴月历底部的拥挤感
+            // 增加透气拉开的舒适间距（28dp），完全消除下方信息卡片紧贴月历底部的拥挤感
             Spacer(modifier = Modifier.height(28.dp))
         }
 
@@ -604,16 +605,12 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 左上角：定位位置 + 3D 拟物勋章图标
+                        // 左上角：定位位置
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.clickable { viewModel.fetchCurrentGpsLocation(context) }
                         ) {
-                            NeumorphicIconHeaderBadge(
-                                icon = Icons.Default.WbSunny,
-                                size = 26.dp,
-                                iconSize = 13.dp
-                            )
+                            Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
                             Text("📍 $localizedCity", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 13.5.sp)
@@ -681,7 +678,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // 3. 星座与运势 Card (星座名称多语言翻译 + 3D 拟物勋章图标)
+        // 3. 星座与运势 Card (星座名称多语言翻译)
         if (homeConfig.showZodiacFortune) {
             val fortuneShape = RoundedCornerShape(22.dp)
             Box(
@@ -698,10 +695,11 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            NeumorphicIconHeaderBadge(
-                                icon = Icons.Default.AutoAwesome,
-                                size = 26.dp,
-                                iconSize = 13.dp
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = NeumorphicAccent,
+                                modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             val localizedConstellation = LanguageUtils.getLocalizedConstellation(fortune.constellation, lang)

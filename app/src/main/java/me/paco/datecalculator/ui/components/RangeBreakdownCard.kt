@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,7 +23,6 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.ui.viewmodel.RangeBreakdownResult
 import me.paco.datecalculator.util.LanguageUtils
-import me.paco.datecalculator.util.LunarCalendarUtils
 
 @Composable
 fun RangeBreakdownCard(
@@ -54,13 +50,10 @@ fun RangeBreakdownCard(
     val context = LocalContext.current
     val total = result.totalNaturalDays.coerceAtLeast(1L)
 
-    val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(result.endDate)
-    val fortune = LunarCalendarUtils.getDailyFortune(result.endDate, constName, language)
-
     val cardShape24 = RoundedCornerShape(24.dp)
     val daysUnit = LanguageUtils.getString("days_unit", language)
 
-    val breakdownTitle = when (language) {
+    val breakdownTitle = when (language.getEffectiveLanguage()) {
         AppLanguage.ENGLISH -> "Interval Breakdown Result"
         AppLanguage.JAPANESE -> "期間分解結果"
         AppLanguage.KOREAN -> "기간 분할 결과"
@@ -68,16 +61,16 @@ fun RangeBreakdownCard(
         else -> "区间拆算结果"
     }
 
-    val totalNatLabel = LanguageUtils.getString("diff_natural", language)
-    val workdayLabel = LanguageUtils.getString("diff_workday", language)
-    val weekendLabel = when (language) {
+    val totalNatLabel = LanguageUtils.getString("natural_day", language)
+    val workdayLabel = LanguageUtils.getString("workday", language)
+    val weekendLabel = when (language.getEffectiveLanguage()) {
         AppLanguage.ENGLISH -> "Weekend"
         AppLanguage.JAPANESE -> "週末"
         AppLanguage.KOREAN -> "주말"
         AppLanguage.TRADITIONAL_CHINESE -> "週末雙休"
         else -> "周末双休"
     }
-    val holidayLabel = when (language) {
+    val holidayLabel = when (language.getEffectiveLanguage()) {
         AppLanguage.ENGLISH -> "Holidays"
         AppLanguage.JAPANESE -> "祝日"
         AppLanguage.KOREAN -> "공휴일"
@@ -112,35 +105,7 @@ fun RangeBreakdownCard(
                 color = NeumorphicTextPrimary
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // 终止日期的星座芯片与运势评级
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                SuggestionChip(
-                    onClick = {},
-                    shape = CircleShape,
-                    label = {
-                        Text(
-                            text = "$constEmoji $constName",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "✨ ${fortune.summary}",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = NeumorphicTextPrimary.copy(alpha = 0.75f)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // 拆算数据统计网格 (4 个独立维度)
             Row(
@@ -176,7 +141,7 @@ fun RangeBreakdownCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 比例三色条形图
+            // 比例三色条形图 (工作日跟随 NeumorphicAccent 主题色)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -222,7 +187,7 @@ fun RangeBreakdownCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val stdLabel = when (language) {
+                val stdLabel = when (language.getEffectiveLanguage()) {
                     AppLanguage.ENGLISH -> "Holiday Standard: $regionLabel"
                     AppLanguage.JAPANESE -> "祝日基準: $regionLabel"
                     AppLanguage.KOREAN -> "공휴일 기준: $regionLabel"

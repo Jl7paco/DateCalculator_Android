@@ -5,11 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,12 +23,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.data.AppLanguage
@@ -42,8 +43,12 @@ import me.paco.datecalculator.util.CsvExportUtils
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LanguageUtils
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import kotlin.math.abs
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * 1:1 还原参考图的高质感多段/单段时序安排示意图 (配色 100% 随主题色 NeumorphicAccent 动态切换)
+ */
 @Composable
 fun TimelineDiagram(
     segments: List<StageSegmentResult>,
@@ -56,16 +61,38 @@ fun TimelineDiagram(
     if (segments.isEmpty()) return
 
     val context = LocalContext.current
-    val cardShape = RoundedCornerShape(20.dp)
+    val cardShape = RoundedCornerShape(22.dp)
+    val effectiveLang = language.getEffectiveLanguage()
+
+    // 全量时序分解块
+    val allBlocks = remember(baseDate, finalDate) {
+        decomposeChronologicalBlocks(
+            startDate = baseDate,
+            endDate = finalDate
+        )
+    }
+
+    val totalDurationDays = remember(baseDate, finalDate) {
+        abs(ChronoUnit.DAYS.between(baseDate, finalDate)).coerceAtLeast(1)
+    }
+
+    val totalWorkdays = remember(allBlocks) {
+        allBlocks.filter { it.type == TimelineBlockType.WORKDAY || it.type == TimelineBlockType.SHIFT_WORKDAY }.sumOf { it.daysCount }
+    }
+
+    val totalHolidays = remember(allBlocks) {
+        allBlocks.filter { it.type == TimelineBlockType.STATUTORY_HOLIDAY || it.type == TimelineBlockType.WEEKEND }.sumOf { it.daysCount }
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
             .background(NeumorphicBg, shape = cardShape)
-            .padding(14.dp)
+            .padding(16.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
+            // 1. 标头行：图标 + 标题 + 右侧 3D 导出 CSV 按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -81,7 +108,7 @@ fun TimelineDiagram(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = planTitle.ifBlank { LanguageUtils.getString("timeline_title", language) },
-                        fontSize = 14.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = NeumorphicAccent
                     )
@@ -89,77 +116,244 @@ fun TimelineDiagram(
 
                 Box(
                     modifier = Modifier
-                        .height(28.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                        .background(Color(0xFF10B981), shape = CircleShape)
+                        .height(30.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                        .background(NeumorphicBg, shape = CircleShape)
                         .clip(CircleShape)
                         .clickable {
                             val exportTitle = planTitle.ifBlank { LanguageUtils.getString("timeline_title", language) }
                             CsvExportUtils.exportMultiStageCsv(context, exportTitle, baseDate, finalDate, segments)
                         }
-                        .padding(horizontal = 10.dp),
+                        .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                        Icon(
+                            imageVector = Icons.Default.FileDownload,
+                            contentDescription = null,
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.size(14.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = LanguageUtils.getString("export_csv", language),
-                            fontSize = 11.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = NeumorphicAccent
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 绘制多段阶段时间轴项
+            // 2. 总历时与类型汇总行 (对照参考图：● 工作日: 3 天  ● 法定节假日: 7 天  总历时: 10 自然日)
+            val workdayLabel = when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Workday"
+                AppLanguage.JAPANESE -> "稼働日"
+                AppLanguage.KOREAN -> "근무일"
+                AppLanguage.TRADITIONAL_CHINESE -> "工作日"
+                else -> "工作日"
+            }
+
+            val holidayLabel = when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Holidays"
+                AppLanguage.JAPANESE -> "祝日・休日"
+                AppLanguage.KOREAN -> "휴일"
+                AppLanguage.TRADITIONAL_CHINESE -> "法定節假日"
+                else -> "法定节假日"
+            }
+
+            val durationLabel = when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Total"
+                AppLanguage.JAPANESE -> "総所要"
+                AppLanguage.KOREAN -> "총 기간"
+                AppLanguage.TRADITIONAL_CHINESE -> "總歷時"
+                else -> "总历时"
+            }
+
+            val daysUnit = LanguageUtils.getString("days_unit", language)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(NeumorphicAccent)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "$workdayLabel: $totalWorkdays $daysUnit",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeumorphicAccent
+                    )
+                }
+
+                if (totalHolidays > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFEF4444))
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "$holidayLabel: $totalHolidays $daysUnit",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "$durationLabel: $totalDurationDays $daysUnit",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary.copy(alpha = 0.85f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 3. 全局总时序进度条 (对照参考图：圆角胶囊进度条，工作日跟随 NeumorphicAccent 主题色)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .neumorphicInset(shape = CircleShape, elevation = 2.dp)
+                    .background(NeumorphicSunkenBg, shape = CircleShape)
+                    .clip(CircleShape)
+            ) {
+                if (allBlocks.isNotEmpty()) {
+                    allBlocks.forEach { block ->
+                        val weight = (block.daysCount.toFloat() / totalDurationDays).coerceAtLeast(0.01f)
+                        val blockColor = when (block.type) {
+                            TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
+                            TimelineBlockType.STATUTORY_HOLIDAY -> Color(0xFFEF4444)
+                            TimelineBlockType.WEEKEND -> Color(0xFFF59E0B)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(weight)
+                                .fillMaxHeight()
+                                .background(blockColor)
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(NeumorphicAccent)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.12f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 4. 多段/单段子项目详细清单 (对照参考图 1:1 精确排版：左侧主题色竖条 + 名称类型 + 天数拆算 + 专属子进度条 + 日期区间)
             segments.forEachIndexed { idx, seg ->
                 val isAdd = (seg.type == CalculationType.ADD)
                 val typeTag = if (isAdd) LanguageUtils.getString("stage_add_label", language) else LanguageUtils.getString("stage_sub_label", language)
-                val badgeBg = if (isAdd) Color(0xFF10B981) else Color(0xFFEF4444)
+                val signSymbol = if (isAdd) "+" else "-"
+
+                val segTotalDays = abs(ChronoUnit.DAYS.between(seg.startDate, seg.endDate)).coerceAtLeast(1L)
+                val segWorkdays = seg.daysCount
+                val segRestDays = (segTotalDays - segWorkdays).coerceAtLeast(0L)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top
                 ) {
+                    // 左侧垂直主题色指示线 (高度贯穿子项，跟随 NeumorphicAccent 动态主题色)
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(badgeBg)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = typeTag,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
-                        )
-                    }
+                            .width(4.dp)
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (isAdd) NeumorphicAccent else Color(0xFFEF4444))
+                    )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
+                        // 子项标题行：名称与多段类型 (左) vs 天数统计 (右)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${seg.remark} ($typeTag)",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeumorphicAccent,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+
+                            Text(
+                                text = "$signSymbol${seg.daysCount} $workdayLabel (共 $segTotalDays 日)",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeumorphicTextPrimary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(5.dp))
+
+                        // 子项专属时序比例条 (1:1 还原参考图)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .neumorphicInset(shape = CircleShape, elevation = 1.5.dp)
+                                .background(NeumorphicSunkenBg, shape = CircleShape)
+                                .clip(CircleShape)
+                        ) {
+                            val workWeight = (segWorkdays.toFloat() / segTotalDays).coerceAtLeast(0.01f)
+                            val restWeight = (segRestDays.toFloat() / segTotalDays).coerceAtLeast(0.01f)
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(workWeight)
+                                    .fillMaxHeight()
+                                    .background(NeumorphicAccent)
+                            )
+                            if (segRestDays > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(restWeight)
+                                        .fillMaxHeight()
+                                        .background(Color(0xFFEF4444))
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(5.dp))
+
+                        // 日期区间底纹 (2026年09月27日 ➔ 2026年09月29日)
                         Text(
-                            text = "${seg.remark} (${seg.daysCount} 天)",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = NeumorphicTextPrimary
-                        )
-                        Text(
-                            text = "${DateCalculatorUtils.formatDate(seg.startDate, language)} ➔ ${DateCalculatorUtils.formatDate(seg.endDate, language)}",
-                            fontSize = 11.sp,
+                            text = "${DateCalculatorUtils.formatDate(seg.startDate, language)}  ➔  ${DateCalculatorUtils.formatDate(seg.endDate, language)}",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium,
                             color = NeumorphicTextPrimary.copy(alpha = 0.65f)
                         )
                     }
                 }
 
                 if (idx < segments.size - 1) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
         }
