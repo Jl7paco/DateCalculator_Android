@@ -459,12 +459,10 @@ fun DateCalculationScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
-                            compositingStrategy = CompositingStrategy.Offscreen
                             alpha = multiStageAlpha
                         }
                         .neumorphicExtruded(shape = cardShape22, elevation = 5.dp)
                         .background(NeumorphicBg, shape = cardShape22)
-                        .clip(cardShape22)
                         .padding(14.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -517,7 +515,7 @@ fun DateCalculationScreen(
                         Spacer(modifier = Modifier.height(10.dp))
 
                         // 多阶段列表
-                        uiState.stages.forEachIndexed { _, stage ->
+                        uiState.stages.forEachIndexed { index, stage ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -569,6 +567,21 @@ fun DateCalculationScreen(
                                         .padding(horizontal = 8.dp),
                                     contentAlignment = Alignment.CenterStart
                                 ) {
+                                    if (stage.daysInput.isEmpty()) {
+                                        val daysPlaceholder = when (lang) {
+                                            AppLanguage.ENGLISH -> "Days"
+                                            AppLanguage.JAPANESE -> "日数"
+                                            AppLanguage.KOREAN -> "일수"
+                                            AppLanguage.TRADITIONAL_CHINESE -> "天數"
+                                            else -> "天数"
+                                        }
+                                        Text(
+                                            text = daysPlaceholder,
+                                            fontSize = 12.sp,
+                                            color = NeumorphicTextPrimary.copy(alpha = 0.45f),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
                                     BasicTextField(
                                         value = stage.daysInput,
                                         onValueChange = {
@@ -592,6 +605,21 @@ fun DateCalculationScreen(
                                         .padding(horizontal = 8.dp),
                                     contentAlignment = Alignment.CenterStart
                                 ) {
+                                    if (stage.remark.isEmpty()) {
+                                        val defaultRemarkPlaceholder = when (lang) {
+                                            AppLanguage.ENGLISH -> "Stage ${index + 1} Note"
+                                            AppLanguage.JAPANESE -> "第${index + 1}段階メモ"
+                                            AppLanguage.KOREAN -> "${index + 1}단계 메모"
+                                            AppLanguage.TRADITIONAL_CHINESE -> "第${index + 1}段想法/事項"
+                                            else -> "第${index + 1}段时间想法/事项"
+                                        }
+                                        Text(
+                                            text = defaultRemarkPlaceholder,
+                                            fontSize = 11.5.sp,
+                                            color = NeumorphicTextPrimary.copy(alpha = 0.45f),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
                                     BasicTextField(
                                         value = stage.remark,
                                         onValueChange = {
