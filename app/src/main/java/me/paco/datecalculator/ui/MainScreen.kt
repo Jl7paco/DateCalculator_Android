@@ -66,6 +66,7 @@ import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.neumorphicExtruded
+import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.screens.AgeCalculatorScreen
 import me.paco.datecalculator.ui.screens.AnniversaryScreen
 import me.paco.datecalculator.ui.screens.DateCalculationScreen
@@ -183,16 +184,18 @@ fun MainScreen(
                     val pageFraction = pagerState.currentPage + pagerState.currentPageOffsetFraction
                     val indicatorOffsetX = tabWidth * pageFraction
 
-                    // 1:1 参考精品 3D 拟物图：凸起发光的浮雕胶囊按键底座
+                    // 1:1 放大参考图精细复刻：自然 3D 凹陷 (neumorphicInset)，无硬边框，内侧自带淡淡高光与阴影
                     Box(
                         modifier = Modifier
                             .offset(x = indicatorOffsetX)
                             .width(tabWidth)
                             .height(68.dp)
                             .padding(horizontal = 6.dp, vertical = 6.dp)
-                            .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 4.dp)
-                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(20.dp))
-                            .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
+                            .background(
+                                if (isDark) NeumorphicAccent.copy(alpha = 0.18f) else NeumorphicAccent.copy(alpha = 0.10f),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .neumorphicInset(shape = RoundedCornerShape(20.dp), elevation = 3.dp)
                     )
 
                     Row(
