@@ -270,12 +270,14 @@ fun TimelineDiagram(
                 }
 
                 // 4. 总历时
-                Text(
-                    text = "$durationLabel: $totalDurationDays $daysUnit",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = NeumorphicTextPrimary.copy(alpha = 0.85f)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "$durationLabel: $totalDurationDays $daysUnit",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeumorphicTextPrimary.copy(alpha = 0.85f)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -324,7 +326,17 @@ fun TimelineDiagram(
                 val signSymbol = if (isAdd) "+" else "-"
 
                 val segTotalDays = abs(ChronoUnit.DAYS.between(seg.startDate, seg.endDate)).coerceAtLeast(1L)
-                val segWorkdays = seg.daysCount
+                
+                // 精准拆解子段内部时序，以确保分段轴完全匹配全局时序图的颜色、比例和位置
+                val segBlocks = remember(seg.startDate, seg.endDate) {
+                    decomposeChronologicalBlocks(
+                        startDate = seg.startDate,
+                        endDate = seg.endDate,
+                        weekendRule = weekendRule,
+                        enableHolidays = enableHolidays,
+                        holidayRegion = holidayRegion
+                    )
+                }
 
                 // 精准拆算该段包含的周末与法定节假日天数
                 val (_, segStat, segWeek) = DateCalculatorUtils.calculateBreakdown(
@@ -392,7 +404,7 @@ fun TimelineDiagram(
 
                         Spacer(modifier = Modifier.height(5.dp))
 
-                        // 子项专属时序比例条 (工作日跟随 NeumorphicAccent，休假日展现红色 #EF4444)
+                        // 子项专属时序比例条 (按照实际时间顺序渲染：工作日蓝，周末黄，节假日红)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -401,21 +413,26 @@ fun TimelineDiagram(
                                 .background(NeumorphicSunkenBg, shape = CircleShape)
                                 .clip(CircleShape)
                         ) {
-                            val workWeight = (segWorkdays.toFloat() / segTotalDays).coerceAtLeast(0.01f)
-                            val restWeight = (segRestTotal.toFloat() / segTotalDays).coerceAtLeast(0.01f)
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(workWeight)
-                                    .fillMaxHeight()
-                                    .background(NeumorphicAccent)
-                            )
-                            if (segRestTotal > 0) {
+                            if (segBlocks.isNotEmpty()) {
+                                segBlocks.forEach { block ->
+                                    val weight = (block.daysCount.toFloat() / segTotalDays).coerceAtLeast(0.01f)
+                                    val blockColor = when (block.type) {
+                                        TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
+                                        TimelineBlockType.STATUTORY_HOLIDAY -> Color(0xFFEF4444)
+                                        TimelineBlockType.WEEKEND -> Color(0xFFF59E0B)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(weight)
+                                            .fillMaxHeight()
+                                            .background(blockColor)
+                                    )
+                                }
+                            } else {
                                 Box(
                                     modifier = Modifier
-                                        .weight(restWeight)
-                                        .fillMaxHeight()
-                                        .background(Color(0xFFEF4444))
+                                        .fillMaxSize()
+                                        .background(NeumorphicAccent)
                                 )
                             }
                         }
