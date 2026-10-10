@@ -283,8 +283,8 @@ fun NeumorphicSwitch(
         modifier = modifier
             .width(52.dp)
             .height(28.dp)
-            .neumorphicInset(shape = trackShape, elevation = 2.dp)
             .background(trackBgColor, shape = trackShape)
+            .neumorphicInset(shape = trackShape, elevation = 3.dp)
             .clip(trackShape)
             .clickable { onCheckedChange(!checked) }
             .padding(2.dp),
