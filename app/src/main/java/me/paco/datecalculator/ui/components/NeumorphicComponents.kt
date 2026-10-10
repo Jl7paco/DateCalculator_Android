@@ -54,6 +54,35 @@ import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import me.paco.datecalculator.util.LanguageUtils
 
 /**
+ * 3D 新拟物卡片标头专属图标勋章 (自动提升全软件图标的 3D 立体触感与质感)
+ */
+@Composable
+fun NeumorphicIconHeaderBadge(
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    size: Dp = 32.dp,
+    iconSize: Dp = 16.dp,
+    tint: Color = NeumorphicAccent,
+    shape: RoundedCornerShape = RoundedCornerShape(10.dp)
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .neumorphicInset(shape = shape, elevation = 2.5.dp)
+            .background(NeumorphicSunkenBg, shape = shape)
+            .clip(shape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
+/**
  * 图标按钮专属 3D 浮雕立体渲染修饰符
  */
 @Composable

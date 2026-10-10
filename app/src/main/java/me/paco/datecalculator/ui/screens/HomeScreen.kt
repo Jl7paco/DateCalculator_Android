@@ -69,6 +69,7 @@ import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicIconButton
+import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.SettingsOverlayDialog
@@ -114,16 +115,6 @@ fun HomeScreen(
             repeatMode = RepeatMode.Reverse
         ),
         label = "WeatherFloatScale"
-    )
-
-    val starPulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.90f,
-        targetValue = 1.12f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "StarPulseScale"
     )
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -183,7 +174,7 @@ fun HomeScreen(
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
-        // 顶栏 (36dp 高度, 15sp 标题，跟随语言设置动态翻译)
+        // 顶栏 (36dp 高度, 15sp 标题，包含 3D 拟物勋章图标)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -192,11 +183,10 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Home,
-                    contentDescription = null,
-                    tint = NeumorphicAccent,
-                    modifier = Modifier.size(18.dp)
+                NeumorphicIconHeaderBadge(
+                    icon = Icons.Default.Home,
+                    size = 28.dp,
+                    iconSize = 14.dp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -239,13 +229,12 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 左侧组：日历图标 + 上个月 [<] 年月标题 [>] 下个月
+                        // 左侧组：3D 勋章日历图标 + 上个月 [<] 年月标题 [>] 下个月
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                tint = NeumorphicAccent,
-                                modifier = Modifier.size(18.dp)
+                            NeumorphicIconHeaderBadge(
+                                icon = Icons.Default.CalendarMonth,
+                                size = 28.dp,
+                                iconSize = 14.dp
                             )
                             Spacer(modifier = Modifier.width(6.dp))
 
@@ -451,13 +440,13 @@ fun HomeScreen(
                 }
             }
 
-            // 增加透气拉开的舒适间距，防止下面的信息卡片紧贴月历底部
-            Spacer(modifier = Modifier.height(16.dp))
+            // 增加透气拉开的舒适间距（放大至 28dp），完全消除下方信息卡片紧贴月历底部的拥挤感
+            Spacer(modifier = Modifier.height(28.dp))
         }
 
         // ================= 当日黄历、节气、农历、天气、星座运势 =================
 
-        // 1. 当日农历、节气与老黄历宜忌 Card (核心规则：仅在简体中文/繁体中文界面设置下展示)
+        // 1. 当日农历、节气与老黄历宜忌 Card
         if (isChineseLanguage && (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac)) {
             val combinedShape = RoundedCornerShape(22.dp)
             Box(
@@ -615,12 +604,16 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 左上角：定位位置
+                        // 左上角：定位位置 + 3D 拟物勋章图标
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.clickable { viewModel.fetchCurrentGpsLocation(context) }
                         ) {
-                            Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                            NeumorphicIconHeaderBadge(
+                                icon = Icons.Default.WbSunny,
+                                size = 26.dp,
+                                iconSize = 13.dp
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
                             val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
                             Text("📍 $localizedCity", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 13.5.sp)
@@ -688,7 +681,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // 3. 星座与运势 Card (星座名称多语言翻译 + 星动微缩放)
+        // 3. 星座与运势 Card (星座名称多语言翻译 + 3D 拟物勋章图标)
         if (homeConfig.showZodiacFortune) {
             val fortuneShape = RoundedCornerShape(22.dp)
             Box(
@@ -705,16 +698,10 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = NeumorphicAccent,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .graphicsLayer {
-                                        scaleX = starPulseScale
-                                        scaleY = starPulseScale
-                                    }
+                            NeumorphicIconHeaderBadge(
+                                icon = Icons.Default.AutoAwesome,
+                                size = 26.dp,
+                                iconSize = 13.dp
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             val localizedConstellation = LanguageUtils.getLocalizedConstellation(fortune.constellation, lang)
