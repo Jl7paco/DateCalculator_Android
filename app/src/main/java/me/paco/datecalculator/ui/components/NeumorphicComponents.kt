@@ -41,7 +41,10 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -146,6 +149,8 @@ fun NeumorphicIconButton(
     tint: Color = NeumorphicAccent
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
     val isDark = LocalDarkTheme.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -181,7 +186,8 @@ fun NeumorphicIconButton(
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                HapticUtils.performCrispClick(context)
+                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
+                HapticUtils.performCrispClick(context, view)
                 onClick()
             },
         contentAlignment = Alignment.Center
@@ -205,6 +211,8 @@ fun NeumorphicSwitch(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
     val isDark = LocalDarkTheme.current
     val thumbOffset by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
@@ -222,7 +230,8 @@ fun NeumorphicSwitch(
             .background(if (checked) NeumorphicAccent else NeumorphicSunkenBg, shape = trackShape)
             .clip(trackShape)
             .clickable {
-                HapticUtils.performCrispClick(context)
+                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
+                HapticUtils.performCrispClick(context, view)
                 onCheckedChange(!checked)
             }
             .padding(3.dp),
@@ -283,6 +292,8 @@ fun NeumorphicCapsuleSwitch(
     height: Dp = 30.dp
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
     val transitionOffset by animateFloatAsState(
         targetValue = if (isOption1Selected) 0f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -297,7 +308,8 @@ fun NeumorphicCapsuleSwitch(
             .background(NeumorphicSunkenBg, shape = capsuleShape)
             .clip(capsuleShape)
             .clickable {
-                HapticUtils.performCrispClick(context)
+                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
+                HapticUtils.performCrispClick(context, view)
                 onOptionChanged(!isOption1Selected)
             }
             .padding(2.dp),
@@ -335,7 +347,8 @@ fun NeumorphicCapsuleSwitch(
                     .weight(1f)
                     .fillMaxHeight()
                     .clickable {
-                        HapticUtils.performCrispClick(context)
+                        try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
+                        HapticUtils.performCrispClick(context, view)
                         onOptionChanged(true)
                     },
                 contentAlignment = Alignment.Center
@@ -357,7 +370,8 @@ fun NeumorphicCapsuleSwitch(
                     .weight(1f)
                     .fillMaxHeight()
                     .clickable {
-                        HapticUtils.performCrispClick(context)
+                        try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
+                        HapticUtils.performCrispClick(context, view)
                         onOptionChanged(false)
                     },
                 contentAlignment = Alignment.Center
@@ -431,6 +445,8 @@ fun NeumorphicSegmentedRow(
     height: Dp = 36.dp
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
     val containerShape = RoundedCornerShape(12.dp)
 
     Box(
@@ -480,7 +496,8 @@ fun NeumorphicSegmentedRow(
                             interactionSource = interactionSource,
                             indication = null
                         ) {
-                            HapticUtils.performCrispClick(context)
+                            try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
+                            HapticUtils.performCrispClick(context, view)
                             onIndexSelected(index)
                         },
                     contentAlignment = Alignment.Center
@@ -507,6 +524,8 @@ fun NeumorphicRadioButton(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
     val boxModifier = if (selected) {
         Modifier
             .neumorphicInset(shape = CircleShape, elevation = 4.dp)
@@ -526,7 +545,8 @@ fun NeumorphicRadioButton(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) {
-                HapticUtils.performCrispClick(context)
+                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
+                HapticUtils.performCrispClick(context, view)
                 onClick()
             },
         contentAlignment = Alignment.Center
@@ -554,6 +574,8 @@ fun NeumorphicChip(
     height: Dp = 34.dp
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -585,7 +607,8 @@ fun NeumorphicChip(
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                HapticUtils.performCrispClick(context)
+                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
+                HapticUtils.performCrispClick(context, view)
                 onClick()
             }
             .padding(horizontal = 12.dp),
