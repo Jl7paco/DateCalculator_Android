@@ -32,8 +32,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import me.paco.datecalculator.ui.components.FireworksAnimation
+import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
+import me.paco.datecalculator.ui.components.NeumorphicSwitch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
@@ -62,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -311,7 +318,7 @@ fun LunarConverterScreen(
                                 modifier = Modifier.padding(end = 8.dp)
                             )
                             Text(
-                                text = "${LanguageUtils.getString("base_date", lang)}: ${DateCalculatorUtils.formatDateWithWeek(solarDate, lang)}",
+                                text = DateCalculatorUtils.formatDateWithWeek(solarDate, lang),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = NeumorphicTextPrimary
@@ -566,118 +573,162 @@ fun LunarConverterScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                val inputCardShape = RoundedCornerShape(22.dp)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 4.dp)
-                        .background(NeumorphicBg, shape = RoundedCornerShape(16.dp))
-                        .padding(14.dp)
+                        .neumorphicExtruded(shape = inputCardShape, elevation = 5.dp)
+                        .background(NeumorphicBg, shape = inputCardShape)
+                        .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = inputCardShape)
+                        .clip(inputCardShape)
+                        .padding(16.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("农历年份", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-
-                            OutlinedTextField(
-                                value = lunarYearInput,
-                                onValueChange = { lunarYearInput = it.take(4) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                modifier = Modifier.width(100.dp)
-                            )
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        val lunarYearLabel = when (lang) {
+                            AppLanguage.ENGLISH -> "Lunar Year"
+                            AppLanguage.JAPANESE -> "旧暦年"
+                            AppLanguage.KOREAN -> "음력 연도"
+                            AppLanguage.TRADITIONAL_CHINESE -> "農曆年份"
+                            else -> "农历年份"
                         }
 
+                        // 1. 农历年份
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(stringResource(R.string.label_lunar_month), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                            Text(lunarYearLabel, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .width(140.dp)
+                                    .height(38.dp)
+                                    .neumorphicInset(shape = RoundedCornerShape(10.dp), elevation = 2.dp)
+                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.2f), shape = RoundedCornerShape(10.dp))
+                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                BasicTextField(
+                                    value = lunarYearInput,
+                                    onValueChange = { lunarYearInput = it.take(4) },
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(NeumorphicAccent),
+                                    textStyle = TextStyle(
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = NeumorphicTextPrimary,
+                                        textAlign = TextAlign.End
+                                    ),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+
+                        // 2. 农历月份
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(stringResource(R.string.label_lunar_month), fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+
+                            Row(
+                                modifier = Modifier.width(140.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(30.dp)
+                                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                                        .background(NeumorphicBg, shape = CircleShape)
                                         .clip(CircleShape)
-                                        .background(NeumorphicAccent)
                                         .clickable { if (lunarMonth > 1) lunarMonth-- },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("-", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                                    Text("-", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                 }
 
-                                Spacer(modifier = Modifier.width(12.dp))
-
                                 val monthNames = listOf("正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊")
-                                val monthName = monthNames.getOrElse(lunarMonth - 1) { "${lunarMonth}" }
-                                Text("$monthName 月", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
-
-                                Spacer(modifier = Modifier.width(12.dp))
+                                val monthName = monthNames.getOrElse(lunarMonth - 1) { "$lunarMonth" }
+                                Text("$monthName 月", fontSize = 14.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, textAlign = TextAlign.Center, modifier = Modifier.width(68.dp))
 
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(30.dp)
+                                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                                        .background(NeumorphicBg, shape = CircleShape)
                                         .clip(CircleShape)
-                                        .background(NeumorphicAccent)
                                         .clickable { if (lunarMonth < 12) lunarMonth++ },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("+", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                                    Text("+", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                 }
                             }
                         }
 
+                        // 3. 农历日期
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(stringResource(R.string.label_lunar_day), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                            Text(stringResource(R.string.label_lunar_day), fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.width(140.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(30.dp)
+                                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                                        .background(NeumorphicBg, shape = CircleShape)
                                         .clip(CircleShape)
-                                        .background(NeumorphicAccent)
                                         .clickable { if (lunarDay > 1) lunarDay-- },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("-", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                                    Text("-", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                 }
 
-                                Spacer(modifier = Modifier.width(12.dp))
-
                                 val dayNames = listOf("初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十", "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十")
-                                val dayName = dayNames.getOrElse(lunarDay - 1) { "${lunarDay}" }
-                                Text(dayName, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
-
-                                Spacer(modifier = Modifier.width(12.dp))
+                                val dayName = dayNames.getOrElse(lunarDay - 1) { "$lunarDay" }
+                                Text(dayName, fontSize = 14.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, textAlign = TextAlign.Center, modifier = Modifier.width(68.dp))
 
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(30.dp)
+                                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                                        .background(NeumorphicBg, shape = CircleShape)
                                         .clip(CircleShape)
-                                        .background(NeumorphicAccent)
                                         .clickable { if (lunarDay < 30) lunarDay++ },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("+", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                                    Text("+", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                 }
                             }
                         }
 
+                        // 4. 是否闰月
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("是否闰月", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                            val leapMonthLabel = when (lang) {
+                                AppLanguage.ENGLISH -> "Leap Month"
+                                AppLanguage.JAPANESE -> "閏月"
+                                AppLanguage.KOREAN -> "윤달"
+                                AppLanguage.TRADITIONAL_CHINESE -> "是否閏月"
+                                else -> "是否闰月"
+                            }
+                            Text(leapMonthLabel, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
 
-                            Switch(
+                            NeumorphicSwitch(
                                 checked = isLeapMonth,
                                 onCheckedChange = { isLeapMonth = it }
                             )
@@ -875,6 +926,13 @@ fun LunarConverterScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
+
+        FireworksAnimation(
+            trigger = uiState.fireworksTrigger,
+            onAnimationFinished = { viewModel.resetFireworks() }
+        )
     }
 }

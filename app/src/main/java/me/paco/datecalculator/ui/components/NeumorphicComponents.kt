@@ -256,6 +256,62 @@ fun NeumorphicCapsuleSwitch(
 }
 
 /**
+ * 3D 新拟物单选开关 (关闭时底色红色，开启时底色绿色，按键按钮颜色维持标准的 3D 拟物)
+ */
+@Composable
+fun NeumorphicSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val thumbOffset by animateFloatAsState(
+        targetValue = if (checked) 1f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "NeumorphicSwitchOffset"
+    )
+
+    val trackShape = CircleShape
+
+    // 关闭时底色红色，打开时底色绿色
+    val trackBgColor = if (checked) {
+        Color(0xFF10B981).copy(alpha = 0.35f)
+    } else {
+        Color(0xFFEF4444).copy(alpha = 0.35f)
+    }
+
+    Box(
+        modifier = modifier
+            .width(52.dp)
+            .height(28.dp)
+            .neumorphicInset(shape = trackShape, elevation = 2.dp)
+            .background(trackBgColor, shape = trackShape)
+            .clip(trackShape)
+            .clickable { onCheckedChange(!checked) }
+            .padding(2.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (thumbOffset > 0f) {
+                Spacer(modifier = Modifier.weight(thumbOffset))
+            }
+            // 开关（圆形那个）颜色保持不变 (标准的 3D 拟物浮雕 Knob)
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                    .background(NeumorphicBg, shape = CircleShape)
+            )
+            if (thumbOffset < 1f) {
+                Spacer(modifier = Modifier.weight(1f - thumbOffset))
+            }
+        }
+    }
+}
+
+/**
  * 公历 / 农历 同行胶囊拨动开关
  */
 @Composable
