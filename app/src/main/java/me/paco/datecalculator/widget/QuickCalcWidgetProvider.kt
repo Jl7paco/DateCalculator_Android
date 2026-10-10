@@ -10,6 +10,7 @@ import android.widget.RemoteViews
 import me.paco.datecalculator.MainActivity
 import me.paco.datecalculator.R
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.PreferenceUtils
 import java.time.LocalDate
 
 class QuickCalcWidgetProvider : AppWidgetProvider() {
@@ -27,7 +28,8 @@ class QuickCalcWidgetProvider : AppWidgetProvider() {
         if (days != null) {
             val targetDate = LocalDate.now().plusDays(days)
             val prefs = context.getSharedPreferences("quick_calc_widget_prefs", Context.MODE_PRIVATE)
-            prefs.edit().putString("last_calc_result", "${days}天后: ${DateCalculatorUtils.formatDate(targetDate)}").apply()
+            val lang = PreferenceUtils.getAppLanguage(context)
+            prefs.edit().putString("last_calc_result", "${days}天后: ${DateCalculatorUtils.formatDate(targetDate, lang)}").apply()
 
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, QuickCalcWidgetProvider::class.java))

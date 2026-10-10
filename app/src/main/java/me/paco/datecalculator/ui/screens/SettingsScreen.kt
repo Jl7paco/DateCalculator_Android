@@ -38,11 +38,11 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,7 +52,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -74,6 +73,7 @@ import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicChip
 import me.paco.datecalculator.ui.components.NeumorphicCustomPopup
 import me.paco.datecalculator.ui.components.NeumorphicRadioButton
+import me.paco.datecalculator.ui.components.NeumorphicSwitch
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
@@ -81,6 +81,7 @@ import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LocationUtils
+import me.paco.datecalculator.util.TemperatureUnit
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -186,6 +187,54 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // 0.5 温度单位设置 Card (摄氏度 °C / 华氏度 °F，默认摄氏度)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
+                .background(NeumorphicBg, shape = cardShape)
+                .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = cardShape)
+                .clip(cardShape)
+                .padding(14.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    val tempTitle = when (lang.getEffectiveLanguage()) {
+                        AppLanguage.ENGLISH -> "Temperature Unit"
+                        AppLanguage.JAPANESE -> "温度単位"
+                        AppLanguage.KOREAN -> "온도 단위"
+                        AppLanguage.TRADITIONAL_CHINESE -> "溫度單位"
+                        else -> "温度单位显示"
+                    }
+                    Text(tempTitle, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 14.sp)
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TemperatureUnit.entries.forEach { unit ->
+                        val isSelected = (uiState.temperatureUnit == unit)
+                        val displayName = unit.getLocalizedName(lang)
+                        NeumorphicChip(
+                            text = displayName,
+                            selected = isSelected,
+                            onClick = {
+                                viewModel.updateTemperatureUnit(unit, context)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         // 1. 首页功能模块显隐配置 Card (材质统一)
         Box(
             modifier = Modifier
@@ -216,10 +265,9 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(LanguageUtils.getString("home_show_screen", lang), fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = NeumorphicTextPrimary)
-                    Switch(
+                    NeumorphicSwitch(
                         checked = config.showHomeScreen,
-                        onCheckedChange = { viewModel.updateHomeConfig(config.copy(showHomeScreen = it), context) },
-                        modifier = Modifier.scale(0.8f)
+                        onCheckedChange = { viewModel.updateHomeConfig(config.copy(showHomeScreen = it), context) }
                     )
                 }
 
@@ -259,10 +307,9 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(label, fontSize = 12.sp, color = NeumorphicTextPrimary.copy(alpha = 0.85f))
-                        Switch(
+                        NeumorphicSwitch(
                             checked = isChecked,
-                            onCheckedChange = onToggle,
-                            modifier = Modifier.scale(0.72f)
+                            onCheckedChange = onToggle
                         )
                     }
                 }
@@ -317,7 +364,7 @@ fun SettingsScreen(
                         Text(LanguageUtils.getString("settings_gps_auto", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary, fontSize = 13.sp)
                     }
 
-                    Switch(
+                    NeumorphicSwitch(
                         checked = uiState.isGpsAutoDetectEnabled,
                         onCheckedChange = { enabled ->
                             if (enabled) {
@@ -339,8 +386,7 @@ fun SettingsScreen(
                             } else {
                                 viewModel.updateGpsAutoDetect(false, context)
                             }
-                        },
-                        modifier = Modifier.scale(0.85f)
+                        }
                     )
                 }
 
@@ -569,7 +615,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 5. Material 3 主题配色与调色盘设置 Card (材质统一 + 3D 拟物全色块)
+        // 5. Material 3 主题配色与调色盘设置 Card (材质统一 + 18 款 3D 拟物全色块)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -593,11 +639,11 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    listOf(ThemeColorPreset.SYSTEM, ThemeColorPreset.CUSTOM).forEach { preset ->
+                    ThemeColorPreset.entries.forEach { preset ->
                         val isSelected = (uiState.themePreset == preset)
-                        val labelText = if (preset == ThemeColorPreset.SYSTEM) LanguageUtils.getString("dark_mode_system", lang) else LanguageUtils.getString("custom_color", lang)
+                        val displayName = preset.getLocalizedName(lang)
                         NeumorphicChip(
-                            text = labelText,
+                            text = displayName,
                             selected = isSelected,
                             onClick = {
                                 viewModel.updateThemePreset(preset, context)
@@ -606,7 +652,7 @@ fun SettingsScreen(
                     }
                 }
 
-                // 调色盘 Picker (14 款 3D 胶囊色块)
+                // 调色盘 Picker (18 款 3D 胶囊色块)
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(LanguageUtils.getString("palette_title", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -625,7 +671,11 @@ fun SettingsScreen(
                     0xFF14B8A6 to "绿松石",
                     0xFF64748B to "沉稳灰",
                     0xFF84CC16 to "青青草",
-                    0xFFA855F7 to "魅惑紫"
+                    0xFFA855F7 to "魅惑紫",
+                    0xFF0284C7 to "天空蓝",
+                    0xFFE11D48 to "玫瑰红",
+                    0xFF7C3AED to "紫罗兰",
+                    0xFFEA580C to "暖阳橙"
                 )
 
                 FlowRow(

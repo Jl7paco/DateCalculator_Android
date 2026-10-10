@@ -54,7 +54,7 @@ import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import me.paco.datecalculator.util.LanguageUtils
 
 /**
- * 图标按钮专属 3D 浮雕立体渲染修饰符 (消除左上角白色发光晕染，左右上下边缘清晰干练)
+ * 图标按钮专属 3D 浮雕立体渲染修饰符
  */
 @Composable
 fun Modifier.neumorphicButton3D(
@@ -68,7 +68,6 @@ fun Modifier.neumorphicButton3D(
         val shadowRadius = elevation.toPx()
         val shapeOutline = CircleShape.createOutline(size, layoutDirection, this)
 
-        // 1. 右下 3D 悬浮清晰投影
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
@@ -85,7 +84,6 @@ fun Modifier.neumorphicButton3D(
             canvas.drawOutline(shapeOutline, paint)
         }
 
-        // 2. 左上克制定向高光 (缩减扩散半径，彻底无光晕/无晕染感)
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
@@ -159,6 +157,77 @@ fun NeumorphicIconButton(
             tint = tint,
             modifier = Modifier.size(size * 0.5f)
         )
+    }
+}
+
+/**
+ * 3D 新拟物圆润拨动开关 (消除左上角白色阴影溢出，颜色跟随全局设置 NeumorphicAccent)
+ */
+@Composable
+fun NeumorphicSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDark = LocalDarkTheme.current
+    val thumbOffset by animateFloatAsState(
+        targetValue = if (checked) 1f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "SwitchThumbOffset"
+    )
+
+    val trackShape = CircleShape
+
+    Box(
+        modifier = modifier
+            .width(52.dp)
+            .height(28.dp)
+            .neumorphicInset(shape = trackShape, elevation = 2.dp)
+            .background(if (checked) NeumorphicAccent else NeumorphicSunkenBg, shape = trackShape)
+            .clip(trackShape)
+            .clickable { onCheckedChange(!checked) }
+            .padding(3.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (thumbOffset > 0f) {
+                Spacer(modifier = Modifier.weight(thumbOffset))
+            }
+
+            // 白色圆钮：采用向下微影沉降 DropShadow，彻底杜绝左上角白色发光晕染溢出 Track 边缘
+            val thumbShadowColor = if (isDark) Color.Black.copy(alpha = 0.60f) else Color(0xFF64748B).copy(alpha = 0.30f)
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .drawBehind {
+                        val shapeOutline = CircleShape.createOutline(size, layoutDirection, this)
+                        drawIntoCanvas { canvas ->
+                            val paint = Paint().apply {
+                                asFrameworkPaint().apply {
+                                    isAntiAlias = true
+                                    color = android.graphics.Color.TRANSPARENT
+                                    setShadowLayer(
+                                        4.dp.toPx(),
+                                        0f,
+                                        1.5.dp.toPx(),
+                                        thumbShadowColor.toArgb()
+                                    )
+                                }
+                            }
+                            canvas.drawOutline(shapeOutline, paint)
+                        }
+                    }
+                    .clip(CircleShape)
+                    .background(Color.White)
+            )
+
+            if (thumbOffset < 1f) {
+                Spacer(modifier = Modifier.weight(1f - thumbOffset))
+            }
+        }
     }
 }
 
@@ -250,83 +319,6 @@ fun NeumorphicCapsuleSwitch(
                     softWrap = false,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
-        }
-    }
-}
-
-/**
- * 3D 新拟物单选开关 (1:1 参考精品拟物图：带发光外边框底座，关时鲜红底色，开时翠绿底色，浮雕 Knob 维持纯正拟物)
- */
-@Composable
-fun NeumorphicSwitch(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val thumbOffset by animateFloatAsState(
-        targetValue = if (checked) 1f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "NeumorphicSwitchOffset"
-    )
-
-    val capsuleShape = CircleShape
-    val isDark = LocalDarkTheme.current
-
-    // 关闭时底色鲜艳红色，开启时底色鲜艳绿色
-    val trackBgColor = if (checked) {
-        if (isDark) Color(0xFF059669) else Color(0xFF10B981)
-    } else {
-        if (isDark) Color(0xFFDC2626) else Color(0xFFEF4444)
-    }
-
-    val outerBorderColor = if (isDark) {
-        Color.White.copy(alpha = 0.22f)
-    } else {
-        Color.White.copy(alpha = 0.95f)
-    }
-
-    // 1. 外框：带 3D 浮雕与发光高光轮廓的底座
-    Box(
-        modifier = modifier
-            .width(54.dp)
-            .height(30.dp)
-            .neumorphicExtruded(shape = capsuleShape, elevation = 3.dp)
-            .border(1.5.dp, outerBorderColor, shape = capsuleShape)
-            .background(NeumorphicBg, shape = capsuleShape)
-            .clip(capsuleShape)
-            .clickable { onCheckedChange(!checked) }
-            .padding(3.dp),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        // 2. 内轨：凹槽刻痕与红/绿强对比底色
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(trackBgColor, shape = capsuleShape)
-                .neumorphicInset(shape = capsuleShape, elevation = 2.dp)
-                .clip(capsuleShape),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            // 3. 浮雕圆形滑块 (Knob)
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(2.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (thumbOffset > 0f) {
-                    Spacer(modifier = Modifier.weight(thumbOffset))
-                }
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
-                )
-                if (thumbOffset < 1f) {
-                    Spacer(modifier = Modifier.weight(1f - thumbOffset))
-                }
             }
         }
     }

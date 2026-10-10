@@ -135,6 +135,7 @@ fun DateDiffScreen(
     val scrollState = rememberScrollState()
     val isDark = LocalDarkTheme.current
     val lang = uiState.appLanguage
+    val effectiveLang = lang.getEffectiveLanguage()
 
     var showPickerForStart by remember { mutableStateOf(false) }
     var showPickerForEnd by remember { mutableStateOf(false) }
@@ -270,6 +271,14 @@ fun DateDiffScreen(
 
     if (showAddCustomDialog) {
         val dialogBg = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg
+        val customTitlePlaceholder = when (effectiveLang) {
+            AppLanguage.ENGLISH -> "e.g. Exam / Concert / Vacation"
+            AppLanguage.JAPANESE -> "例: 試験 / コンサート / 旅行"
+            AppLanguage.KOREAN -> "예: 시험 / 콘서트 / 휴가"
+            AppLanguage.TRADITIONAL_CHINESE -> "如: 考研倒數 / 演唱會 / 假期"
+            else -> "例如: 考研倒计时 / 看演唱会 / 毕业旅行"
+        }
+
         AlertDialog(
             onDismissRequest = { showAddCustomDialog = false },
             title = { Text(LanguageUtils.getString("add_countdown", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary) },
@@ -296,38 +305,76 @@ fun DateDiffScreen(
                         }
                     }
 
+                    // 1. 倒数日名称 (红圈 3D 凹槽 + 灰色提示文字)
                     Text(LanguageUtils.getString("anniversary_name", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
                             .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
-                            .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp))
+                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
                             .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
+                        if (customNameInput.isEmpty()) {
+                            Text(
+                                text = customTitlePlaceholder,
+                                fontSize = 13.sp,
+                                color = NeumorphicTextPrimary.copy(alpha = 0.40f)
+                            )
+                        }
                         BasicTextField(
                             value = customNameInput,
                             onValueChange = { customNameInput = it },
                             singleLine = true,
-                            textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                            textStyle = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
 
+                    // 2. 目标日期选择框 (黄圈 3D 凹槽 + 样式与年龄计算页 100% 对齐)
                     Text(LanguageUtils.getString("target_date", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    val inputShape14 = RoundedCornerShape(14.dp)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
-                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
-                            .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
-                            .clip(RoundedCornerShape(12.dp))
+                            .height(52.dp)
+                            .neumorphicInset(shape = inputShape14, elevation = 3.dp)
+                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape14)
+                            .background(NeumorphicBg, shape = inputShape14)
+                            .clip(inputShape14)
                             .clickable { showCustomDatePicker = true }
                             .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        Text(DateCalculatorUtils.formatDate(customDateInput, lang), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = NeumorphicAccent,
+                                    modifier = Modifier.padding(end = 8.dp).size(18.dp)
+                                )
+                                Text(
+                                    text = DateCalculatorUtils.formatDateWithWeek(customDateInput, lang),
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = NeumorphicTextPrimary
+                                )
+                            }
+
+                            Icon(
+                                imageVector = Icons.Default.EditCalendar,
+                                contentDescription = "Select Date",
+                                tint = NeumorphicAccent.copy(alpha = 0.8f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
 
                     Row(
@@ -519,7 +566,13 @@ fun DateDiffScreen(
                 }
             }
 
-            val isDark = LocalDarkTheme.current
+            val cardColorPalette = listOf(
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                Color(0xFFD1FAE5),
+                Color(0xFFFFEDD5),
+                Color(0xFFF3E8FF),
+                Color(0xFFFCE7F3)
+            )
 
             if (allPinnedCards.isNotEmpty()) {
                 Text(LanguageUtils.getString("fixed_countdown", lang), fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = NeumorphicAccent)
@@ -528,42 +581,7 @@ fun DateDiffScreen(
                 allPinnedCards.forEachIndexed { pIdx, (customItem, pair) ->
                     val (pinnedName, upcoming) = pair
                     val diffDays = DateCalculatorUtils.naturalDaysBetween(uiState.baseDate, upcoming)
-
-                    val cardBgColor = if (isDark) {
-                        when (pIdx % 5) {
-                            0 -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                            1 -> Color(0xFF065F46).copy(alpha = 0.45f)
-                            2 -> Color(0xFF7C2D12).copy(alpha = 0.45f)
-                            3 -> Color(0xFF581C87).copy(alpha = 0.45f)
-                            else -> Color(0xFF831843).copy(alpha = 0.45f)
-                        }
-                    } else {
-                        when (pIdx % 5) {
-                            0 -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                            1 -> Color(0xFFD1FAE5)
-                            2 -> Color(0xFFFFEDD5)
-                            3 -> Color(0xFFF3E8FF)
-                            else -> Color(0xFFFCE7F3)
-                        }
-                    }
-
-                    val cardTitleColor = if (!isDark && pIdx % 5 != 0) {
-                        Color(0xFF0F172A)
-                    } else {
-                        NeumorphicTextPrimary
-                    }
-
-                    val cardSubTextColor = if (!isDark && pIdx % 5 != 0) {
-                        Color(0xFF334155)
-                    } else {
-                        NeumorphicTextPrimary.copy(alpha = 0.68f)
-                    }
-
-                    val cardAccentColor = if (!isDark && pIdx % 5 != 0) {
-                        Color(0xFF0284C7)
-                    } else {
-                        NeumorphicAccent
-                    }
+                    val cardBgColor = cardColorPalette[pIdx % cardColorPalette.size]
 
                     val cardShape = RoundedCornerShape(22.dp)
                     Box(
@@ -589,16 +607,16 @@ fun DateDiffScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.PushPin, contentDescription = null, tint = cardAccentColor, modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.Default.PushPin, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
-                                    Text(pinnedName, fontWeight = FontWeight.ExtraBold, fontSize = 14.5.sp, color = cardTitleColor)
-                                    Text("${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(upcoming, lang)}", fontSize = 11.5.sp, color = cardSubTextColor)
+                                    Text(pinnedName, fontWeight = FontWeight.ExtraBold, fontSize = 14.5.sp, color = NeumorphicTextPrimary)
+                                    Text("${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(upcoming, lang)}", fontSize = 11.5.sp, color = NeumorphicTextPrimary.copy(alpha = 0.65f))
                                 }
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("${abs(diffDays)} ${LanguageUtils.getString("days_unit", lang)}", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = cardAccentColor)
+                                Text("${abs(diffDays)} ${LanguageUtils.getString("days_unit", lang)}", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
 
                                 Spacer(modifier = Modifier.width(10.dp))
 

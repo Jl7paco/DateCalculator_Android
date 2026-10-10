@@ -11,7 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -50,9 +49,9 @@ import me.paco.datecalculator.data.DateMode
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.WeekendRule
-import me.paco.datecalculator.ui.components.NeumorphicIconButton
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LanguageUtils
+import me.paco.datecalculator.util.LunarCalendarUtils
 import me.paco.datecalculator.util.ShareUtils
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -76,7 +75,6 @@ fun ResultCard(
 ) {
     val context = LocalContext.current
     val dateStr = DateCalculatorUtils.formatDate(resultDate, appLanguage)
-    val shortDateStr = resultDate.format(DateCalculatorUtils.SHORT_DATE_FORMATTER)
     val descStr = DateCalculatorUtils.formatDateWithWeek(resultDate, appLanguage)
     val isWork = DateCalculatorUtils.isWorkday(resultDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek)
 
@@ -99,66 +97,74 @@ fun ResultCard(
                 .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
                 .background(NeumorphicBg, shape = cardShape24)
                 .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
-                .padding(20.dp)
+                .padding(18.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Event,
-                        contentDescription = null,
-                        tint = NeumorphicAccent
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = titleDisplay,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = NeumorphicAccent
-                    )
-                }
+                Text(
+                    text = titleDisplay,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = NeumorphicAccent
+                )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
                     text = dateStr,
-                    fontSize = 30.sp,
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = NeumorphicTextPrimary
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                SuggestionChip(
-                    onClick = {},
-                    shape = CircleShape,
-                    label = {
-                        Text(
-                            text = chipDisplay,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = descStr,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary.copy(alpha = 0.85f)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(resultDate)
+                val fortune = LunarCalendarUtils.getDailyFortune(resultDate, constName, appLanguage)
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val localizedConstellation = LanguageUtils.getLocalizedConstellation(constName, appLanguage)
+                    SuggestionChip(
+                        onClick = {},
+                        shape = CircleShape,
+                        label = { Text("$constEmoji $localizedConstellation", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    )
+
+                    SuggestionChip(
+                        onClick = {},
+                        shape = CircleShape,
+                        label = { Text(chipDisplay, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "✨ ${fortune.summary}",
                     style = MaterialTheme.typography.bodySmall,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
                     color = NeumorphicTextPrimary.copy(alpha = 0.8f)
                 )
 
-                // 单段推算只保留总时间安排的主时间轴，取消子时间轴
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                val unitLabel = if (dateMode == DateMode.WORKDAY) LanguageUtils.getString("workday", appLanguage) else LanguageUtils.getString("natural_day", appLanguage)
                 val rawDays = daysInput.toLongOrNull() ?: 0L
                 val singleSegment = StageSegmentResult(
                     stageIndex = 0,
@@ -175,17 +181,12 @@ fun ResultCard(
                     baseDate = baseDate,
                     finalDate = resultDate,
                     segments = listOf(singleSegment),
-                    modeLabel = unitLabel,
-                    regionLabel = "${holidayRegion.flagEmoji} ${holidayRegion.getLocalizedName(appLanguage)}",
-                    showOuterCard = false,
-                    showExportButton = false,
-                    showSubTimeline = false,
+                    planTitle = "",
                     language = appLanguage
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // 右下角部署纯图标格式的复制与分享按钮
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -193,20 +194,22 @@ fun ResultCard(
                 ) {
                     NeumorphicIconButton(
                         icon = Icons.Default.Share,
-                        contentDescription = "分享结果",
+                        contentDescription = "Share",
+                        size = 36.dp,
                         onClick = {
                             ShareUtils.shareText(context, shareText)
                         }
                     )
 
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
                     NeumorphicIconButton(
                         icon = Icons.Default.ContentCopy,
-                        contentDescription = "复制结果",
+                        contentDescription = "Copy",
+                        size = 36.dp,
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("DateResult", "$shortDateStr ($dateStr)")
+                            val clip = ClipData.newPlainText("ResultDate", shareText)
                             clipboard.setPrimaryClip(clip)
                             Toast.makeText(context, copyToast, Toast.LENGTH_SHORT).show()
                         }

@@ -141,7 +141,7 @@ object LanguageUtils {
         "solar_to_lunar_title" to "农历 ➔ 公历",
         "lunar_convert_title" to "农历与公历转换",
         "custom_color" to "自定义色彩",
-        "palette_title" to "调色盘 (14 款精选主色调):"
+        "palette_title" to "调色盘 (18 款精选主色调):"
     )
 
     private val stringsZhTw = mapOf(
@@ -265,7 +265,7 @@ object LanguageUtils {
         "solar_to_lunar_title" to "農曆 ➔ 公曆",
         "lunar_convert_title" to "農曆與公曆轉換",
         "custom_color" to "自定義色彩",
-        "palette_title" to "調色盤 (14 款精選主色調):"
+        "palette_title" to "調色盤 (18 款精選主色調):"
     )
 
     private val stringsEn = mapOf(
@@ -389,7 +389,7 @@ object LanguageUtils {
         "solar_to_lunar_title" to "Lunar ➔ Solar",
         "lunar_convert_title" to "Lunar & Solar Converter",
         "custom_color" to "Custom Color",
-        "palette_title" to "Palette Presets:"
+        "palette_title" to "Palette Presets (18 Selected Colors):"
     )
 
     private val stringsJa = mapOf(
@@ -513,7 +513,7 @@ object LanguageUtils {
         "solar_to_lunar_title" to "旧暦 ➔ 新暦",
         "lunar_convert_title" to "旧暦・新暦変換",
         "custom_color" to "カスタムカラー",
-        "palette_title" to "カラーパレット:"
+        "palette_title" to "カラーパレット (18色):"
     )
 
     private val stringsKo = mapOf(
@@ -637,7 +637,7 @@ object LanguageUtils {
         "solar_to_lunar_title" to "음력 ➔ 양력",
         "lunar_convert_title" to "음력·양력 변환",
         "custom_color" to "사용자 정의 색상",
-        "palette_title" to "팔레트 프셋:"
+        "palette_title" to "팔레트 프셋 (18가지 색상):"
     )
 
     fun getLocalizedYearMonth(yearMonth: YearMonth, language: AppLanguage): String {
@@ -832,22 +832,141 @@ object LanguageUtils {
         return rawTag
     }
 
-    fun getLocalizedCityName(rawCityName: String, language: AppLanguage): String {
-        return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> rawCityName
-            AppLanguage.TRADITIONAL_CHINESE -> when (rawCityName) {
-                "北京市" -> "北京市"; "上海市" -> "上海市"; "广州市" -> "廣州市"; "深圳市" -> "深圳市"; else -> rawCityName
+    fun getLocalizedCityName(rawLocation: String, language: AppLanguage): String {
+        val effective = language.getEffectiveLanguage()
+        if (effective == AppLanguage.SIMPLIFIED_CHINESE) {
+            return rawLocation
+        }
+
+        val parts = rawLocation.split("·").map { it.trim() }
+        val cityPart = parts.firstOrNull() ?: rawLocation
+        val districtPart = if (parts.size > 1) parts[1] else ""
+
+        val translatedCity = translateSingleCity(cityPart, effective)
+        val translatedDistrict = if (districtPart.isNotBlank()) translateSingleDistrict(districtPart, effective) else ""
+
+        return if (translatedDistrict.isNotBlank()) {
+            if (effective == AppLanguage.ENGLISH) {
+                "$translatedDistrict, $translatedCity"
+            } else {
+                "$translatedCity · $translatedDistrict"
             }
-            AppLanguage.ENGLISH -> when (rawCityName) {
-                "北京市" -> "Beijing"; "上海市" -> "Shanghai"; "广州市" -> "Guangzhou"; "深圳市" -> "Shenzhen"; else -> rawCityName
+        } else {
+            translatedCity
+        }
+    }
+
+    private fun translateSingleCity(cityName: String, language: AppLanguage): String {
+        return when (language) {
+            AppLanguage.TRADITIONAL_CHINESE -> when {
+                cityName.contains("北京") -> "北京市"
+                cityName.contains("上海") -> "上海市"
+                cityName.contains("广州") -> "廣州市"
+                cityName.contains("深圳") -> "深圳市"
+                cityName.contains("杭州") -> "杭州市"
+                cityName.contains("成都") -> "成都市"
+                cityName.contains("南京") -> "南京市"
+                cityName.contains("香港") -> "香港特別行政區"
+                cityName.contains("澳门") -> "澳門特別行政區"
+                else -> cityName
             }
-            AppLanguage.JAPANESE -> when (rawCityName) {
-                "北京市" -> "北京"; "上海市" -> "上海"; "广州市" -> "広州"; "深圳市" -> "深セン"; else -> rawCityName
+            AppLanguage.ENGLISH -> when {
+                cityName.contains("北京") -> "Beijing"
+                cityName.contains("上海") -> "Shanghai"
+                cityName.contains("广州") -> "Guangzhou"
+                cityName.contains("深圳") -> "Shenzhen"
+                cityName.contains("杭州") -> "Hangzhou"
+                cityName.contains("成都") -> "Chengdu"
+                cityName.contains("武汉") -> "Wuhan"
+                cityName.contains("南京") -> "Nanjing"
+                cityName.contains("重庆") -> "Chongqing"
+                cityName.contains("天津") -> "Tianjin"
+                cityName.contains("西安") -> "Xi'an"
+                cityName.contains("台北") -> "Taipei"
+                cityName.contains("香港") -> "Hong Kong"
+                cityName.contains("澳门") -> "Macau"
+                cityName.contains("新加坡") -> "Singapore"
+                cityName.contains("东京") -> "Tokyo"
+                cityName.contains("首尔") -> "Seoul"
+                cityName.contains("伦敦") -> "London"
+                cityName.contains("纽约") -> "New York"
+                else -> cityName
             }
-            AppLanguage.KOREAN -> when (rawCityName) {
-                "北京市" -> "베이징"; "上海市" -> "상하이"; "广州市" -> "광저우"; "深圳市" -> "선전"; else -> rawCityName
+            AppLanguage.JAPANESE -> when {
+                cityName.contains("北京") -> "北京"
+                cityName.contains("上海") -> "上海"
+                cityName.contains("广州") -> "広州"
+                cityName.contains("深圳") -> "深セン"
+                cityName.contains("杭州") -> "杭州"
+                cityName.contains("成都") -> "成都"
+                cityName.contains("台北") -> "台北"
+                cityName.contains("香港") -> "香港"
+                else -> cityName
             }
-            else -> rawCityName
+            AppLanguage.KOREAN -> when {
+                cityName.contains("北京") -> "베이징"
+                cityName.contains("上海") -> "상하이"
+                cityName.contains("广州") -> "광저우"
+                cityName.contains("深圳") -> "선전"
+                cityName.contains("杭州") -> "항저우"
+                cityName.contains("成都") -> "청두"
+                cityName.contains("台北") -> "타이베이"
+                cityName.contains("香港") -> "홍콩"
+                else -> cityName
+            }
+            else -> cityName
+        }
+    }
+
+    private fun translateSingleDistrict(districtName: String, language: AppLanguage): String {
+        return when (language) {
+            AppLanguage.TRADITIONAL_CHINESE -> when {
+                districtName.contains("南山") -> "南山區"
+                districtName.contains("福田") -> "福田區"
+                districtName.contains("宝安") -> "寶安區"
+                districtName.contains("龙岗") -> "龍崗區"
+                districtName.contains("罗湖") -> "羅湖區"
+                districtName.contains("天河") -> "天河區"
+                districtName.contains("朝阳") -> "朝陽區"
+                districtName.contains("浦东") -> "浦東新區"
+                else -> districtName
+            }
+            AppLanguage.ENGLISH -> when {
+                districtName.contains("南山") -> "Nanshan"
+                districtName.contains("福田") -> "Futian"
+                districtName.contains("宝安") -> "Bao'an"
+                districtName.contains("龙岗") -> "Longgang"
+                districtName.contains("罗湖") -> "Luohu"
+                districtName.contains("龙华") -> "Longhua"
+                districtName.contains("坪山") -> "Pingshan"
+                districtName.contains("光明") -> "Guangming"
+                districtName.contains("盐田") -> "Yantian"
+                districtName.contains("天河") -> "Tianhe"
+                districtName.contains("越秀") -> "Yuexiu"
+                districtName.contains("海珠") -> "Haizhu"
+                districtName.contains("朝阳") -> "Chaoyang"
+                districtName.contains("海淀") -> "Haidian"
+                districtName.contains("浦东") -> "Pudong"
+                districtName.contains("黄浦") -> "Huangpu"
+                districtName.contains("静安") -> "Jing'an"
+                else -> districtName
+            }
+            AppLanguage.JAPANESE -> when {
+                districtName.contains("南山") -> "南山区"
+                districtName.contains("福田") -> "福田区"
+                districtName.contains("宝安") -> "宝安区"
+                districtName.contains("天河") -> "天河区"
+                districtName.contains("浦东") -> "浦東新区"
+                else -> districtName
+            }
+            AppLanguage.KOREAN -> when {
+                districtName.contains("南山") -> "남산구"
+                districtName.contains("福田") -> "푸톈구"
+                districtName.contains("宝安") -> "바오안구"
+                districtName.contains("天河") -> "톈허구"
+                else -> districtName
+            }
+            else -> districtName
         }
     }
 

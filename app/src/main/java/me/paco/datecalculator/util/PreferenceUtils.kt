@@ -15,6 +15,29 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
 
+enum class TemperatureUnit(val symbol: String, val label: String) {
+    CELSIUS("°C", "摄氏度"),
+    FAHRENHEIT("°F", "华氏度");
+
+    fun getLocalizedName(language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> "$label ($symbol)"
+            AppLanguage.TRADITIONAL_CHINESE -> when (this) { CELSIUS -> "攝氏度 ($symbol)"; FAHRENHEIT -> "華氏度 ($symbol)" }
+            AppLanguage.ENGLISH -> when (this) { CELSIUS -> "Celsius ($symbol)"; FAHRENHEIT -> "Fahrenheit ($symbol)" }
+            AppLanguage.JAPANESE -> when (this) { CELSIUS -> "摂氏 ($symbol)"; FAHRENHEIT -> "華氏 ($symbol)" }
+            AppLanguage.KOREAN -> when (this) { CELSIUS -> "섭씨 ($symbol)"; FAHRENHEIT -> "화씨 ($symbol)" }
+            else -> "$label ($symbol)"
+        }
+    }
+
+    fun convertTemp(celsiusTemp: Int): Int {
+        return when (this) {
+            CELSIUS -> celsiusTemp
+            FAHRENHEIT -> ((celsiusTemp * 9.0 / 5.0) + 32.0).toInt()
+        }
+    }
+}
+
 object PreferenceUtils {
 
     private const val PREF_NAME = "date_calculator_prefs"
@@ -29,6 +52,7 @@ object PreferenceUtils {
     private const val KEY_CUSTOM_PRIMARY_COLOR = "key_custom_primary_color"
     private const val KEY_DARK_THEME_MODE = "key_dark_theme_mode"
     private const val KEY_APP_LANGUAGE = "key_app_language"
+    private const val KEY_TEMP_UNIT = "key_temp_unit"
 
     private const val KEY_HOME_SHOW = "key_home_show"
     private const val KEY_HOME_CALENDAR = "key_home_calendar"
@@ -80,8 +104,8 @@ object PreferenceUtils {
         return getPrefs(context).getBoolean(KEY_IS_BIG_WEEK, true)
     }
 
-    fun saveIsGpsAuto(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_IS_GPS_AUTO, enabled).apply()
+    fun saveIsGpsAuto(context: Context, isGpsAuto: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_IS_GPS_AUTO, isGpsAuto).apply()
     }
 
     fun getIsGpsAuto(context: Context): Boolean {
@@ -143,16 +167,30 @@ object PreferenceUtils {
         }
     }
 
+    fun saveTemperatureUnit(context: Context, unit: TemperatureUnit) {
+        getPrefs(context).edit().putString(KEY_TEMP_UNIT, unit.name).apply()
+    }
+
+    fun getTemperatureUnit(context: Context): TemperatureUnit {
+        val name = getPrefs(context).getString(KEY_TEMP_UNIT, TemperatureUnit.CELSIUS.name)
+        return try {
+            TemperatureUnit.valueOf(name ?: TemperatureUnit.CELSIUS.name)
+        } catch (_: Exception) {
+            TemperatureUnit.CELSIUS
+        }
+    }
+
     fun saveHomeConfig(context: Context, config: HomeConfig) {
-        getPrefs(context).edit()
-            .putBoolean(KEY_HOME_SHOW, config.showHomeScreen)
-            .putBoolean(KEY_HOME_CALENDAR, config.showCalendar)
-            .putBoolean(KEY_HOME_ALMANAC, config.showAlmanac)
-            .putBoolean(KEY_HOME_SOLAR_TERMS, config.showSolarTerms)
-            .putBoolean(KEY_HOME_LUNAR, config.showLunar)
-            .putBoolean(KEY_HOME_ZODIAC, config.showZodiacFortune)
-            .putBoolean(KEY_HOME_WEATHER, config.showWeather)
-            .apply()
+        getPrefs(context).edit().apply {
+            putBoolean(KEY_HOME_SHOW, config.showHomeScreen)
+            putBoolean(KEY_HOME_CALENDAR, config.showCalendar)
+            putBoolean(KEY_HOME_ALMANAC, config.showAlmanac)
+            putBoolean(KEY_HOME_SOLAR_TERMS, config.showSolarTerms)
+            putBoolean(KEY_HOME_LUNAR, config.showLunar)
+            putBoolean(KEY_HOME_ZODIAC, config.showZodiacFortune)
+            putBoolean(KEY_HOME_WEATHER, config.showWeather)
+            apply()
+        }
     }
 
     fun getHomeConfig(context: Context): HomeConfig {
@@ -169,70 +207,67 @@ object PreferenceUtils {
     }
 
     fun savePinnedEvents(context: Context, pinnedSet: Set<String>) {
-        getPrefs(context).edit().putStringSet(KEY_PINNED_EVENTS, pinnedSet).apply()
+        val array = JSONArray()
+        pinnedSet.forEach { array.put(it) }
+        getPrefs(context).edit().putString(KEY_PINNED_EVENTS, array.toString()).apply()
     }
 
     fun getPinnedEvents(context: Context): Set<String> {
-        val prefs = getPrefs(context)
-        if (!prefs.contains(KEY_PINNED_EVENTS)) {
-            val defaultPinned = setOf("🇨🇳 国庆节", "🎆 元旦")
-            prefs.edit().putStringSet(KEY_PINNED_EVENTS, defaultPinned).apply()
-            return defaultPinned
-        }
-        return prefs.getStringSet(KEY_PINNED_EVENTS, emptySet()) ?: emptySet()
+        val raw = getPrefs(context).getString(KEY_PINNED_EVENTS, null) ?: return emptySet()
+        val result = mutableSetOf<String>()
+        try {
+            val array = JSONArray(raw)
+            for (i in 0 until array.length()) {
+                result.add(array.getString(i))
+            }
+        } catch (_: Exception) {}
+        return result
     }
 
-    fun saveAnniversaries(context: Context, items: List<AnniversaryItem>) {
-        val limitedList = items.take(999)
-        val jsonArray = JSONArray()
-        limitedList.forEach { item ->
+    fun saveAnniversaries(context: Context, list: List<AnniversaryItem>) {
+        val array = JSONArray()
+        list.forEach { item ->
             val obj = JSONObject().apply {
                 put("id", item.id)
                 put("title", item.title)
-                put("date", item.date.toString())
+                put("dateEpoch", item.date.toEpochDay())
                 put("iconEmoji", item.iconEmoji)
                 put("isCheckIn", item.isCheckIn)
                 put("locationName", item.locationName)
-                put("latitude", item.latitude ?: JSONObject.NULL)
-                put("longitude", item.longitude ?: JSONObject.NULL)
                 put("checkInTimeStr", item.checkInTimeStr)
                 put("remark", item.remark)
                 put("isPinned", item.isPinned)
             }
-            jsonArray.put(obj)
+            array.put(obj)
         }
-        getPrefs(context).edit().putString(KEY_ANNIVERSARIES_LIST, jsonArray.toString()).apply()
+        getPrefs(context).edit().putString(KEY_ANNIVERSARIES_LIST, array.toString()).apply()
     }
 
     fun getAnniversaries(context: Context): List<AnniversaryItem> {
-        val jsonStr = getPrefs(context).getString(KEY_ANNIVERSARIES_LIST, null) ?: return emptyList()
-        val list = mutableListOf<AnniversaryItem>()
+        val raw = getPrefs(context).getString(KEY_ANNIVERSARIES_LIST, null) ?: return emptyList()
+        val result = mutableListOf<AnniversaryItem>()
         try {
-            val jsonArray = JSONArray(jsonStr)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
+            val array = JSONArray(raw)
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
                 val id = obj.optLong("id", System.currentTimeMillis())
-                val title = obj.getString("title")
-                val date = LocalDate.parse(obj.getString("date"))
-                val iconEmoji = obj.optString("iconEmoji", "❤️")
+                val title = obj.optString("title", "")
+                val epoch = obj.optLong("dateEpoch", LocalDate.now().toEpochDay())
+                val emoji = obj.optString("iconEmoji", "❤️")
                 val isCheckIn = obj.optBoolean("isCheckIn", false)
                 val locationName = obj.optString("locationName", "")
-                val lat = if (obj.isNull("latitude")) null else obj.optDouble("latitude")
-                val lng = if (obj.isNull("longitude")) null else obj.optDouble("longitude")
                 val checkInTimeStr = obj.optString("checkInTimeStr", "")
                 val remark = obj.optString("remark", "")
                 val isPinned = obj.optBoolean("isPinned", false)
 
-                list.add(
+                result.add(
                     AnniversaryItem(
                         id = id,
                         title = title,
-                        date = date,
-                        iconEmoji = iconEmoji,
+                        date = LocalDate.ofEpochDay(epoch),
+                        iconEmoji = emoji,
                         isCheckIn = isCheckIn,
                         locationName = locationName,
-                        latitude = lat,
-                        longitude = lng,
                         checkInTimeStr = checkInTimeStr,
                         remark = remark,
                         isPinned = isPinned
@@ -240,53 +275,57 @@ object PreferenceUtils {
                 )
             }
         } catch (_: Exception) {}
-        return list
+        return result
     }
 
-    fun saveCustomEvents(context: Context, items: List<CustomEventItem>) {
-        val limitedList = items.take(999)
-        val jsonArray = JSONArray()
-        limitedList.forEach { item ->
+    fun saveCustomEvents(context: Context, list: List<CustomEventItem>) {
+        val array = JSONArray()
+        list.forEach { item ->
             val obj = JSONObject().apply {
                 put("id", item.id)
-                put("iconEmoji", item.iconEmoji)
                 put("name", item.name)
-                put("targetDate", item.targetDate.toString())
+                put("targetDateEpoch", item.targetDate.toEpochDay())
+                put("iconEmoji", item.iconEmoji)
                 put("repeatMode", item.repeatMode.name)
                 put("isPinned", item.isPinned)
             }
-            jsonArray.put(obj)
+            array.put(obj)
         }
-        getPrefs(context).edit().putString(KEY_CUSTOM_EVENTS_LIST, jsonArray.toString()).apply()
+        getPrefs(context).edit().putString(KEY_CUSTOM_EVENTS_LIST, array.toString()).apply()
     }
 
     fun getCustomEvents(context: Context): List<CustomEventItem> {
-        val jsonStr = getPrefs(context).getString(KEY_CUSTOM_EVENTS_LIST, null) ?: return emptyList()
-        val list = mutableListOf<CustomEventItem>()
+        val raw = getPrefs(context).getString(KEY_CUSTOM_EVENTS_LIST, null) ?: return emptyList()
+        val result = mutableListOf<CustomEventItem>()
         try {
-            val jsonArray = JSONArray(jsonStr)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val id = obj.optLong("id", System.nanoTime())
-                val iconEmoji = obj.optString("iconEmoji", "📌")
-                val name = obj.getString("name")
-                val targetDate = LocalDate.parse(obj.getString("targetDate"))
-                val repeatModeName = obj.optString("repeatMode", EventRepeatMode.NONE.name)
-                val repeatMode = try { EventRepeatMode.valueOf(repeatModeName) } catch (_: Exception) { EventRepeatMode.NONE }
+            val array = JSONArray(raw)
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val id = obj.optLong("id", System.currentTimeMillis())
+                val name = obj.optString("name", "")
+                val epoch = obj.optLong("targetDateEpoch", LocalDate.now().toEpochDay())
+                val emoji = obj.optString("iconEmoji", "📌")
+                val repeatName = obj.optString("repeatMode", EventRepeatMode.NONE.name)
                 val isPinned = obj.optBoolean("isPinned", false)
 
-                list.add(
+                val repeatMode = try {
+                    EventRepeatMode.valueOf(repeatName)
+                } catch (_: Exception) {
+                    EventRepeatMode.NONE
+                }
+
+                result.add(
                     CustomEventItem(
                         id = id,
-                        iconEmoji = iconEmoji,
                         name = name,
-                        targetDate = targetDate,
+                        targetDate = LocalDate.ofEpochDay(epoch),
+                        iconEmoji = emoji,
                         repeatMode = repeatMode,
                         isPinned = isPinned
                     )
                 )
             }
         } catch (_: Exception) {}
-        return list
+        return result
     }
 }

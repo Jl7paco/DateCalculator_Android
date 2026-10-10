@@ -23,11 +23,12 @@ import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.ThemeColorPreset
 import me.paco.datecalculator.data.WeekendRule
-import me.paco.datecalculator.util.DailyWeather
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LocationUtils
 import me.paco.datecalculator.util.PreferenceUtils
+import me.paco.datecalculator.util.RealTimeWeatherData
+import me.paco.datecalculator.util.TemperatureUnit
 import me.paco.datecalculator.util.WeatherUtils
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -139,15 +140,15 @@ data class DateCalculatorUiState(
     val anniversaryList: List<AnniversaryItem> = emptyList(),
     val fireworksTrigger: Int = 0,
 
-    // V3.0 新增状态 (新增：SYSTEM跟随系统作为默认值)
     val themePreset: ThemeColorPreset = ThemeColorPreset.SYSTEM,
     val customPrimaryColorHex: Long = 0xFF2563EB,
     val darkThemeMode: DarkThemeMode = DarkThemeMode.SYSTEM,
     val appLanguage: AppLanguage = AppLanguage.SYSTEM,
+    val temperatureUnit: TemperatureUnit = TemperatureUnit.CELSIUS,
     val homeConfig: HomeConfig = HomeConfig(),
     val selectedBirthDate: LocalDate = LocalDate.of(2000, 1, 1),
-    val currentCityName: String = "北京市",
-    val liveWeatherList: List<DailyWeather>? = null
+    val currentCityName: String = "深圳市 · 南山区",
+    val liveWeatherData: RealTimeWeatherData? = null
 )
 
 class DateCalculatorViewModel : ViewModel() {
@@ -165,6 +166,7 @@ class DateCalculatorViewModel : ViewModel() {
         val customColor = PreferenceUtils.getCustomPrimaryColor(context)
         val darkThemeMode = PreferenceUtils.getDarkThemeMode(context)
         val appLanguage = PreferenceUtils.getAppLanguage(context)
+        val tempUnit = PreferenceUtils.getTemperatureUnit(context)
         val homeConfig = PreferenceUtils.getHomeConfig(context)
         val savedPinnedSet = PreferenceUtils.getPinnedEvents(context)
         val savedAnniversaries = PreferenceUtils.getAnniversaries(context)
@@ -186,6 +188,7 @@ class DateCalculatorViewModel : ViewModel() {
             customPrimaryColorHex = customColor,
             darkThemeMode = darkThemeMode,
             appLanguage = appLanguage,
+            temperatureUnit = tempUnit,
             homeConfig = homeConfig,
             pinnedPresetHolidays = savedPinnedSet,
             customEvents = updatedCustomEvents,
@@ -251,18 +254,34 @@ class DateCalculatorViewModel : ViewModel() {
 
     fun fetchCurrentGpsLocation(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
-            val cityName = LocationUtils.getCurrentCityName(context)
+            val districtLoc = LocationUtils.getCurrentLocationWithDistrict(context)
             val region = LocationUtils.detectCurrentRegion(context)
-            val coords = WeatherUtils.getCityCoordinates(cityName)
-            val realWeather = WeatherUtils.fetchRealLiveWeather(coords.first, coords.second)
+            val realWeather = WeatherUtils.fetchRealLiveWeather(districtLoc.latitude, districtLoc.longitude)
                 ?: WeatherUtils.getWeatherForecast(LocalDate.now())
 
             withContext(Dispatchers.Main) {
                 _uiState.value = _uiState.value.copy(
                     holidayRegion = region,
-                    currentCityName = cityName,
-                    liveWeatherList = realWeather
+                    currentCityName = districtLoc.fullDisplayName,
+                    liveWeatherData = realWeather
                 )
+            }
+
+            // 触发单次 GPS/网络 实时高精度的最新位置回调更新
+            LocationUtils.requestSingleLocationUpdate(context) { freshDist ->
+                if (freshDist != null) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val freshWeather = WeatherUtils.fetchRealLiveWeather(freshDist.latitude, freshDist.longitude)
+                            ?: WeatherUtils.getWeatherForecast(LocalDate.now())
+
+                        withContext(Dispatchers.Main) {
+                            _uiState.value = _uiState.value.copy(
+                                currentCityName = freshDist.fullDisplayName,
+                                liveWeatherData = freshWeather
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -292,6 +311,11 @@ class DateCalculatorViewModel : ViewModel() {
     fun updateAppLanguage(language: AppLanguage, context: Context? = null) {
         _uiState.value = _uiState.value.copy(appLanguage = language)
         context?.let { PreferenceUtils.saveAppLanguage(it, language) }
+    }
+
+    fun updateTemperatureUnit(unit: TemperatureUnit, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(temperatureUnit = unit)
+        context?.let { PreferenceUtils.saveTemperatureUnit(it, unit) }
     }
 
     fun updateCustomPrimaryColor(colorHex: Long, context: Context? = null) {

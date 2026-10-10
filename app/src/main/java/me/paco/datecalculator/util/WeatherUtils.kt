@@ -17,6 +17,12 @@ data class DailyWeather(
     val tempMax: Int
 )
 
+data class RealTimeWeatherData(
+    val currentTemp: Int,
+    val currentFeelsLikeTemp: Int,
+    val dailyList: List<DailyWeather>
+)
+
 object WeatherUtils {
 
     fun getCityCoordinates(cityName: String): Pair<Double, Double> {
@@ -41,7 +47,7 @@ object WeatherUtils {
             clean.contains("首尔") -> Pair(37.5665, 126.9780)
             clean.contains("伦敦") -> Pair(51.5074, -0.1278)
             clean.contains("纽约") -> Pair(40.7128, -74.0060)
-            else -> Pair(22.5431, 114.0579) // 默认深圳市
+            else -> Pair(22.5431, 114.0579)
         }
     }
 
@@ -114,11 +120,11 @@ object WeatherUtils {
     }
 
     /**
-     * 实时抓取并解析 Open-Meteo 真实气象天气推算
+     * 实时抓取 Open-Meteo 当前温度、当前体感温度与未来 4 天每日预报
      */
-    fun fetchRealLiveWeather(lat: Double, lon: Double): List<DailyWeather>? {
+    fun fetchRealLiveWeather(lat: Double, lon: Double): RealTimeWeatherData? {
         return try {
-            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto"
+            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto"
             val url = URL(urlStr)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
@@ -131,6 +137,10 @@ object WeatherUtils {
                 reader.close()
 
                 val json = JSONObject(response)
+                val current = json.optJSONObject("current")
+                val curTemp = current?.optDouble("temperature_2m")?.toInt() ?: 25
+                val curFeels = current?.optDouble("apparent_temperature")?.toInt() ?: (curTemp + 2)
+
                 val daily = json.getJSONObject("daily")
                 val codes = daily.getJSONArray("weathercode")
                 val maxTemps = daily.getJSONArray("temperature_2m_max")
@@ -155,7 +165,11 @@ object WeatherUtils {
                         )
                     )
                 }
-                weatherList
+                RealTimeWeatherData(
+                    currentTemp = curTemp,
+                    currentFeelsLikeTemp = curFeels,
+                    dailyList = weatherList
+                )
             } else {
                 null
             }
@@ -179,9 +193,9 @@ object WeatherUtils {
     }
 
     /**
-     * 根据离线离散数学算式推算高质感的 4 天天气模拟预报
+     * 根据离线离散数学算式推算 4 天天气模拟预报
      */
-    fun getWeatherForecast(date: LocalDate): List<DailyWeather> {
+    fun getWeatherForecast(date: LocalDate): RealTimeWeatherData {
         val baseSeed = date.toEpochDay().toInt()
         val tempBase = 22 + (abs(baseSeed) % 8)
 
@@ -210,6 +224,10 @@ object WeatherUtils {
                 )
             )
         }
-        return result
+        return RealTimeWeatherData(
+            currentTemp = tempBase + 3,
+            currentFeelsLikeTemp = tempBase + 5,
+            dailyList = result
+        )
     }
 }

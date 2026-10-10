@@ -96,6 +96,7 @@ fun HomeScreen(
     val lang = uiState.appLanguage
     val effectiveLang = lang.getEffectiveLanguage()
     val isChineseLanguage = (effectiveLang == AppLanguage.SIMPLIFIED_CHINESE || effectiveLang == AppLanguage.TRADITIONAL_CHINESE)
+    val isSimplifiedChinese = (effectiveLang == AppLanguage.SIMPLIFIED_CHINESE)
 
     var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
     var selectedCalendarDate by remember { mutableStateOf(LocalDate.now()) }
@@ -159,7 +160,8 @@ fun HomeScreen(
     val almanac = LunarCalendarUtils.getAlmanacYiJi(selectedCalendarDate)
     val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(selectedCalendarDate)
     val fortune = LunarCalendarUtils.getDailyFortune(selectedCalendarDate, constName, lang)
-    val weatherList = uiState.liveWeatherList ?: WeatherUtils.getWeatherForecast(selectedCalendarDate)
+    val realWeatherData = uiState.liveWeatherData ?: WeatherUtils.getWeatherForecast(selectedCalendarDate)
+    val weatherList = realWeatherData.dailyList
 
     HistoryOverlayDialog(
         visible = showHistoryDialog,
@@ -224,7 +226,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ================= 月历视图 (全新规则：仅在 简体/繁体中文 界面设置下展示农历) =================
+        // ================= 月历视图 (切换月份的箭头直接贴合在月份两侧，避免与“今天”产生误解) =================
         if (homeConfig.showCalendar) {
             Box(
                 modifier = Modifier
@@ -237,6 +239,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // 左侧组：日历图标 + 上个月 [<] 年月标题 [>] 下个月
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.CalendarMonth,
@@ -245,18 +248,11 @@ fun HomeScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = LanguageUtils.getLocalizedYearMonth(currentYearMonth, lang),
-                                fontSize = 15.5.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = NeumorphicTextPrimary
-                            )
-                        }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // 上个月箭头 [<]
                             Box(
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(26.dp)
                                     .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
                                     .background(NeumorphicBg, shape = CircleShape)
                                     .clip(CircleShape)
@@ -265,28 +261,29 @@ fun HomeScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "上个月", tint = NeumorphicAccent, modifier = Modifier.size(14.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "上个月",
+                                    tint = NeumorphicAccent,
+                                    modifier = Modifier.size(13.dp)
+                                )
                             }
 
-                            Box(
-                                modifier = Modifier
-                                    .height(28.dp)
-                                    .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                                    .background(NeumorphicAccent, shape = CircleShape)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        currentYearMonth = YearMonth.now()
-                                        selectedCalendarDate = LocalDate.now()
-                                    }
-                                    .padding(horizontal = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(LanguageUtils.getString("today", lang), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                            }
+                            Spacer(modifier = Modifier.width(6.dp))
 
+                            Text(
+                                text = LanguageUtils.getLocalizedYearMonth(currentYearMonth, lang),
+                                fontSize = 15.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeumorphicTextPrimary
+                            )
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            // 下个月箭头 [>]
                             Box(
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(26.dp)
                                     .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
                                     .background(NeumorphicBg, shape = CircleShape)
                                     .clip(CircleShape)
@@ -295,8 +292,35 @@ fun HomeScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "下个月", tint = NeumorphicAccent, modifier = Modifier.size(14.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = "下个月",
+                                    tint = NeumorphicAccent,
+                                    modifier = Modifier.size(13.dp)
+                                )
                             }
+                        }
+
+                        // 右侧：独立“今天”跳转胶囊按键
+                        Box(
+                            modifier = Modifier
+                                .height(28.dp)
+                                .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                                .background(NeumorphicAccent, shape = CircleShape)
+                                .clip(CircleShape)
+                                .clickable {
+                                    currentYearMonth = YearMonth.now()
+                                    selectedCalendarDate = LocalDate.now()
+                                }
+                                .padding(horizontal = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = LanguageUtils.getString("today", lang),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp
+                            )
                         }
                     }
 
@@ -398,9 +422,10 @@ fun HomeScreen(
                                                     softWrap = false
                                                 )
 
-                                                if (isStatutory) {
+                                                // 规则：休与班的脚标字只在简体中文设置下才显示
+                                                if (isSimplifiedChinese && isStatutory) {
                                                     Text(" 休", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFFEF4444))
-                                                } else if (isShift) {
+                                                } else if (isSimplifiedChinese && isShift) {
                                                     Text(" 班", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFF10B981))
                                                 }
                                             }
@@ -426,7 +451,8 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            // 增加透气拉开的舒适间距，防止下面的信息卡片紧贴月历底部
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         // ================= 当日黄历、节气、农历、天气、星座运势 =================
@@ -571,9 +597,11 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // 2. 当日及未来三日天气预报 Card (城市地名多语言翻译 + 图标浮动呼吸动效)
+        // 2. 当日及未来三日天气预报 Card (当前实时温度与当前体感置于卡片右上角，每日预报移除体感)
         if (homeConfig.showWeather) {
             val weatherShape = RoundedCornerShape(22.dp)
+            val unit = uiState.temperatureUnit
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -583,13 +611,38 @@ fun HomeScreen(
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { viewModel.fetchCurrentGpsLocation(context) }
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
-                        Text("📍 $localizedCity · ${LanguageUtils.getString("forecast_title", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 12.5.sp)
+                        // 左上角：定位位置
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { viewModel.fetchCurrentGpsLocation(context) }
+                        ) {
+                            Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
+                            Text("📍 $localizedCity", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 13.5.sp)
+                        }
+
+                        // 右上角：当前温度与当前体感温度
+                        val curDisplayTemp = unit.convertTemp(realWeatherData.currentTemp)
+                        val curDisplayFeels = unit.convertTemp(realWeatherData.currentFeelsLikeTemp)
+                        val feelsLabel = when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "Feels"
+                            AppLanguage.JAPANESE -> "体感"
+                            AppLanguage.KOREAN -> "체감"
+                            AppLanguage.TRADITIONAL_CHINESE -> "體感"
+                            else -> "体感"
+                        }
+
+                        Text(
+                            text = "$curDisplayTemp${unit.symbol} · $feelsLabel $curDisplayFeels${unit.symbol}",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = NeumorphicAccent
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -599,6 +652,9 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         weatherList.forEach { weather ->
+                            val displayMin = unit.convertTemp(weather.tempMin)
+                            val displayMax = unit.convertTemp(weather.tempMax)
+
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -620,8 +676,8 @@ fun HomeScreen(
                                     )
                                     Spacer(modifier = Modifier.height(3.dp))
                                     Text(LanguageUtils.getWeatherCondition(weather.condition, lang), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text("${weather.tempMin}°~${weather.tempMax}°", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("$displayMin${unit.symbol}~$displayMax${unit.symbol}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                                 }
                             }
                         }

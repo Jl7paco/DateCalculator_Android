@@ -6,104 +6,50 @@ import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.WeekendRule
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoField
 import java.time.temporal.ChronoUnit
-import java.time.temporal.WeekFields
-import java.util.Locale
 import kotlin.math.abs
-
-enum class TimelineBlockType {
-    WORKDAY,          // 工作日 (蓝)
-    WEEKEND_REST,     // 周末双休 (琥珀金)
-    STATUTORY_HOLIDAY // 法定节假日 (玫瑰红)
-}
-
-data class ChronologicalBlock(
-    val startDate: LocalDate,
-    val endDate: LocalDate,
-    val type: TimelineBlockType,
-    val daysCount: Long
-)
-
-data class TimelineBlock(
-    val type: TimelineBlockType,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
-    val daysCount: Long
-)
-
-data class RangeBreakdownResult(
-    val startDate: LocalDate,
-    val endDate: LocalDate,
-    val totalCalendarDays: Long,
-    val workdays: Long,
-    val weekendDays: Long,
-    val statutoryHolidays: Long,
-    val shiftWorkdays: Long
-)
 
 object DateCalculatorUtils {
 
-    val DATE_FORMATTER_ZH: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日")
-    val DATE_FORMATTER_EN: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    val SHORT_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val DISPLAY_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日")
+    val SHORT_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("M月d日")
 
-    fun formatDate(
-        date: LocalDate,
-        language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE
-    ): String {
+    fun formatDate(date: LocalDate, language: AppLanguage): String {
         return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE, AppLanguage.JAPANESE -> date.format(DATE_FORMATTER_ZH)
-            AppLanguage.KOREAN -> String.format("%d년 %02d월 %02d일", date.year, date.monthValue, date.dayOfMonth)
+            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE -> {
+                date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"))
+            }
+            AppLanguage.ENGLISH -> {
+                date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+            }
+            AppLanguage.JAPANESE -> {
+                date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"))
+            }
+            AppLanguage.KOREAN -> {
+                date.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일"))
+            }
             else -> {
-                val mName = date.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
-                String.format("%s %02d, %d", mName, date.dayOfMonth, date.year)
+                date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"))
             }
         }
     }
 
-    fun formatDateWithWeek(
-        date: LocalDate,
-        language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE
-    ): String {
-        val weekFields = WeekFields.of(Locale.getDefault())
-        val weekNum = date.get(weekFields.weekOfWeekBasedYear())
+    fun formatDateWithWeek(date: LocalDate, language: AppLanguage): String {
+        val weekNumber = date.get(ChronoField.ALIGNED_WEEK_OF_YEAR)
+        val formattedDate = formatDate(date, language)
 
         return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> String.format("%d年%02d月%02d日 (第%d周)", date.year, date.monthValue, date.dayOfMonth, weekNum)
-            AppLanguage.TRADITIONAL_CHINESE -> String.format("%d年%02d月%02d日 (第%d週)", date.year, date.monthValue, date.dayOfMonth, weekNum)
-            AppLanguage.JAPANESE -> String.format("%d年%02d月%02d日 (第%d週)", date.year, date.monthValue, date.dayOfMonth, weekNum)
-            AppLanguage.KOREAN -> String.format("%d년 %02d월 %02d일 (%d주차)", date.year, date.monthValue, date.dayOfMonth, weekNum)
-            else -> {
-                val mName = date.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
-                String.format("%s %02d, %d (Wk %d)", mName, date.dayOfMonth, date.year, weekNum)
-            }
-        }
-    }
-
-    /**
-     * 纯粹与所选 HolidayRegion 独立绑定 (完全不依赖系统语言) 的背景水印巨幕月份标语
-     */
-    fun getWatermarkMonthHeader(monthValue: Int, region: HolidayRegion): String {
-        return when (region) {
-            HolidayRegion.CHINA, HolidayRegion.TAIWAN, HolidayRegion.HONG_KONG, HolidayRegion.MACAO, HolidayRegion.JAPAN -> "${monthValue}月"
-            HolidayRegion.SOUTH_KOREA -> "${monthValue}월"
-            HolidayRegion.VIETNAM -> "Tháng $monthValue"
-            HolidayRegion.THAILAND -> when (monthValue) {
-                1 -> "ม.ค." ; 2 -> "ก.พ." ; 3 -> "มี.ค." ; 4 -> "เม.ย." ; 5 -> "พ.ค." ; 6 -> "มิ.ย."
-                7 -> "ก.ค." ; 8 -> "ส.ค." ; 9 -> "ก.ย." ; 10 -> "ต.ค." ; 11 -> "พ.ย." ; 12 -> "ธ.ค."
-                else -> "${monthValue}月"
-            }
-            HolidayRegion.FRANCE -> "SEPTEMBRE"
-            HolidayRegion.ITALY -> "SETTEMBRE"
-            else -> when (monthValue) { // 美、英、德、新、马、印、澳、新等欧美及英语系国家切换为原生英文月份单词
-                1 -> "JANUARY" ; 2 -> "FEBRUARY" ; 3 -> "MARCH" ; 4 -> "APRIL"
-                5 -> "MAY" ; 6 -> "JUNE" ; 7 -> "JULY" ; 8 -> "AUGUST"
-                9 -> "SEPTEMBER" ; 10 -> "OCTOBER" ; 11 -> "NOVEMBER" ; 12 -> "DECEMBER"
-                else -> "SEPTEMBER"
-            }
+            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE -> "$formattedDate (第${weekNumber}周)"
+            AppLanguage.ENGLISH -> "$formattedDate (Wk $weekNumber)"
+            AppLanguage.JAPANESE -> "$formattedDate (第${weekNumber}週)"
+            AppLanguage.KOREAN -> "$formattedDate (${weekNumber}주차)"
+            else -> "$formattedDate (第${weekNumber}周)"
         }
     }
 
@@ -112,85 +58,13 @@ object DateCalculatorUtils {
         weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
-        isCurrentWeekBigWeek: Boolean = true,
-        disableChinaShiftWorkdays: Boolean = false
-    ): Boolean {
-        if (!disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(date, holidayRegion)) {
-            return true
-        }
-
-        if (enableHolidays && RegionalHolidays.isStatutoryHoliday(date, holidayRegion)) {
-            return false
-        }
-
-        return !weekendRule.isWeekend(date, isCurrentWeekBigWeek)
-    }
-
-    fun decomposeChronologicalBlocks(
-        startDate: LocalDate,
-        endDate: LocalDate,
-        weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
-        enableHolidays: Boolean = true,
-        holidayRegion: HolidayRegion = HolidayRegion.CHINA,
         isCurrentWeekBigWeek: Boolean = true
-    ): List<ChronologicalBlock> {
-        val isReverse = startDate.isAfter(endDate)
-        val start = if (isReverse) endDate else startDate
-        val end = if (isReverse) startDate else endDate
+    ): Boolean {
+        val isShift = enableHolidays && RegionalHolidays.isShiftWorkday(date, holidayRegion)
+        val isStat = enableHolidays && RegionalHolidays.isStatutoryHoliday(date, holidayRegion)
+        val isWeekend = weekendRule.isWeekend(date, isCurrentWeekBigWeek)
 
-        val resultList = mutableListOf<ChronologicalBlock>()
-        var curr = start
-        var currentType: TimelineBlockType? = null
-        var blockStart = start
-        var blockDays = 0L
-
-        while (!curr.isAfter(end)) {
-            val isShift = RegionalHolidays.isShiftWorkday(curr, holidayRegion)
-            val isStatutory = enableHolidays && RegionalHolidays.isStatutoryHoliday(curr, holidayRegion)
-            val isWeekend = weekendRule.isWeekend(curr, isCurrentWeekBigWeek)
-
-            val type = when {
-                isShift -> TimelineBlockType.WORKDAY
-                isStatutory -> TimelineBlockType.STATUTORY_HOLIDAY
-                isWeekend -> TimelineBlockType.WEEKEND_REST
-                else -> TimelineBlockType.WORKDAY
-            }
-
-            if (currentType == null) {
-                currentType = type
-                blockStart = curr
-                blockDays = 1
-            } else if (currentType == type) {
-                blockDays++
-            } else {
-                resultList.add(
-                    ChronologicalBlock(
-                        startDate = blockStart,
-                        endDate = curr.minusDays(1),
-                        type = currentType,
-                        daysCount = blockDays
-                    )
-                )
-                currentType = type
-                blockStart = curr
-                blockDays = 1
-            }
-
-            curr = curr.plusDays(1)
-        }
-
-        if (currentType != null && blockDays > 0) {
-            resultList.add(
-                ChronologicalBlock(
-                    startDate = blockStart,
-                    endDate = end,
-                    type = currentType,
-                    daysCount = blockDays
-                )
-            )
-        }
-
-        return resultList
+        return if (isShift) true else if (isStat) false else !isWeekend
     }
 
     fun calculateTargetDate(
@@ -204,29 +78,39 @@ object DateCalculatorUtils {
         isCurrentWeekBigWeek: Boolean = true,
         disableChinaShiftWorkdays: Boolean = false
     ): LocalDate {
-        var result = baseDate
-        var remainingDays = days
-
         if (days == 0) return baseDate
 
-        val step = if (type == CalculationType.ADD) 1L else -1L
+        var currentDate = baseDate
+        var step = days
+        val isAdd = (type == CalculationType.ADD)
 
         if (!isWorkdayMode) {
-            return baseDate.plusDays(step * days)
+            return if (isAdd) baseDate.plusDays(days.toLong()) else baseDate.minusDays(days.toLong())
         }
 
-        while (remainingDays > 0) {
-            result = result.plusDays(step)
-            if (isWorkday(result, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek, disableChinaShiftWorkdays)) {
-                remainingDays--
+        while (step > 0) {
+            currentDate = if (isAdd) currentDate.plusDays(1) else currentDate.minusDays(1)
+
+            val isShiftWorkday = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(currentDate, holidayRegion)
+            val isStatutoryHoliday = enableHolidays && RegionalHolidays.isStatutoryHoliday(currentDate, holidayRegion)
+            val isWeekend = weekendRule.isWeekend(currentDate, isCurrentWeekBigWeek)
+
+            val isWorkingDay = if (isShiftWorkday) {
+                true
+            } else if (isStatutoryHoliday) {
+                false
+            } else if (isWeekend) {
+                false
+            } else {
+                true
+            }
+
+            if (isWorkingDay) {
+                step--
             }
         }
 
-        return result
-    }
-
-    fun naturalDaysBetween(startDate: LocalDate, endDate: LocalDate): Long {
-        return ChronoUnit.DAYS.between(startDate, endDate)
+        return currentDate
     }
 
     fun workdaysBetween(
@@ -238,65 +122,89 @@ object DateCalculatorUtils {
         isCurrentWeekBigWeek: Boolean = true,
         disableChinaShiftWorkdays: Boolean = false
     ): Long {
-        val isReverse = startDate.isAfter(endDate)
-        val start = if (isReverse) endDate else startDate
-        val end = if (isReverse) startDate else endDate
+        if (startDate == endDate) return 0L
 
-        var count = 0L
+        val isForward = startDate.isBefore(endDate)
+        val start = if (isForward) startDate else endDate
+        val end = if (isForward) endDate else startDate
+
+        var workdays = 0L
         var curr = start.plusDays(1)
 
         while (!curr.isAfter(end)) {
-            if (isWorkday(curr, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek, disableChinaShiftWorkdays)) {
-                count++
+            val isShiftWorkday = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion)
+            val isStatutoryHoliday = enableHolidays && RegionalHolidays.isStatutoryHoliday(curr, holidayRegion)
+            val isWeekend = weekendRule.isWeekend(curr, isCurrentWeekBigWeek)
+
+            val isWorkingDay = if (isShiftWorkday) {
+                true
+            } else if (isStatutoryHoliday) {
+                false
+            } else if (isWeekend) {
+                false
+            } else {
+                true
             }
+
+            if (isWorkingDay) {
+                workdays++
+            }
+
             curr = curr.plusDays(1)
         }
 
-        return if (isReverse) -count else count
+        return if (isForward) workdays else -workdays
     }
 
-    fun getDateDescription(
-        date: LocalDate,
-        language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE
-    ): String {
-        val eff = language.getEffectiveLanguage()
-        val weekDayName = when (eff) {
-            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE -> when (date.dayOfWeek) {
-                DayOfWeek.MONDAY -> "星期一"; DayOfWeek.TUESDAY -> "星期二"; DayOfWeek.WEDNESDAY -> "星期三"
-                DayOfWeek.THURSDAY -> "星期四"; DayOfWeek.FRIDAY -> "星期五"; DayOfWeek.SATURDAY -> "星期六"; DayOfWeek.SUNDAY -> "星期日"
+    fun naturalDaysBetween(startDate: LocalDate, endDate: LocalDate): Long {
+        return ChronoUnit.DAYS.between(startDate, endDate)
+    }
+
+    fun calculateBreakdown(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
+        enableHolidays: Boolean = true,
+        holidayRegion: HolidayRegion = HolidayRegion.CHINA,
+        isCurrentWeekBigWeek: Boolean = true,
+        disableChinaShiftWorkdays: Boolean = false
+    ): Triple<Long, Long, Long> {
+        val totalDays = abs(naturalDaysBetween(startDate, endDate))
+        if (totalDays == 0L) return Triple(0L, 0L, 0L)
+
+        val start = if (startDate.isBefore(endDate)) startDate else endDate
+        val end = if (startDate.isBefore(endDate)) endDate else startDate
+
+        var workdays = 0L
+        var holidays = 0L
+        var weekends = 0L
+
+        var curr = start.plusDays(1)
+        while (!curr.isAfter(end)) {
+            val isShiftWorkday = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion)
+            val isStatutoryHoliday = enableHolidays && RegionalHolidays.isStatutoryHoliday(curr, holidayRegion)
+            val isWeekend = weekendRule.isWeekend(curr, isCurrentWeekBigWeek)
+
+            if (isShiftWorkday) {
+                workdays++
+            } else if (isStatutoryHoliday) {
+                holidays++
+            } else if (isWeekend) {
+                weekends++
+            } else {
+                workdays++
             }
-            AppLanguage.JAPANESE -> when (date.dayOfWeek) {
-                DayOfWeek.MONDAY -> "月曜日"; DayOfWeek.TUESDAY -> "火曜日"; DayOfWeek.WEDNESDAY -> "水曜日"
-                DayOfWeek.THURSDAY -> "木曜日"; DayOfWeek.FRIDAY -> "金曜日"; DayOfWeek.SATURDAY -> "土曜日"; DayOfWeek.SUNDAY -> "日曜日"
-            }
-            AppLanguage.KOREAN -> when (date.dayOfWeek) {
-                DayOfWeek.MONDAY -> "월요일"; DayOfWeek.TUESDAY -> "화요일"; DayOfWeek.WEDNESDAY -> "수요일"
-                DayOfWeek.THURSDAY -> "목요일"; DayOfWeek.FRIDAY -> "금요일"; DayOfWeek.SATURDAY -> "토요일"; DayOfWeek.SUNDAY -> "일요일"
-            }
-            else -> when (date.dayOfWeek) {
-                DayOfWeek.MONDAY -> "Monday"; DayOfWeek.TUESDAY -> "Tuesday"; DayOfWeek.WEDNESDAY -> "Wednesday"
-                DayOfWeek.THURSDAY -> "Thursday"; DayOfWeek.FRIDAY -> "Friday"; DayOfWeek.SATURDAY -> "Saturday"; DayOfWeek.SUNDAY -> "Sunday"
-            }
+
+            curr = curr.plusDays(1)
         }
 
-        val dayOfYear = date.dayOfYear
-        val totalDaysInYear = date.lengthOfYear()
-        val weekOfWeekBasedYear = date.get(WeekFields.of(Locale.getDefault()).weekOfWeekBasedYear())
-        val isLeap = date.isLeapYear
-
-        return when (eff) {
-            AppLanguage.SIMPLIFIED_CHINESE -> "$weekDayName | 当年第 ${dayOfYear}/${totalDaysInYear} 天 | 第 $weekOfWeekBasedYear 周" + if (isLeap) " (闰年)" else ""
-            AppLanguage.TRADITIONAL_CHINESE -> "$weekDayName | 當年第 ${dayOfYear}/${totalDaysInYear} 天 | 第 $weekOfWeekBasedYear 週" + if (isLeap) " (閏年)" else ""
-            AppLanguage.JAPANESE -> "$weekDayName | 通算 $dayOfYear/${totalDaysInYear} 日 | 第 $weekOfWeekBasedYear 週" + if (isLeap) " (閏年)" else ""
-            AppLanguage.KOREAN -> "$weekDayName | 연중 $dayOfYear/${totalDaysInYear} 일 | $weekOfWeekBasedYear 주차" + if (isLeap) " (윤년)" else ""
-            else -> "$weekDayName | Day $dayOfYear/$totalDaysInYear | Wk $weekOfWeekBasedYear" + if (isLeap) " (Leap Year)" else ""
-        }
+        return Triple(workdays, holidays, weekends)
     }
 
     fun formatPeriod(
         startDate: LocalDate,
         endDate: LocalDate,
-        language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE
+        language: AppLanguage
     ): String {
         val start = if (startDate.isBefore(endDate)) startDate else endDate
         val end = if (startDate.isBefore(endDate)) endDate else startDate
@@ -339,5 +247,18 @@ object DateCalculatorUtils {
                 parts.joinToString(" ")
             }
         }
+    }
+
+    fun formatTimestamp(timestamp: Long, language: AppLanguage): String {
+        val date = Instant.ofEpochMilli(timestamp)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+        return formatDate(date, language)
+    }
+
+    fun getWatermarkMonthHeader(monthValue: Int, region: HolidayRegion): String {
+        val monthNames = listOf("一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月")
+        val monthName = monthNames.getOrElse(monthValue - 1) { "${monthValue}月" }
+        return "$monthName · ${region.flagEmoji}"
     }
 }
