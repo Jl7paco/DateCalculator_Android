@@ -39,8 +39,21 @@ val NeumorphicTextPrimary @Composable get() = if (LocalDarkTheme.current) {
     Color(0xFF1E293B)
 }
 
+// 统一全局的新拟物投影暗影色与高光色 (确保凹陷Inset与浮雕Extruded阴影色调100%统一无色差)
+private val neumorphicLightShadow @Composable get() = if (LocalDarkTheme.current) {
+    Color.White.copy(alpha = 0.18f)
+} else {
+    Color.White.copy(alpha = 0.95f)
+}
+
+private val neumorphicDarkShadow @Composable get() = if (LocalDarkTheme.current) {
+    Color.Black.copy(alpha = 0.70f)
+} else {
+    Color(0xFF8C9BAE).copy(alpha = 0.75f)
+}
+
 /**
- * 3D 浮雕悬浮新拟物效果 (浅色模式下专门强化高对比双重透视发光与冷灰沉降阴影；深色模式保持优异体验)
+ * 3D 浮雕悬浮新拟物效果 (Extruded)
  */
 @Composable
 fun Modifier.neumorphicExtruded(
@@ -48,16 +61,14 @@ fun Modifier.neumorphicExtruded(
     elevation: Dp = 6.dp
 ): Modifier {
     val isDark = LocalDarkTheme.current
-
-    // 浅色模式专属：强化 100% 纯白顶边定向高光与板岩蓝灰底部 3D 悬浮立面投影
-    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.98f)
-    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.70f) else Color(0xFF8C9BAE).copy(alpha = 0.78f)
+    val lightShadowColor = neumorphicLightShadow
+    val darkShadowColor = neumorphicDarkShadow
 
     return this.drawBehind {
         val shadowRadius = elevation.toPx()
         val shapeOutline = shape.createOutline(size, layoutDirection, this)
 
-        // 1. 右下自然投影暗影 (浅色模式下加大偏移，营造强烈的 3D 浮雕立体感)
+        // 1. 右下自然投影暗影
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
@@ -74,7 +85,7 @@ fun Modifier.neumorphicExtruded(
             canvas.drawOutline(shapeOutline, paint)
         }
 
-        // 2. 左上透视定向高光 (浅色模式下强反光，浮雕边缘清晰爆表)
+        // 2. 左上透视定向高光
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
@@ -94,16 +105,15 @@ fun Modifier.neumorphicExtruded(
 }
 
 /**
- * 3D 沉降凹槽刻痕效果 (凹陷：左上内侧深刻痕沉降暗影，右下内侧透视反光高光)
+ * 3D 沉降凹槽刻痕效果 (Inset)
  */
 @Composable
 fun Modifier.neumorphicInset(
     shape: Shape = RoundedCornerShape(14.dp),
     elevation: Dp = 5.dp
 ): Modifier {
-    val isDark = LocalDarkTheme.current
-    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.95f)
-    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.75f) else Color(0xFF818CF8).copy(alpha = 0.50f)
+    val lightShadowColor = neumorphicLightShadow
+    val darkShadowColor = neumorphicDarkShadow
 
     return this.drawBehind {
         val shadowRadius = elevation.toPx()

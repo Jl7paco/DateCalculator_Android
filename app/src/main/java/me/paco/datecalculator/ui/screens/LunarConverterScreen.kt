@@ -375,8 +375,6 @@ fun LunarConverterScreen(
                             .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
                             .background(NeumorphicBg, shape = cardShape24)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
-                            .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = cardShape24)
-                            .clip(cardShape24)
                             .padding(16.dp)
                     ) {
                         Column(
@@ -579,8 +577,6 @@ fun LunarConverterScreen(
                         .fillMaxWidth()
                         .neumorphicExtruded(shape = inputCardShape, elevation = 5.dp)
                         .background(NeumorphicBg, shape = inputCardShape)
-                        .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = inputCardShape)
-                        .clip(inputCardShape)
                         .padding(16.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -753,8 +749,6 @@ fun LunarConverterScreen(
                             .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
                             .background(NeumorphicBg, shape = cardShape24)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
-                            .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = cardShape24)
-                            .clip(cardShape24)
                             .padding(16.dp)
                     ) {
                         Column(

@@ -439,8 +439,6 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .neumorphicExtruded(shape = combinedShape, elevation = 5.dp)
                     .background(NeumorphicBg, shape = combinedShape)
-                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = combinedShape)
-                    .clip(combinedShape)
                     .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -581,8 +579,6 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .neumorphicExtruded(shape = weatherShape, elevation = 5.dp)
                     .background(NeumorphicBg, shape = weatherShape)
-                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = weatherShape)
-                    .clip(weatherShape)
                     .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -644,8 +640,6 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .neumorphicExtruded(shape = fortuneShape, elevation = 5.dp)
                     .background(NeumorphicBg, shape = fortuneShape)
-                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = fortuneShape)
-                    .clip(fortuneShape)
                     .padding(14.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {

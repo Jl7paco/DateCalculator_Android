@@ -99,8 +99,6 @@ fun ResultCard(
                 .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
                 .background(NeumorphicBg, shape = cardShape24)
                 .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
-                .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = cardShape24)
-                .clip(cardShape24)
                 .padding(20.dp)
         ) {
             Column(
