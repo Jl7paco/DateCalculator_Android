@@ -46,7 +46,7 @@
             android:textColor="#2563EB" />
     </LinearLayout>
 
-    <Space
+    <FrameLayout
         android:layout_width="10dp"
         android:layout_height="match_parent" />
 

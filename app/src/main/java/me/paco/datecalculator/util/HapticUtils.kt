@@ -9,26 +9,19 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 
 /**
- * 专为 3D 新拟物按键打造的强效双重物理机械触感反馈工具 (兼容三星 One UI / 全系 Android 机型)
+ * 强效物理机械触感反馈工具 (强制硬件马达震动，解决部分机型彻底无震感问题)
  */
 object HapticUtils {
 
-    /**
-     * 触发强效、清脆按压触感震动 (兼容三星等强行拦截震动的系统)
-     */
     fun performCrispClick(context: Context, view: View? = null) {
         try {
-            // 1. 优先触发系统级的清脆 View Haptic (三星 One UI 100% 响应)
+            // 1. 尝试系统级 View Haptic
             view?.performHapticFeedback(
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    HapticFeedbackConstants.CONFIRM
-                } else {
-                    HapticFeedbackConstants.KEYBOARD_TAP
-                },
+                HapticFeedbackConstants.KEYBOARD_TAP,
                 HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
             )
 
-            // 2. 强效硬件级 Vibrator 35ms 满幅震动补强
+            // 2. 绕过预设 Effect_Click，强制调用底层线性马达最大振幅的 OneShot
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 vibratorManager.defaultVibrator
@@ -38,9 +31,9 @@ object HapticUtils {
             }
 
             if (vibrator.hasVibrator()) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // 彻底抛弃 createPredefined，直接使用底层长脉冲强制触发
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // 35ms, 255 (最大振幅)
                     vibrator.vibrate(VibrationEffect.createOneShot(35L, 255))
                 } else {
                     @Suppress("DEPRECATION")
@@ -48,7 +41,6 @@ object HapticUtils {
                 }
             }
         } catch (_: Exception) {
-            // 防御性捕获
         }
     }
 }

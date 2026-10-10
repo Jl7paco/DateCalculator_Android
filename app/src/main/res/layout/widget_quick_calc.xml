@@ -75,7 +75,7 @@
             android:background="@drawable/widget_btn_neumorphic_accent"
             android:gravity="center" />
 
-        <Space
+        <FrameLayout
             android:layout_width="8dp"
             android:layout_height="match_parent" />
 
@@ -91,7 +91,7 @@
             android:background="@drawable/widget_btn_neumorphic_accent"
             android:gravity="center" />
 
-        <Space
+        <FrameLayout
             android:layout_width="8dp"
             android:layout_height="match_parent" />
 
