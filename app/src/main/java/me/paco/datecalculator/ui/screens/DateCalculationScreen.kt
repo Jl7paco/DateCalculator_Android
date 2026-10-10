@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,6 +72,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -120,7 +122,6 @@ fun DateCalculationScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val keyboardController = LocalSoftwareKeyboardController.current
-    val isDark = LocalDarkTheme.current
     val lang = uiState.appLanguage
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -200,11 +201,10 @@ fun DateCalculationScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Calculate,
-                        contentDescription = null,
-                        tint = NeumorphicAccent,
-                        modifier = Modifier.size(18.dp)
+                    NeumorphicIconHeaderBadge(
+                        icon = Icons.Default.Calculate,
+                        size = 28.dp,
+                        iconSize = 14.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -216,39 +216,19 @@ fun DateCalculationScreen(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showHistoryDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = LanguageUtils.getString("history_title", lang),
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    NeumorphicIconButton(
+                        icon = Icons.Default.History,
+                        onClick = { showHistoryDialog = true },
+                        contentDescription = LanguageUtils.getString("history_title", lang),
+                        size = 32.dp
+                    )
 
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showSettingsDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = LanguageUtils.getString("settings_title", lang),
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    NeumorphicIconButton(
+                        icon = Icons.Default.Settings,
+                        onClick = { showSettingsDialog = true },
+                        contentDescription = LanguageUtils.getString("settings_title", lang),
+                        size = 32.dp
+                    )
                 }
             }
 
@@ -468,15 +448,18 @@ fun DateCalculationScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = LanguageUtils.getString("multi_stage_btn", lang),
-                                fontWeight = FontWeight.ExtraBold,
-                                color = NeumorphicAccent,
-                                fontSize = 14.sp
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                NeumorphicIconHeaderBadge(
+                                    icon = Icons.Default.Timeline,
+                                    size = 26.dp,
+                                    iconSize = 14.dp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(LanguageUtils.getString("multi_stage_btn", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 14.sp)
+                            }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         val planPlaceholder = when (lang) {
                             AppLanguage.ENGLISH -> "Name this plan (e.g. Vacation / Renovation)"
@@ -506,6 +489,7 @@ fun DateCalculationScreen(
                                 onValueChange = { viewModel.updateMultiStagePlanTitle(it) },
                                 singleLine = true,
                                 textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                                cursorBrush = SolidColor(NeumorphicAccent),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -592,6 +576,7 @@ fun DateCalculationScreen(
                                         },
                                         singleLine = true,
                                         textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                                        cursorBrush = SolidColor(NeumorphicAccent),
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
@@ -629,6 +614,7 @@ fun DateCalculationScreen(
                                         },
                                         singleLine = true,
                                         textStyle = TextStyle(fontSize = 12.sp, color = NeumorphicTextPrimary),
+                                        cursorBrush = SolidColor(NeumorphicAccent),
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
@@ -710,6 +696,9 @@ fun DateCalculationScreen(
                             finalDate = finalDate,
                             baseDate = uiState.baseDate,
                             planTitle = uiState.multiStagePlanTitle,
+                            weekendRule = uiState.weekendRule,
+                            enableHolidays = uiState.enableChineseHolidays,
+                            holidayRegion = uiState.holidayRegion,
                             language = lang,
                             modifier = Modifier.fillMaxWidth()
                         )
