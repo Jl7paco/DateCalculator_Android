@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -61,6 +62,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.ui.components.DynamicCalendarWatermarkBg
+import me.paco.datecalculator.ui.components.NeumorphicAccent
+import me.paco.datecalculator.ui.components.NeumorphicBg
+import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
+import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.screens.AgeCalculatorScreen
 import me.paco.datecalculator.ui.screens.AnniversaryScreen
 import me.paco.datecalculator.ui.screens.DateCalculationScreen
@@ -121,7 +126,13 @@ fun MainScreen(
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f))
+                        .background(NeumorphicBg)
+                        .border(
+                            1.dp,
+                            NeumorphicTextPrimary.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+                        )
+                        .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
                         .pointerInput(navItems.size) {
                             detectTapGestures(
                                 onPress = { offset ->
@@ -172,14 +183,16 @@ fun MainScreen(
                     val pageFraction = pagerState.currentPage + pagerState.currentPageOffsetFraction
                     val indicatorOffsetX = tabWidth * pageFraction
 
+                    // 1:1 参考精品 3D 拟物图：凸起发光的浮雕胶囊按键底座
                     Box(
                         modifier = Modifier
                             .offset(x = indicatorOffsetX)
                             .width(tabWidth)
                             .height(68.dp)
-                            .padding(horizontal = 4.dp, vertical = 8.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(MaterialTheme.colorScheme.primary)
+                            .padding(horizontal = 6.dp, vertical = 6.dp)
+                            .neumorphicExtruded(shape = RoundedCornerShape(20.dp), elevation = 4.dp)
+                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(20.dp))
+                            .background(NeumorphicBg, shape = RoundedCornerShape(20.dp))
                     )
 
                     Row(
@@ -190,9 +203,11 @@ fun MainScreen(
                         navItems.forEachIndexed { index, (label, icon) ->
                             val distance = abs(pageFraction - index)
                             val selectedProgress = (1f - distance).coerceIn(0f, 1f)
-                            val textColor = lerp(
-                                start = MaterialTheme.colorScheme.onSurfaceVariant,
-                                stop = Color.White,
+
+                            // 点击保留当前高亮颜色：选中状态时 Icon 与 Text 均呈现亮蓝色 (NeumorphicAccent) 高光
+                            val itemContentColor = lerp(
+                                start = NeumorphicTextPrimary.copy(alpha = 0.45f),
+                                stop = NeumorphicAccent,
                                 fraction = selectedProgress
                             )
 
@@ -219,14 +234,14 @@ fun MainScreen(
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = label,
-                                    tint = textColor,
-                                    modifier = Modifier.size(19.dp)
+                                    tint = itemContentColor,
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = label,
-                                    color = textColor,
-                                    fontWeight = FontWeight.Bold,
+                                    color = itemContentColor,
+                                    fontWeight = if (selectedProgress > 0.5f) FontWeight.ExtraBold else FontWeight.Bold,
                                     fontSize = 10.5.sp
                                 )
                             }

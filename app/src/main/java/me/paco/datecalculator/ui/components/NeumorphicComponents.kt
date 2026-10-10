@@ -256,7 +256,7 @@ fun NeumorphicCapsuleSwitch(
 }
 
 /**
- * 3D 新拟物单选开关 (关闭时底色红色，开启时底色绿色，按键按钮颜色维持标准的 3D 拟物)
+ * 3D 新拟物单选开关 (1:1 参考精品拟物图：带发光外边框底座，关时鲜红底色，开时翠绿底色，浮雕 Knob 维持纯正拟物)
  */
 @Composable
 fun NeumorphicSwitch(
@@ -270,42 +270,63 @@ fun NeumorphicSwitch(
         label = "NeumorphicSwitchOffset"
     )
 
-    val trackShape = CircleShape
+    val capsuleShape = CircleShape
+    val isDark = LocalDarkTheme.current
 
-    // 关闭时底色红色，打开时底色绿色
+    // 关闭时底色鲜艳红色，开启时底色鲜艳绿色
     val trackBgColor = if (checked) {
-        Color(0xFF10B981).copy(alpha = 0.35f)
+        if (isDark) Color(0xFF059669) else Color(0xFF10B981)
     } else {
-        Color(0xFFEF4444).copy(alpha = 0.35f)
+        if (isDark) Color(0xFFDC2626) else Color(0xFFEF4444)
     }
 
+    val outerBorderColor = if (isDark) {
+        Color.White.copy(alpha = 0.22f)
+    } else {
+        Color.White.copy(alpha = 0.95f)
+    }
+
+    // 1. 外框：带 3D 浮雕与发光高光轮廓的底座
     Box(
         modifier = modifier
-            .width(52.dp)
-            .height(28.dp)
-            .background(trackBgColor, shape = trackShape)
-            .neumorphicInset(shape = trackShape, elevation = 3.dp)
-            .clip(trackShape)
+            .width(54.dp)
+            .height(30.dp)
+            .neumorphicExtruded(shape = capsuleShape, elevation = 3.dp)
+            .border(1.5.dp, outerBorderColor, shape = capsuleShape)
+            .background(NeumorphicBg, shape = capsuleShape)
+            .clip(capsuleShape)
             .clickable { onCheckedChange(!checked) }
-            .padding(2.dp),
+            .padding(3.dp),
         contentAlignment = Alignment.CenterStart
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
+        // 2. 内轨：凹槽刻痕与红/绿强对比底色
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(trackBgColor, shape = capsuleShape)
+                .neumorphicInset(shape = capsuleShape, elevation = 2.dp)
+                .clip(capsuleShape),
+            contentAlignment = Alignment.CenterStart
         ) {
-            if (thumbOffset > 0f) {
-                Spacer(modifier = Modifier.weight(thumbOffset))
-            }
-            // 开关（圆形那个）颜色保持不变 (标准的 3D 拟物浮雕 Knob)
-            Box(
+            // 3. 浮雕圆形滑块 (Knob)
+            Row(
                 modifier = Modifier
-                    .size(24.dp)
-                    .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                    .background(NeumorphicBg, shape = CircleShape)
-            )
-            if (thumbOffset < 1f) {
-                Spacer(modifier = Modifier.weight(1f - thumbOffset))
+                    .fillMaxSize()
+                    .padding(2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (thumbOffset > 0f) {
+                    Spacer(modifier = Modifier.weight(thumbOffset))
+                }
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                        .background(NeumorphicBg, shape = CircleShape)
+                )
+                if (thumbOffset < 1f) {
+                    Spacer(modifier = Modifier.weight(1f - thumbOffset))
+                }
             }
         }
     }

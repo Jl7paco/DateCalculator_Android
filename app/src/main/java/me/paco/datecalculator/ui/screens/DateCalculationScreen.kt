@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -523,12 +524,19 @@ fun DateCalculationScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.DragHandle,
+                                    imageVector = Icons.Default.Menu,
                                     contentDescription = "Reorder",
-                                    tint = NeumorphicAccent.copy(alpha = 0.7f),
+                                    tint = NeumorphicAccent,
                                     modifier = Modifier
-                                        .size(20.dp)
-                                        .padding(end = 4.dp)
+                                        .size(22.dp)
+                                        .padding(end = 6.dp)
+                                        .clickable {
+                                            if (uiState.stages.size > 1) {
+                                                val nextIndex = (index + 1) % uiState.stages.size
+                                                viewModel.reorderCalculationStages(index, nextIndex)
+                                                viewModel.performCalculation()
+                                            }
+                                        }
                                 )
 
                                 Box(
