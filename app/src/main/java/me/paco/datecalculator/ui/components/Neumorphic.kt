@@ -94,7 +94,7 @@ fun Modifier.neumorphicExtruded(
 }
 
 /**
- * 3D 沉降凹槽刻痕效果 (浅色模式下强化深刻痕沉降)
+ * 3D 沉降凹槽刻痕效果 (凹陷：左上内侧深刻痕沉降暗影，右下内侧透视反光高光)
  */
 @Composable
 fun Modifier.neumorphicInset(
@@ -102,8 +102,8 @@ fun Modifier.neumorphicInset(
     elevation: Dp = 5.dp
 ): Modifier {
     val isDark = LocalDarkTheme.current
-    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.90f)
-    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.65f) else Color(0xFF818CF8).copy(alpha = 0.45f)
+    val lightShadowColor = if (isDark) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.95f)
+    val darkShadowColor = if (isDark) Color.Black.copy(alpha = 0.75f) else Color(0xFF818CF8).copy(alpha = 0.50f)
 
     return this.drawBehind {
         val shadowRadius = elevation.toPx()
@@ -117,30 +117,30 @@ fun Modifier.neumorphicInset(
             }
             canvas.clipPath(path)
 
-            // 1. 左上内侧深刻痕沉降暗影
+            // 1. 左上内侧深刻痕沉降暗影 (负偏移：左上侧呈现真正 3D 凹陷阴影)
             val darkPaint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
                         shadowRadius * 1.3f,
-                        shadowRadius * 0.75f,
-                        shadowRadius * 0.75f,
+                        -shadowRadius * 0.75f,
+                        -shadowRadius * 0.75f,
                         darkShadowColor.toArgb()
                     )
                 }
             }
             canvas.drawPath(path, darkPaint)
 
-            // 2. 右下内侧透视反光高光
+            // 2. 右下内侧透视反光高光 (正偏移：右下侧呈现自然透视反光高光)
             val lightPaint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
                         shadowRadius * 1.3f,
-                        -shadowRadius * 0.75f,
-                        -shadowRadius * 0.75f,
+                        shadowRadius * 0.75f,
+                        shadowRadius * 0.75f,
                         lightShadowColor.toArgb()
                     )
                 }
