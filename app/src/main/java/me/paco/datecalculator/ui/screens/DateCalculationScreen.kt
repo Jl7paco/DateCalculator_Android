@@ -123,6 +123,7 @@ fun DateCalculationScreen(
     val scrollState = rememberScrollState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val lang = uiState.appLanguage
+    val effectiveLang = lang.getEffectiveLanguage()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showReverseEndDatePicker by remember { mutableStateOf(false) }
@@ -334,8 +335,16 @@ fun DateCalculationScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val calcRuleText = when (effectiveLang) {
+                    AppLanguage.ENGLISH -> "Calculation Rule"
+                    AppLanguage.JAPANESE -> "計算ルール"
+                    AppLanguage.KOREAN -> "계산 규칙"
+                    AppLanguage.TRADITIONAL_CHINESE -> "計算規則"
+                    else -> "计算规则"
+                }
+
                 Text(
-                    text = LanguageUtils.getString("calc_rule_title", lang),
+                    text = calcRuleText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = NeumorphicTextPrimary
