@@ -1,56 +1,60 @@
 package me.paco.datecalculator.util
 
 import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.data.CalculationStage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.RegionalHolidays
+import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.WeekendRule
-import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoField
 import java.time.temporal.ChronoUnit
+import java.time.temporal.WeekFields
+import java.util.Locale
 import kotlin.math.abs
 
 object DateCalculatorUtils {
 
-    val DISPLAY_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日")
-    val SHORT_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("M月d日")
+    fun getWatermarkMonthHeader(monthValue: Int, holidayRegion: HolidayRegion): String {
+        val monthNames = listOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+        return "${monthValue}月 · ${monthNames.getOrElse(monthValue - 1) { "" }}"
+    }
+
+    fun formatTimestamp(timestamp: Long, language: AppLanguage): String {
+        val date = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
+        return formatDate(date, language)
+    }
 
     fun formatDate(date: LocalDate, language: AppLanguage): String {
         return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE -> {
-                date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"))
-            }
-            AppLanguage.ENGLISH -> {
-                date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
-            }
-            AppLanguage.JAPANESE -> {
-                date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"))
-            }
-            AppLanguage.KOREAN -> {
-                date.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일"))
-            }
-            else -> {
-                date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"))
-            }
+            AppLanguage.SIMPLIFIED_CHINESE -> date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日", Locale.CHINA))
+            AppLanguage.TRADITIONAL_CHINESE -> date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日", Locale.TAIWAN))
+            AppLanguage.ENGLISH -> date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US))
+            AppLanguage.JAPANESE -> date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日", Locale.JAPAN))
+            AppLanguage.KOREAN -> date.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일", Locale.KOREA))
+            else -> date.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日", Locale.CHINA))
         }
     }
 
     fun formatDateWithWeek(date: LocalDate, language: AppLanguage): String {
-        val weekNumber = date.get(ChronoField.ALIGNED_WEEK_OF_YEAR)
-        val formattedDate = formatDate(date, language)
-
+        val dateFormatted = formatDate(date, language)
+        val weekNum = getWeekOfYear(date)
         return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE -> "$formattedDate (第${weekNumber}周)"
-            AppLanguage.ENGLISH -> "$formattedDate (Wk $weekNumber)"
-            AppLanguage.JAPANESE -> "$formattedDate (第${weekNumber}週)"
-            AppLanguage.KOREAN -> "$formattedDate (${weekNumber}주차)"
-            else -> "$formattedDate (第${weekNumber}周)"
+            AppLanguage.ENGLISH -> "$dateFormatted (Week $weekNum)"
+            AppLanguage.JAPANESE -> "$dateFormatted (第${weekNum}週)"
+            AppLanguage.KOREAN -> "$dateFormatted (第${weekNum}주)"
+            AppLanguage.TRADITIONAL_CHINESE -> "$dateFormatted (第${weekNum}週)"
+            else -> "$dateFormatted (第${weekNum}周)"
         }
+    }
+
+    fun getWeekOfYear(date: LocalDate): Int {
+        val weekFields = WeekFields.of(Locale.getDefault())
+        return date.get(weekFields.weekOfWeekBasedYear())
     }
 
     fun isWorkday(
@@ -58,9 +62,10 @@ object DateCalculatorUtils {
         weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
-        isCurrentWeekBigWeek: Boolean = true
+        isCurrentWeekBigWeek: Boolean = true,
+        disableChinaShiftWorkdays: Boolean = false
     ): Boolean {
-        val isShift = enableHolidays && RegionalHolidays.isShiftWorkday(date, holidayRegion)
+        val isShift = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(date, holidayRegion)
         val isStat = enableHolidays && RegionalHolidays.isStatutoryHoliday(date, holidayRegion)
         val isWeekend = weekendRule.isWeekend(date, isCurrentWeekBigWeek)
 
@@ -111,6 +116,66 @@ object DateCalculatorUtils {
         }
 
         return currentDate
+    }
+
+    fun computeMultiStageSequence(
+        baseDate: LocalDate,
+        stages: List<CalculationStage>,
+        isWorkdayMode: Boolean = true,
+        weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
+        enableHolidays: Boolean = true,
+        holidayRegion: HolidayRegion = HolidayRegion.CHINA,
+        isCurrentWeekBigWeek: Boolean = true,
+        disableChinaShiftWorkdays: Boolean = false
+    ): Pair<LocalDate, List<StageSegmentResult>> {
+        var currentStart = baseDate
+        val results = mutableListOf<StageSegmentResult>()
+
+        stages.forEachIndexed { idx, stage ->
+            val daysVal = stage.days.toInt()
+            if (daysVal > 0) {
+                val segEnd = calculateTargetDate(
+                    baseDate = currentStart,
+                    days = daysVal,
+                    type = stage.type,
+                    isWorkdayMode = isWorkdayMode,
+                    weekendRule = weekendRule,
+                    enableHolidays = enableHolidays,
+                    holidayRegion = holidayRegion,
+                    isCurrentWeekBigWeek = isCurrentWeekBigWeek,
+                    disableChinaShiftWorkdays = disableChinaShiftWorkdays
+                )
+
+                val (_, stat, week) = calculateBreakdown(
+                    startDate = currentStart,
+                    endDate = segEnd,
+                    weekendRule = weekendRule,
+                    enableHolidays = enableHolidays,
+                    holidayRegion = holidayRegion,
+                    isCurrentWeekBigWeek = isCurrentWeekBigWeek,
+                    disableChinaShiftWorkdays = disableChinaShiftWorkdays
+                )
+
+                val remarkText = stage.remark.ifBlank { "阶段 ${idx + 1}" }
+
+                results.add(
+                    StageSegmentResult(
+                        stageIndex = idx,
+                        remark = remarkText,
+                        type = stage.type,
+                        daysCount = stage.days,
+                        startDate = currentStart,
+                        endDate = segEnd,
+                        totalCalendarDays = abs(naturalDaysBetween(currentStart, segEnd)),
+                        restDaysCount = stat + week
+                    )
+                )
+
+                currentStart = segEnd
+            }
+        }
+
+        return Pair(currentStart, results)
     }
 
     fun workdaysBetween(
@@ -219,46 +284,39 @@ object DateCalculatorUtils {
             AppLanguage.SIMPLIFIED_CHINESE -> {
                 if (years > 0) parts.add("${years}年")
                 if (months > 0) parts.add("${months}个月")
-                if (days > 0 || parts.isEmpty()) parts.add("${days}天")
-                parts.joinToString("")
+                if (days > 0) parts.add("${days}天")
+                parts.joinToString(" ").ifEmpty { "0天" }
             }
             AppLanguage.TRADITIONAL_CHINESE -> {
                 if (years > 0) parts.add("${years}年")
                 if (months > 0) parts.add("${months}個月")
-                if (days > 0 || parts.isEmpty()) parts.add("${days}天")
-                parts.joinToString("")
+                if (days > 0) parts.add("${days}天")
+                parts.joinToString(" ").ifEmpty { "0天" }
+            }
+            AppLanguage.ENGLISH -> {
+                if (years > 0) parts.add("$years ${if (years > 1) "years" else "year"}")
+                if (months > 0) parts.add("$months ${if (months > 1) "months" else "month"}")
+                if (days > 0) parts.add("$days ${if (days > 1) "days" else "day"}")
+                parts.joinToString(" ").ifEmpty { "0 days" }
             }
             AppLanguage.JAPANESE -> {
                 if (years > 0) parts.add("${years}年")
                 if (months > 0) parts.add("${months}ヶ月")
-                if (days > 0 || parts.isEmpty()) parts.add("${days}日")
-                parts.joinToString("")
+                if (days > 0) parts.add("${days}日")
+                parts.joinToString(" ").ifEmpty { "0日" }
             }
             AppLanguage.KOREAN -> {
                 if (years > 0) parts.add("${years}년")
                 if (months > 0) parts.add("${months}개월")
-                if (days > 0 || parts.isEmpty()) parts.add("${days}일")
-                parts.joinToString(" ")
+                if (days > 0) parts.add("${days}일")
+                parts.joinToString(" ").ifEmpty { "0일" }
             }
             else -> {
-                if (years > 0) parts.add("$years yr${if (years > 1) "s" else ""}")
-                if (months > 0) parts.add("$months mo${if (months > 1) "s" else ""}")
-                if (days > 0 || parts.isEmpty()) parts.add("$days day${if (days > 1) "s" else ""}")
-                parts.joinToString(" ")
+                if (years > 0) parts.add("${years}年")
+                if (months > 0) parts.add("${months}个月")
+                if (days > 0) parts.add("${days}天")
+                parts.joinToString(" ").ifEmpty { "0天" }
             }
         }
-    }
-
-    fun formatTimestamp(timestamp: Long, language: AppLanguage): String {
-        val date = Instant.ofEpochMilli(timestamp)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
-        return formatDate(date, language)
-    }
-
-    fun getWatermarkMonthHeader(monthValue: Int, region: HolidayRegion): String {
-        val monthNames = listOf("一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月")
-        val monthName = monthNames.getOrElse(monthValue - 1) { "${monthValue}月" }
-        return "$monthName · ${region.flagEmoji}"
     }
 }

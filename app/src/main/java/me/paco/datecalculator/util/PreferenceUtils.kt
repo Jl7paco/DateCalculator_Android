@@ -47,14 +47,18 @@ object PreferenceUtils {
     private const val KEY_IS_BIG_WEEK = "key_is_big_week"
     private const val KEY_IS_GPS_AUTO = "key_is_gps_auto"
     private const val KEY_DISABLE_CHINA_SHIFT = "key_disable_china_shift"
+    private const val KEY_IS_HAPTIC_ENABLED = "key_is_haptic_enabled"
 
-    private const val KEY_THEME_PRESET = "key_theme_preset"
-    private const val KEY_CUSTOM_PRIMARY_COLOR = "key_custom_primary_color"
-    private const val KEY_DARK_THEME_MODE = "key_dark_theme_mode"
     private const val KEY_APP_LANGUAGE = "key_app_language"
-    private const val KEY_TEMP_UNIT = "key_temp_unit"
+    private const val KEY_DARK_THEME_MODE = "key_dark_theme_mode"
+    private const val KEY_THEME_PRESET = "key_theme_preset"
+    private const val KEY_CUSTOM_PRIMARY_COLOR_HEX = "key_custom_primary_color_hex"
+    private const val KEY_TEMPERATURE_UNIT = "key_temperature_unit"
 
-    private const val KEY_HOME_SHOW = "key_home_show"
+    private const val KEY_DISABLED_PRESETS = "key_disabled_presets"
+    private const val KEY_PINNED_PRESETS = "key_pinned_presets"
+
+    private const val KEY_HOME_SHOW_SCREEN = "key_home_show_screen"
     private const val KEY_HOME_CALENDAR = "key_home_calendar"
     private const val KEY_HOME_ALMANAC = "key_home_almanac"
     private const val KEY_HOME_SOLAR_TERMS = "key_home_solar_terms"
@@ -62,7 +66,6 @@ object PreferenceUtils {
     private const val KEY_HOME_ZODIAC = "key_home_zodiac"
     private const val KEY_HOME_WEATHER = "key_home_weather"
 
-    private const val KEY_PINNED_EVENTS = "key_pinned_events"
     private const val KEY_ANNIVERSARIES_LIST = "key_anniversaries_list"
     private const val KEY_CUSTOM_EVENTS_LIST = "key_custom_events_list"
 
@@ -120,25 +123,25 @@ object PreferenceUtils {
         return getPrefs(context).getBoolean(KEY_DISABLE_CHINA_SHIFT, false)
     }
 
-    fun saveThemePreset(context: Context, preset: ThemeColorPreset) {
-        getPrefs(context).edit().putString(KEY_THEME_PRESET, preset.name).apply()
+    fun saveIsHapticFeedbackEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_IS_HAPTIC_ENABLED, enabled).apply()
     }
 
-    fun getThemePreset(context: Context): ThemeColorPreset {
-        val name = getPrefs(context).getString(KEY_THEME_PRESET, ThemeColorPreset.SYSTEM.name)
+    fun isHapticFeedbackEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_IS_HAPTIC_ENABLED, true)
+    }
+
+    fun saveAppLanguage(context: Context, language: AppLanguage) {
+        getPrefs(context).edit().putString(KEY_APP_LANGUAGE, language.name).apply()
+    }
+
+    fun getAppLanguage(context: Context): AppLanguage {
+        val name = getPrefs(context).getString(KEY_APP_LANGUAGE, AppLanguage.SIMPLIFIED_CHINESE.name)
         return try {
-            ThemeColorPreset.valueOf(name ?: ThemeColorPreset.SYSTEM.name)
+            AppLanguage.valueOf(name ?: AppLanguage.SIMPLIFIED_CHINESE.name)
         } catch (_: Exception) {
-            ThemeColorPreset.SYSTEM
+            AppLanguage.SIMPLIFIED_CHINESE
         }
-    }
-
-    fun saveCustomPrimaryColor(context: Context, colorHex: Long) {
-        getPrefs(context).edit().putLong(KEY_CUSTOM_PRIMARY_COLOR, colorHex).apply()
-    }
-
-    fun getCustomPrimaryColor(context: Context): Long {
-        return getPrefs(context).getLong(KEY_CUSTOM_PRIMARY_COLOR, 0xFF2563EB)
     }
 
     fun saveDarkThemeMode(context: Context, mode: DarkThemeMode) {
@@ -154,25 +157,33 @@ object PreferenceUtils {
         }
     }
 
-    fun saveAppLanguage(context: Context, language: AppLanguage) {
-        getPrefs(context).edit().putString(KEY_APP_LANGUAGE, language.name).apply()
+    fun saveThemePreset(context: Context, preset: ThemeColorPreset) {
+        getPrefs(context).edit().putString(KEY_THEME_PRESET, preset.name).apply()
     }
 
-    fun getAppLanguage(context: Context): AppLanguage {
-        val name = getPrefs(context).getString(KEY_APP_LANGUAGE, AppLanguage.SYSTEM.name)
+    fun getThemePreset(context: Context): ThemeColorPreset {
+        val name = getPrefs(context).getString(KEY_THEME_PRESET, ThemeColorPreset.CUSTOM.name)
         return try {
-            AppLanguage.valueOf(name ?: AppLanguage.SYSTEM.name)
+            ThemeColorPreset.valueOf(name ?: ThemeColorPreset.CUSTOM.name)
         } catch (_: Exception) {
-            AppLanguage.SYSTEM
+            ThemeColorPreset.CUSTOM
         }
     }
 
+    fun saveCustomPrimaryColorHex(context: Context, colorHex: Long) {
+        getPrefs(context).edit().putLong(KEY_CUSTOM_PRIMARY_COLOR_HEX, colorHex).apply()
+    }
+
+    fun getCustomPrimaryColorHex(context: Context): Long {
+        return getPrefs(context).getLong(KEY_CUSTOM_PRIMARY_COLOR_HEX, 0xFF2563EB)
+    }
+
     fun saveTemperatureUnit(context: Context, unit: TemperatureUnit) {
-        getPrefs(context).edit().putString(KEY_TEMP_UNIT, unit.name).apply()
+        getPrefs(context).edit().putString(KEY_TEMPERATURE_UNIT, unit.name).apply()
     }
 
     fun getTemperatureUnit(context: Context): TemperatureUnit {
-        val name = getPrefs(context).getString(KEY_TEMP_UNIT, TemperatureUnit.CELSIUS.name)
+        val name = getPrefs(context).getString(KEY_TEMPERATURE_UNIT, TemperatureUnit.CELSIUS.name)
         return try {
             TemperatureUnit.valueOf(name ?: TemperatureUnit.CELSIUS.name)
         } catch (_: Exception) {
@@ -180,23 +191,68 @@ object PreferenceUtils {
         }
     }
 
-    fun saveHomeConfig(context: Context, config: HomeConfig) {
-        getPrefs(context).edit().apply {
-            putBoolean(KEY_HOME_SHOW, config.showHomeScreen)
-            putBoolean(KEY_HOME_CALENDAR, config.showCalendar)
-            putBoolean(KEY_HOME_ALMANAC, config.showAlmanac)
-            putBoolean(KEY_HOME_SOLAR_TERMS, config.showSolarTerms)
-            putBoolean(KEY_HOME_LUNAR, config.showLunar)
-            putBoolean(KEY_HOME_ZODIAC, config.showZodiacFortune)
-            putBoolean(KEY_HOME_WEATHER, config.showWeather)
-            apply()
+    fun saveDisabledPresetHolidays(context: Context, disabledList: Set<String>) {
+        val jsonArray = JSONArray(disabledList)
+        getPrefs(context).edit().putString(KEY_DISABLED_PRESETS, jsonArray.toString()).apply()
+    }
+
+    fun getDisabledPresetHolidays(context: Context): Set<String> {
+        val jsonStr = getPrefs(context).getString(KEY_DISABLED_PRESETS, null) ?: return emptySet()
+        return try {
+            val array = JSONArray(jsonStr)
+            val result = mutableSetOf<String>()
+            for (i in 0 until array.length()) {
+                result.add(array.getString(i))
+            }
+            result
+        } catch (_: Exception) {
+            emptySet()
         }
+    }
+
+    fun savePinnedPresetHolidays(context: Context, pinnedList: Set<String>) {
+        val jsonArray = JSONArray(pinnedList)
+        getPrefs(context).edit().putString(KEY_PINNED_PRESETS, jsonArray.toString()).apply()
+    }
+
+    fun getPinnedPresetHolidays(context: Context): Set<String> {
+        val jsonStr = getPrefs(context).getString(KEY_PINNED_PRESETS, null) ?: return emptySet()
+        return try {
+            val array = JSONArray(jsonStr)
+            val result = mutableSetOf<String>()
+            for (i in 0 until array.length()) {
+                result.add(array.getString(i))
+            }
+            result
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    fun savePinnedEvents(context: Context, pinnedList: Set<String>) {
+        savePinnedPresetHolidays(context, pinnedList)
+    }
+
+    fun getPinnedEvents(context: Context): Set<String> {
+        return getPinnedPresetHolidays(context)
+    }
+
+    fun saveHomeConfig(context: Context, config: HomeConfig) {
+        getPrefs(context).edit()
+            .putBoolean(KEY_HOME_SHOW_SCREEN, config.showHomeScreen)
+            .putBoolean(KEY_HOME_CALENDAR, config.showCalendar)
+            .putBoolean(KEY_HOME_ALMANAC, config.showAlmanac)
+            .putBoolean(KEY_HOME_SOLAR_TERMS, config.showSolarTerms)
+            .putBoolean(KEY_HOME_LUNAR, config.showLunar)
+            .putBoolean(KEY_HOME_ZODIAC, config.showZodiacFortune)
+            .putBoolean(KEY_HOME_WEATHER, config.showWeather)
+            .apply()
     }
 
     fun getHomeConfig(context: Context): HomeConfig {
         val prefs = getPrefs(context)
         return HomeConfig(
-            showHomeScreen = prefs.getBoolean(KEY_HOME_SHOW, true),
+            showHomeScreen = prefs.getBoolean(KEY_HOME_SHOW_SCREEN, true),
             showCalendar = prefs.getBoolean(KEY_HOME_CALENDAR, true),
             showAlmanac = prefs.getBoolean(KEY_HOME_ALMANAC, true),
             showSolarTerms = prefs.getBoolean(KEY_HOME_SOLAR_TERMS, true),
@@ -206,126 +262,94 @@ object PreferenceUtils {
         )
     }
 
-    fun savePinnedEvents(context: Context, pinnedSet: Set<String>) {
-        val array = JSONArray()
-        pinnedSet.forEach { array.put(it) }
-        getPrefs(context).edit().putString(KEY_PINNED_EVENTS, array.toString()).apply()
-    }
-
-    fun getPinnedEvents(context: Context): Set<String> {
-        val raw = getPrefs(context).getString(KEY_PINNED_EVENTS, null) ?: return emptySet()
-        val result = mutableSetOf<String>()
-        try {
-            val array = JSONArray(raw)
-            for (i in 0 until array.length()) {
-                result.add(array.getString(i))
-            }
-        } catch (_: Exception) {}
-        return result
-    }
-
     fun saveAnniversaries(context: Context, list: List<AnniversaryItem>) {
-        val array = JSONArray()
+        val jsonArray = JSONArray()
         list.forEach { item ->
             val obj = JSONObject().apply {
                 put("id", item.id)
                 put("title", item.title)
-                put("dateEpoch", item.date.toEpochDay())
+                put("date", item.date.toString())
                 put("iconEmoji", item.iconEmoji)
                 put("isCheckIn", item.isCheckIn)
                 put("locationName", item.locationName)
+                put("latitude", item.latitude)
+                put("longitude", item.longitude)
                 put("checkInTimeStr", item.checkInTimeStr)
                 put("remark", item.remark)
-                put("isPinned", item.isPinned)
             }
-            array.put(obj)
+            jsonArray.put(obj)
         }
-        getPrefs(context).edit().putString(KEY_ANNIVERSARIES_LIST, array.toString()).apply()
+        getPrefs(context).edit().putString(KEY_ANNIVERSARIES_LIST, jsonArray.toString()).apply()
     }
 
     fun getAnniversaries(context: Context): List<AnniversaryItem> {
-        val raw = getPrefs(context).getString(KEY_ANNIVERSARIES_LIST, null) ?: return emptyList()
-        val result = mutableListOf<AnniversaryItem>()
-        try {
-            val array = JSONArray(raw)
+        val jsonStr = getPrefs(context).getString(KEY_ANNIVERSARIES_LIST, null) ?: return emptyList()
+        return try {
+            val array = JSONArray(jsonStr)
+            val result = mutableListOf<AnniversaryItem>()
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
-                val id = obj.optLong("id", System.currentTimeMillis())
-                val title = obj.optString("title", "")
-                val epoch = obj.optLong("dateEpoch", LocalDate.now().toEpochDay())
-                val emoji = obj.optString("iconEmoji", "❤️")
-                val isCheckIn = obj.optBoolean("isCheckIn", false)
-                val locationName = obj.optString("locationName", "")
-                val checkInTimeStr = obj.optString("checkInTimeStr", "")
-                val remark = obj.optString("remark", "")
-                val isPinned = obj.optBoolean("isPinned", false)
-
                 result.add(
                     AnniversaryItem(
-                        id = id,
-                        title = title,
-                        date = LocalDate.ofEpochDay(epoch),
-                        iconEmoji = emoji,
-                        isCheckIn = isCheckIn,
-                        locationName = locationName,
-                        checkInTimeStr = checkInTimeStr,
-                        remark = remark,
-                        isPinned = isPinned
+                        id = obj.optLong("id", System.currentTimeMillis()),
+                        title = obj.optString("title", ""),
+                        date = LocalDate.parse(obj.optString("date", LocalDate.now().toString())),
+                        iconEmoji = obj.optString("iconEmoji", "❤️"),
+                        isCheckIn = obj.optBoolean("isCheckIn", false),
+                        locationName = obj.optString("locationName", ""),
+                        latitude = obj.optDouble("latitude", 0.0),
+                        longitude = obj.optDouble("longitude", 0.0),
+                        checkInTimeStr = obj.optString("checkInTimeStr", ""),
+                        remark = obj.optString("remark", "")
                     )
                 )
             }
-        } catch (_: Exception) {}
-        return result
+            result
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     fun saveCustomEvents(context: Context, list: List<CustomEventItem>) {
-        val array = JSONArray()
+        val jsonArray = JSONArray()
         list.forEach { item ->
             val obj = JSONObject().apply {
                 put("id", item.id)
                 put("name", item.name)
-                put("targetDateEpoch", item.targetDate.toEpochDay())
+                put("targetDate", item.targetDate.toString())
                 put("iconEmoji", item.iconEmoji)
                 put("repeatMode", item.repeatMode.name)
                 put("isPinned", item.isPinned)
             }
-            array.put(obj)
+            jsonArray.put(obj)
         }
-        getPrefs(context).edit().putString(KEY_CUSTOM_EVENTS_LIST, array.toString()).apply()
+        getPrefs(context).edit().putString(KEY_CUSTOM_EVENTS_LIST, jsonArray.toString()).apply()
     }
 
     fun getCustomEvents(context: Context): List<CustomEventItem> {
-        val raw = getPrefs(context).getString(KEY_CUSTOM_EVENTS_LIST, null) ?: return emptyList()
-        val result = mutableListOf<CustomEventItem>()
-        try {
-            val array = JSONArray(raw)
+        val jsonStr = getPrefs(context).getString(KEY_CUSTOM_EVENTS_LIST, null) ?: return emptyList()
+        return try {
+            val array = JSONArray(jsonStr)
+            val result = mutableListOf<CustomEventItem>()
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
-                val id = obj.optLong("id", System.currentTimeMillis())
-                val name = obj.optString("name", "")
-                val epoch = obj.optLong("targetDateEpoch", LocalDate.now().toEpochDay())
-                val emoji = obj.optString("iconEmoji", "📌")
                 val repeatName = obj.optString("repeatMode", EventRepeatMode.NONE.name)
-                val isPinned = obj.optBoolean("isPinned", false)
-
-                val repeatMode = try {
-                    EventRepeatMode.valueOf(repeatName)
-                } catch (_: Exception) {
-                    EventRepeatMode.NONE
-                }
+                val repeatMode = try { EventRepeatMode.valueOf(repeatName) } catch (_: Exception) { EventRepeatMode.NONE }
 
                 result.add(
                     CustomEventItem(
-                        id = id,
-                        name = name,
-                        targetDate = LocalDate.ofEpochDay(epoch),
-                        iconEmoji = emoji,
+                        id = obj.optLong("id", System.currentTimeMillis()),
+                        name = obj.optString("name", ""),
+                        targetDate = LocalDate.parse(obj.optString("targetDate", LocalDate.now().toString())),
+                        iconEmoji = obj.optString("iconEmoji", "📌"),
                         repeatMode = repeatMode,
-                        isPinned = isPinned
+                        isPinned = obj.optBoolean("isPinned", false)
                     )
                 )
             }
-        } catch (_: Exception) {}
-        return result
+            result
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 }

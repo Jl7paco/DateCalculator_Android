@@ -1,6 +1,7 @@
 package me.paco.datecalculator.ui.screens
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.DarkMode
@@ -37,9 +40,8 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -74,7 +77,6 @@ import me.paco.datecalculator.ui.components.NeumorphicChip
 import me.paco.datecalculator.ui.components.NeumorphicCustomPopup
 import me.paco.datecalculator.ui.components.NeumorphicRadioButton
 import me.paco.datecalculator.ui.components.NeumorphicSwitch
-import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
@@ -83,7 +85,7 @@ import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LocationUtils
 import me.paco.datecalculator.util.TemperatureUnit
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: DateCalculatorViewModel,
@@ -99,54 +101,60 @@ fun SettingsScreen(
 
     var regionMenuExpanded by remember { mutableStateOf(false) }
 
-    val syncedToastText = "已自动同步最新节假日数据"
+    val syncedToastText = when (lang.getEffectiveLanguage()) {
+        AppLanguage.ENGLISH -> "Successfully synced state government official holiday data!"
+        AppLanguage.JAPANESE -> "政府公式の祝日データを正常に同期しました！"
+        AppLanguage.KOREAN -> "정부 공식 공휴일 데이터를 성공적으로 동기화했습니다!"
+        AppLanguage.TRADITIONAL_CHINESE -> "成功同步最新政府法定節假日數據！"
+        else -> "已成功同步最新国务院法定节假日数据！"
+    }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        if (permissions.values.any { it }) {
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+
+        if (fineGranted || coarseGranted) {
             viewModel.updateGpsAutoDetect(true, context)
             val detected = LocationUtils.detectCurrentRegion(context)
-            Toast.makeText(context, "已开启 GPS 自动识别，匹配所在地: ${detected.flagEmoji} ${detected.nativeName}", Toast.LENGTH_SHORT).show()
+            viewModel.updateHolidayRegion(detected, context)
+            Toast.makeText(context, "GPS matched: ${detected.flagEmoji} ${detected.getLocalizedName(lang)}", Toast.LENGTH_SHORT).show()
         } else {
             viewModel.updateGpsAutoDetect(false, context)
-            Toast.makeText(context, "定位权限被拒绝，降级为手动选择模式", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Location permission denied", Toast.LENGTH_SHORT).show()
         }
     }
 
+    val cardShape = RoundedCornerShape(22.dp)
+
     Column(
         modifier = modifier
-            .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(14.dp)
+            .padding(16.dp)
     ) {
         if (showTitleHeader) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(36.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                    tint = NeumorphicAccent,
-                    modifier = Modifier.size(18.dp)
+                NeumorphicIconHeaderBadge(
+                    icon = Icons.Default.Home,
+                    size = 32.dp,
+                    iconSize = 16.dp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = LanguageUtils.getString("settings_title", lang),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold,
                     color = NeumorphicTextPrimary
                 )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
         }
 
-        // 0. 语言设置 Card (统一 3D 新拟物 20dp 曲面圆角卡片材质)
-        val cardShape = RoundedCornerShape(20.dp)
+        // 0. 语言切换 Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -187,7 +195,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 0.5 温度单位设置 Card (摄氏度 °C / 华氏度 °F，默认摄氏度)
+        // 0.5 温度单位设置 Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -235,7 +243,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 1. 首页功能模块显隐配置 Card (材质统一)
+        // 1. 首页功能模块显隐配置 Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -318,7 +326,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 2. 节假日地区选择 Card (材质统一)
+        // 2. 节假日地区选择 Card
         val selected = uiState.holidayRegion
         Box(
             modifier = Modifier
@@ -486,7 +494,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 3. 常用倒计时节日配置 Card (材质统一)
+        // 3. 常用倒计时节日配置 Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -527,7 +535,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 4. 周末休息模式 Card (材质统一)
+        // 4. 周末休息模式 Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -615,7 +623,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 5. Material 3 主题配色与调色盘设置 Card (材质统一 + 18 款 3D 拟物全色块)
+        // 5. Material 3 主题配色与调色盘设置 Card (按要求仅保留“跟随系统”与“自定义色彩”按钮，调色盘标题简洁写“调色盘”)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -634,12 +642,14 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
+                // 核心简化：仅保留“跟随系统”与“自定义色彩”两个分段按钮
+                val mainPresets = listOf(ThemeColorPreset.SYSTEM, ThemeColorPreset.CUSTOM)
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ThemeColorPreset.entries.forEach { preset ->
+                    mainPresets.forEach { preset ->
                         val isSelected = (uiState.themePreset == preset)
                         val displayName = preset.getLocalizedName(lang)
                         NeumorphicChip(
@@ -652,9 +662,9 @@ fun SettingsScreen(
                     }
                 }
 
-                // 调色盘 Picker (18 款 3D 胶囊色块)
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(LanguageUtils.getString("palette_title", lang), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                // 调色盘 Picker (标题只显示“调色盘”，点击任意色彩自动切为自定义模式)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(LanguageUtils.getString("palette_title", lang), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val customPaletteColors = listOf(
@@ -684,7 +694,7 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     customPaletteColors.forEach { (colorHex, colorName) ->
-                        val isCurrentColor = (uiState.customPrimaryColorHex == colorHex)
+                        val isCurrentColor = (uiState.themePreset == ThemeColorPreset.CUSTOM && uiState.customPrimaryColorHex == colorHex)
                         Box(
                             modifier = Modifier
                                 .size(34.dp)
@@ -701,6 +711,7 @@ fun SettingsScreen(
                                 .clip(CircleShape)
                                 .clickable {
                                     viewModel.updateCustomPrimaryColor(colorHex, context)
+                                    viewModel.updateThemePreset(ThemeColorPreset.CUSTOM, context)
                                     Toast.makeText(context, "Color: $colorName", Toast.LENGTH_SHORT).show()
                                 }
                         )
@@ -708,6 +719,37 @@ fun SettingsScreen(
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 触感震动开关控制卡片
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(42.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Vibration, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        val hapticTitle = when (lang.getEffectiveLanguage()) {
+                            AppLanguage.ENGLISH -> "Haptic Vibration Feedback"
+                            AppLanguage.JAPANESE -> "触感振動フィードバック"
+                            AppLanguage.KOREAN -> "진동 피드백"
+                            AppLanguage.TRADITIONAL_CHINESE -> "觸感震動反饋"
+                            else -> "触感震动开关"
+                        }
+                        Text(hapticTitle, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = NeumorphicTextPrimary)
+                    }
+
+                    NeumorphicSwitch(
+                        checked = uiState.isHapticFeedbackEnabled,
+                        onCheckedChange = { viewModel.updateHapticFeedbackEnabled(it, context) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
                 HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -726,13 +768,13 @@ fun SettingsScreen(
                 ) {
                     DarkThemeMode.entries.forEach { mode ->
                         val isSelected = (uiState.darkThemeMode == mode)
-                        val modeText = when (mode) {
+                        val displayName = when (mode) {
                             DarkThemeMode.SYSTEM -> LanguageUtils.getString("dark_mode_system", lang)
-                            DarkThemeMode.ON -> LanguageUtils.getString("dark_mode_on", lang)
-                            DarkThemeMode.OFF -> LanguageUtils.getString("dark_mode_off", lang)
+                            DarkThemeMode.ON -> LanguageUtils.getString("dark_mode_dark", lang)
+                            DarkThemeMode.OFF -> LanguageUtils.getString("dark_mode_light", lang)
                         }
                         NeumorphicChip(
-                            text = modeText,
+                            text = displayName,
                             selected = isSelected,
                             onClick = {
                                 viewModel.updateDarkThemeMode(mode, context)
