@@ -30,6 +30,15 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="me.paco.datecalculator.widget.MonthlyWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.DateCalculator">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- 桌面小组件 (AppWidgets) 注册 -->
         <receiver
             android:name="me.paco.datecalculator.widget.CountdownWidgetProvider"
@@ -89,6 +98,42 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_quick_calc_info" />
+        </receiver>
+
+        <receiver
+            android:name="me.paco.datecalculator.widget.MonthlyWidgetProvider"
+            android:exported="true"
+            android:label="全能月历桌面小组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_monthly_info" />
+        </receiver>
+
+        <receiver
+            android:name="me.paco.datecalculator.widget.CalculatorWidgetProvider"
+            android:exported="true"
+            android:label="4x4 交互式日期计算器小组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_4x4_calculator_info" />
+        </receiver>
+
+        <receiver
+            android:name="me.paco.datecalculator.widget.HomeDashboardWidgetProvider"
+            android:exported="true"
+            android:label="4x4 主页全能超级看板小组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_4x4_home_dashboard_info" />
         </receiver>
     </application>
 

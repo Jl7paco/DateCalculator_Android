@@ -1,7 +1,16 @@
 package me.paco.datecalculator.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,33 +34,49 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
-import me.paco.datecalculator.data.ChronologicalBlock
 import me.paco.datecalculator.data.HolidayRegion
+import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.StageSegmentResult
 import me.paco.datecalculator.data.TimelineBlockType
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.data.decomposeChronologicalBlocks
 import me.paco.datecalculator.util.CsvExportUtils
 import me.paco.datecalculator.util.DateCalculatorUtils
+import me.paco.datecalculator.util.HapticUtils
 import me.paco.datecalculator.util.LanguageUtils
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
+import kotlin.math.roundToInt
+
+data class DayTimelineDetail(
+    val date: LocalDate,
+    val type: TimelineBlockType
+)
 
 /**
- * 1:1 还原参考图的高质感多段/单段时序安排示意图 (包含黄色的周末双休图例与每段休假解构，配色 100% 随主题色 NeumorphicAccent 动态切换)
+ * 1:1 还原参考图的高质感多段/单段时序安排示意图 (包含黄色的周末双休图例与可长按滑动交互的小气泡指示)
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -64,6 +89,8 @@ fun TimelineDiagram(
     weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
     enableHolidays: Boolean = true,
     holidayRegion: HolidayRegion = HolidayRegion.CHINA,
+    isCurrentWeekBigWeek: Boolean = true,
+    disableChinaShiftWorkdays: Boolean = false,
     language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
@@ -80,15 +107,44 @@ fun TimelineDiagram(
         segments.filter { it.daysCount > 0L }
     }
 
-    // 全量时序分解块
-    val allBlocks = remember(baseDate, finalDate) {
+    // 全量时序分解块 (全传参作为 remember key，确保切换双休规则或节假日设置时 100% 实时重算)
+    val allBlocks = remember(baseDate, finalDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek, disableChinaShiftWorkdays) {
         decomposeChronologicalBlocks(
             startDate = baseDate,
             endDate = finalDate,
             weekendRule = weekendRule,
             enableHolidays = enableHolidays,
-            holidayRegion = holidayRegion
+            holidayRegion = holidayRegion,
+            isCurrentWeekBigWeek = isCurrentWeekBigWeek,
+            disableChinaShiftWorkdays = disableChinaShiftWorkdays
         )
+    }
+
+    // 生成每日粒度的完整序列列表用于长按/拖动小气泡交互
+    val dayList = remember(baseDate, finalDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek, disableChinaShiftWorkdays) {
+        if (baseDate == finalDate) emptyList() else {
+            val isForward = baseDate.isBefore(finalDate)
+            val start = if (isForward) baseDate else finalDate
+            val end = if (isForward) finalDate else baseDate
+
+            val list = mutableListOf<DayTimelineDetail>()
+            var curr = start.plusDays(1)
+            while (!curr.isAfter(end)) {
+                val isShift = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion)
+                val isStat = enableHolidays && RegionalHolidays.isStatutoryHoliday(curr, holidayRegion)
+                val isWeekend = weekendRule.isWeekend(curr, isCurrentWeekBigWeek)
+
+                val t = when {
+                    isShift -> TimelineBlockType.SHIFT_WORKDAY
+                    isStat -> TimelineBlockType.STATUTORY_HOLIDAY
+                    isWeekend -> TimelineBlockType.WEEKEND
+                    else -> TimelineBlockType.WORKDAY
+                }
+                list.add(DayTimelineDetail(curr, t))
+                curr = curr.plusDays(1)
+            }
+            list
+        }
     }
 
     val totalDurationDays = remember(baseDate, finalDate) {
@@ -105,6 +161,20 @@ fun TimelineDiagram(
 
     val totalStatutoryHolidays = remember(allBlocks) {
         allBlocks.filter { it.type == TimelineBlockType.STATUTORY_HOLIDAY }.sumOf { it.daysCount }
+    }
+
+    // 交互气泡状态
+    var activeHoverDay by remember { mutableStateOf<DayTimelineDetail?>(null) }
+    var barWidthPx by remember { mutableFloatStateOf(1f) }
+    var lastHoverIndex by remember { mutableIntStateOf(-1) }
+
+    // 自动隐退气泡倒计时
+    LaunchedEffect(activeHoverDay) {
+        if (activeHoverDay != null) {
+            delay(3000)
+            activeHoverDay = null
+            lastHoverIndex = -1
+        }
     }
 
     val containerModifier = if (isEmbedded) {
@@ -174,7 +244,7 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 2. 总历时与类型汇总行 (包含：● 工作日: X 天  ● 周末双休: Y 天  ● 法定节假日: Z 天  总历时: N 自然日)
+            // 2. 总历时与类型汇总行
             val workdayLabel = when (effectiveLang) {
                 AppLanguage.ENGLISH -> "Workday"
                 AppLanguage.JAPANESE -> "稼働日"
@@ -282,11 +352,81 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 3. 全局总时序进度条 (工作日跟随 NeumorphicAccent，周末黄 #F59E0B，节假日红 #EF4444)
+            // 交互小气泡弹窗浮层
+            AnimatedVisibility(
+                visible = activeHoverDay != null,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                if (activeHoverDay != null) {
+                    val dayDetail = activeHoverDay!!
+                    val dateFormatted = DateCalculatorUtils.formatDateWithWeek(dayDetail.date, language)
+                    val (typeText, typeColor) = when (dayDetail.type) {
+                        TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> "$workdayLabel 💼" to NeumorphicAccent
+                        TimelineBlockType.STATUTORY_HOLIDAY -> "$holidayLabel 🌸" to Color(0xFFEF4444)
+                        TimelineBlockType.WEEKEND -> "$weekendLabel 🏖️" to Color(0xFFD97706)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp)
+                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
+                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "📍 $dateFormatted",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeumorphicTextPrimary
+                            )
+                            Text(
+                                text = "• $typeText",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = typeColor
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 3. 全局总时序进度条 (支持长按/滑动/点击手势，带悬浮气泡)
+            fun updateTouchHover(touchX: Float) {
+                if (dayList.isEmpty() || barWidthPx <= 0f) return
+                val fraction = (touchX / barWidthPx).coerceIn(0f, 1f)
+                val idx = (fraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
+                if (idx != lastHoverIndex) {
+                    lastHoverIndex = idx
+                    activeHoverDay = dayList[idx]
+                    HapticUtils.performCrispClick(context)
+                }
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
+                    .height(14.dp)
+                    .onGloballyPositioned { coords ->
+                        barWidthPx = coords.size.width.toFloat()
+                    }
+                    .pointerInput(dayList) {
+                        detectTapGestures(
+                            onTap = { offset -> updateTouchHover(offset.x) },
+                            onPress = { offset -> updateTouchHover(offset.x) }
+                        )
+                    }
+                    .pointerInput(dayList) {
+                        detectDragGestures { change, _ ->
+                            updateTouchHover(change.position.x)
+                        }
+                    }
                     .neumorphicInset(shape = CircleShape, elevation = 2.dp)
                     .background(NeumorphicSunkenBg, shape = CircleShape)
                     .clip(CircleShape)
@@ -323,7 +463,7 @@ fun TimelineDiagram(
                 HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.12f))
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 4. 多段子项目详细清单 (包含每段具体包含的休假天数解构)
+                // 4. 多段子项目详细清单
                 validSegments.forEachIndexed { idx, seg ->
                     val isAdd = (seg.type == CalculationType.ADD)
                     val typeTag = if (isAdd) LanguageUtils.getString("stage_add_label", language) else LanguageUtils.getString("stage_sub_label", language)
@@ -331,24 +471,26 @@ fun TimelineDiagram(
 
                     val segTotalDays = abs(ChronoUnit.DAYS.between(seg.startDate, seg.endDate)).coerceAtLeast(1L)
                     
-                    // 精准拆解子段内部时序，以确保分段轴完全匹配全局时序图的颜色、比例和位置
-                    val segBlocks = remember(seg.startDate, seg.endDate) {
+                    val segBlocks = remember(seg.startDate, seg.endDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek, disableChinaShiftWorkdays) {
                         decomposeChronologicalBlocks(
                             startDate = seg.startDate,
                             endDate = seg.endDate,
                             weekendRule = weekendRule,
                             enableHolidays = enableHolidays,
-                            holidayRegion = holidayRegion
+                            holidayRegion = holidayRegion,
+                            isCurrentWeekBigWeek = isCurrentWeekBigWeek,
+                            disableChinaShiftWorkdays = disableChinaShiftWorkdays
                         )
                     }
 
-                    // 精准拆算该段包含的周末与法定节假日天数
                     val (_, segStat, segWeek) = DateCalculatorUtils.calculateBreakdown(
                         startDate = seg.startDate,
                         endDate = seg.endDate,
                         weekendRule = weekendRule,
                         enableHolidays = enableHolidays,
-                        holidayRegion = holidayRegion
+                        holidayRegion = holidayRegion,
+                        isCurrentWeekBigWeek = isCurrentWeekBigWeek,
+                        disableChinaShiftWorkdays = disableChinaShiftWorkdays
                     )
                     val segRestTotal = segStat + segWeek
 
@@ -368,7 +510,6 @@ fun TimelineDiagram(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.Top
                     ) {
-                        // 左侧垂直主题色指示线 (高度贯穿子项，跟随 NeumorphicAccent 动态主题色)
                         Box(
                             modifier = Modifier
                                 .width(4.dp)
@@ -380,7 +521,6 @@ fun TimelineDiagram(
                         Spacer(modifier = Modifier.width(10.dp))
 
                         Column(modifier = Modifier.weight(1f)) {
-                            // 子项标题行：名称与多段类型 (左) vs 天数统计 (右)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -406,7 +546,7 @@ fun TimelineDiagram(
 
                             Spacer(modifier = Modifier.height(5.dp))
 
-                            // 子项专属时序比例条 (按照实际时间顺序渲染：工作日蓝，周末黄，节假日红)
+                            // 子项专属时序比例条
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -441,7 +581,6 @@ fun TimelineDiagram(
 
                             Spacer(modifier = Modifier.height(5.dp))
 
-                            // 日期区间底纹与包含休假描述 (如：2026年09月27日 ➔ 2026年09月29日 (含 2 天休假))
                             Text(
                                 text = "${DateCalculatorUtils.formatDate(seg.startDate, language)}  ➔  ${DateCalculatorUtils.formatDate(seg.endDate, language)}$restText",
                                 fontSize = 11.5.sp,

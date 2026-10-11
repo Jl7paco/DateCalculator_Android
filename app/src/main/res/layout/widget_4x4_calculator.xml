@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_calc_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg_neumorphic"
+    android:padding="12dp">
+
+    <!-- 顶部 3D 标头与模式切换 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_calc_widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⚡ 4x4 交互式日期计算器"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#2563EB" />
+
+        <TextView
+            android:id="@+id/btn_switch_calc_mode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="切换多段"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/widget_btn_neumorphic_accent"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp" />
+    </LinearLayout>
+
+    <!-- 基准起算日期与算规则栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_calc_base_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📅 起算: 2026年10月11日 (第41周)"
+            android:textSize="11.5sp"
+            android:textStyle="bold"
+            android:textColor="#1E293B" />
+
+        <TextView
+            android:id="@+id/tv_calc_rule_tag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="工作日模式"
+            android:textSize="10.5sp"
+            android:textColor="#2563EB"
+            android:background="@drawable/widget_chip_sunken"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp" />
+    </LinearLayout>
+
+    <!-- 3D 凹槽液晶显示屏 (展示当前计算结果) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/widget_card_inset"
+        android:padding="10dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tv_calc_result_expression"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="15 个工作日后是"
+            android:textSize="12sp"
+            android:textColor="#64748B" />
+
+        <TextView
+            android:id="@+id/tv_calc_result_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2026年10月30日"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#2563EB"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:id="@+id/tv_calc_result_breakdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="共 19 天 | 含 4 天周末双休"
+            android:textSize="11sp"
+            android:textColor="#047857"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- 单段快捷计算按键阵列 -->
+    <LinearLayout
+        android:id="@+id/panel_single_calc_keys"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/btn_add_5"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:text="+5天"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/widget_btn_neumorphic_accent"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/btn_add_15"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="+15天"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/widget_btn_neumorphic_accent"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/btn_add_30"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="+30天"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/widget_btn_neumorphic_accent"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/btn_add_100"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="+100天"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/widget_btn_neumorphic_accent"
+                android:gravity="center" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="6dp">
+
+            <TextView
+                android:id="@+id/btn_sub_5"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:text="-5天"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:textColor="#1E293B"
+                android:background="@drawable/widget_card_inset"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/btn_sub_15"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="-15天"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:textColor="#1E293B"
+                android:background="@drawable/widget_card_inset"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/btn_sub_30"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="-30天"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:textColor="#1E293B"
+                android:background="@drawable/widget_card_inset"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/btn_sub_100"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="-100天"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:textColor="#1E293B"
+                android:background="@drawable/widget_card_inset"
+                android:gravity="center" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 多段流式推进指示面板 -->
+    <LinearLayout
+        android:id="@+id/panel_multi_stage_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginTop="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_multi_stage_list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:text="阶段1: +15天 ➔ 阶段2: +10天 ➔ 阶段3: -5天"
+            android:textSize="11.5sp"
+            android:textColor="#1E293B"
+            android:background="@drawable/widget_card_inset"
+            android:padding="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="6dp">
+
+            <TextView
+                android:id="@+id/btn_multi_add_stage"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:text="+ 增加阶段 (+10天)"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/widget_btn_neumorphic_accent"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/btn_multi_reset"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="🔄 重置多段"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#1E293B"
+                android:background="@drawable/widget_card_inset"
+                android:gravity="center" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

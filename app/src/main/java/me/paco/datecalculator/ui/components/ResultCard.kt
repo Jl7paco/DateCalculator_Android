@@ -213,6 +213,7 @@ fun ResultCard(
                     weekendRule = weekendRule,
                     enableHolidays = enableHolidays,
                     holidayRegion = holidayRegion,
+                    isCurrentWeekBigWeek = isCurrentWeekBigWeek,
                     language = appLanguage,
                     modifier = Modifier.fillMaxWidth()
                 )
