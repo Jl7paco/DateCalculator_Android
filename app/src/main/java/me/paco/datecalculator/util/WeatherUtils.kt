@@ -86,7 +86,10 @@ object WeatherUtils {
                 "多云", "晴间多云" -> "Partly Cloudy"
                 "晴朗" -> "Sunny"
                 "阴天", "阴" -> "Overcast"
-                "小雨", "毛毛雨" -> "Light Rain"
+                "细雨", "毛毛雨" -> "Drizzle"
+                "小雨" -> "Light Rain"
+                "中雨" -> "Moderate Rain"
+                "大雨", "暴雨" -> "Heavy Rain"
                 "阵雨" -> "Showers"
                 "雷阵雨", "强雷雨" -> "Thunderstorm"
                 "有雾" -> "Foggy"
@@ -97,7 +100,10 @@ object WeatherUtils {
                 "多云", "晴间多云" -> "晴れ時々曇り"
                 "晴朗" -> "快晴"
                 "阴天", "阴" -> "曇り"
-                "小雨", "毛毛雨" -> "小雨"
+                "细雨", "毛毛雨" -> "小雨"
+                "小雨" -> "小雨"
+                "中雨" -> "雨"
+                "大雨", "暴雨" -> "大雨"
                 "阵雨" -> "にわか雨"
                 "雷阵雨", "强雷雨" -> "雷雨"
                 "有雾" -> "霧"
@@ -108,7 +114,10 @@ object WeatherUtils {
                 "多云", "晴间多云" -> "구름조금"
                 "晴朗" -> "맑음"
                 "阴天", "阴" -> "흐림"
-                "小雨", "毛毛雨" -> "가랑비"
+                "细雨", "毛毛雨" -> "가랑비"
+                "小雨" -> "비"
+                "中雨" -> "보통 비"
+                "大雨", "暴雨" -> "호우"
                 "阵雨" -> "소나기"
                 "雷阵雨", "强雷雨" -> "뇌우"
                 "有雾" -> "안개"
@@ -120,16 +129,16 @@ object WeatherUtils {
     }
 
     /**
-     * 实时抓取 Open-Meteo 当前温度、当前体感温度与未来 4 天每日预报
+     * 实时抓取 Open-Meteo 高精度 ECMWF/GFS 气象模型气温与未来 4 天预报
      */
     fun fetchRealLiveWeather(lat: Double, lon: Double): RealTimeWeatherData? {
         return try {
-            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto"
+            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto"
             val url = URL(urlStr)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
-            conn.connectTimeout = 3000
-            conn.readTimeout = 3000
+            conn.connectTimeout = 8000
+            conn.readTimeout = 8000
 
             if (conn.responseCode == 200) {
                 val reader = BufferedReader(InputStreamReader(conn.inputStream))
@@ -139,10 +148,10 @@ object WeatherUtils {
                 val json = JSONObject(response)
                 val current = json.optJSONObject("current")
                 val curTemp = current?.optDouble("temperature_2m")?.toInt() ?: 25
-                val curFeels = current?.optDouble("apparent_temperature")?.toInt() ?: (curTemp + 2)
+                val curFeels = current?.optDouble("apparent_temperature")?.toInt() ?: curTemp
 
                 val daily = json.getJSONObject("daily")
-                val codes = daily.getJSONArray("weathercode")
+                val codes = daily.getJSONArray("weather_code")
                 val maxTemps = daily.getJSONArray("temperature_2m_max")
                 val minTemps = daily.getJSONArray("temperature_2m_min")
 
@@ -178,33 +187,48 @@ object WeatherUtils {
         }
     }
 
+    /**
+     * WMO 全球标准气象代码精准解析 (精确匹配国际气象局标准)
+     */
     fun parseWmoWeatherCode(code: Int): Pair<String, String> {
         return when (code) {
             0 -> Pair("☀️", "晴朗")
-            1, 2, 3 -> Pair("☁️", "多云")
+            1 -> Pair("🌤️", "晴间多云")
+            2 -> Pair("⛅", "多云")
+            3 -> Pair("☁️", "阴")
             45, 48 -> Pair("🌫️", "有雾")
-            51, 53, 55 -> Pair("🌧️", "毛毛雨")
-            61, 63, 65 -> Pair("🌧️", "小雨")
-            80, 81, 82 -> Pair("🌧️", "阵雨")
-            95, 96, 99 -> Pair("⛈️", "雷阵雨")
-            71, 73, 75, 85, 86 -> Pair("❄️", "小雪")
-            else -> Pair("🌤️", "晴间多云")
+            51, 53, 55 -> Pair("🌦️", "细雨")
+            56, 57 -> Pair("🌧️", "冻雨")
+            61 -> Pair("🌧️", "小雨")
+            63 -> Pair("🌧️", "中雨")
+            65 -> Pair("🌧️", "大雨")
+            66, 67 -> Pair("🌧️", "冻雨")
+            71 -> Pair("❄️", "小雪")
+            73 -> Pair("❄️", "中雪")
+            75 -> Pair("❄️", "大雪")
+            77 -> Pair("❄️", "冰粒")
+            80, 81 -> Pair("🌦️", "阵雨")
+            82 -> Pair("⛈️", "暴雨")
+            85, 86 -> Pair("🌨️", "阵雪")
+            95 -> Pair("⛈️", "雷阵雨")
+            96, 99 -> Pair("⛈️", "雷雨伴冰雹")
+            else -> Pair("🌤️", "多云")
         }
     }
 
     /**
-     * 根据离线离散数学算式推算 4 天天气模拟预报
+     * 离线网络断开时的应急平滑平稳估算预报
      */
     fun getWeatherForecast(date: LocalDate): RealTimeWeatherData {
         val baseSeed = date.toEpochDay().toInt()
-        val tempBase = 22 + (abs(baseSeed) % 8)
+        val tempBase = 22 + (abs(baseSeed) % 5)
 
         val dayNames = listOf("今天", "明天", "后天", "大后天")
         val conditions = listOf(
             Pair("☀️", "晴朗"),
-            Pair("☁️", "阴天"),
-            Pair("🌧️", "小雨"),
-            Pair("⛈️", "雷阵雨")
+            Pair("⛅", "多云"),
+            Pair("☁️", "阴"),
+            Pair("🌧️", "小雨")
         )
 
         val result = mutableListOf<DailyWeather>()
@@ -212,7 +236,7 @@ object WeatherUtils {
             val condIdx = abs(baseSeed * 13 + i * 17) % conditions.size
             val (icon, name) = conditions[condIdx]
             val minT = tempBase + (i % 2)
-            val maxT = minT + 6 + (abs(baseSeed + i) % 4)
+            val maxT = minT + 5 + (abs(baseSeed + i) % 3)
 
             result.add(
                 DailyWeather(
@@ -226,7 +250,7 @@ object WeatherUtils {
         }
         return RealTimeWeatherData(
             currentTemp = tempBase + 3,
-            currentFeelsLikeTemp = tempBase + 5,
+            currentFeelsLikeTemp = tempBase + 4,
             dailyList = result
         )
     }
