@@ -186,7 +186,6 @@ fun NeumorphicIconButton(
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
                 HapticUtils.performCrispClick(context, view)
                 onClick()
             },
@@ -230,7 +229,6 @@ fun NeumorphicSwitch(
             .background(if (checked) NeumorphicAccent else NeumorphicSunkenBg, shape = trackShape)
             .clip(trackShape)
             .clickable {
-                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
                 HapticUtils.performCrispClick(context, view)
                 onCheckedChange(!checked)
             }
@@ -308,7 +306,6 @@ fun NeumorphicCapsuleSwitch(
             .background(NeumorphicSunkenBg, shape = capsuleShape)
             .clip(capsuleShape)
             .clickable {
-                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
                 HapticUtils.performCrispClick(context, view)
                 onOptionChanged(!isOption1Selected)
             }
@@ -347,7 +344,6 @@ fun NeumorphicCapsuleSwitch(
                     .weight(1f)
                     .fillMaxHeight()
                     .clickable {
-                        try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
                         HapticUtils.performCrispClick(context, view)
                         onOptionChanged(true)
                     },
@@ -370,7 +366,6 @@ fun NeumorphicCapsuleSwitch(
                     .weight(1f)
                     .fillMaxHeight()
                     .clickable {
-                        try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
                         HapticUtils.performCrispClick(context, view)
                         onOptionChanged(false)
                     },
@@ -496,7 +491,6 @@ fun NeumorphicSegmentedRow(
                             interactionSource = interactionSource,
                             indication = null
                         ) {
-                            try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
                             HapticUtils.performCrispClick(context, view)
                             onIndexSelected(index)
                         },
@@ -545,7 +539,6 @@ fun NeumorphicRadioButton(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) {
-                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
                 HapticUtils.performCrispClick(context, view)
                 onClick()
             },
@@ -607,7 +600,6 @@ fun NeumorphicChip(
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                try { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } catch (_: Exception) {}
                 HapticUtils.performCrispClick(context, view)
                 onClick()
             }

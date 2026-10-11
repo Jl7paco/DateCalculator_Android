@@ -1,5 +1,7 @@
 package me.paco.datecalculator.ui
 
+import me.paco.datecalculator.util.HapticUtils
+
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -222,6 +224,7 @@ fun MainScreen(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null
                                     ) {
+                                        HapticUtils.performCrispClick(context)
                                         if (pagerState.currentPage != index) {
                                             coroutineScope.launch {
                                                 pagerState.animateScrollToPage(
