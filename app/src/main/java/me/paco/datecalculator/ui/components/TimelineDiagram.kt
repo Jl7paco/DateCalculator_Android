@@ -315,142 +315,145 @@ fun TimelineDiagram(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.12f))
-            Spacer(modifier = Modifier.height(12.dp))
+            // 判断是否仅单段且需隐藏重复详情
+            val hideDuplicateDetail = isEmbedded || validSegments.size == 1
 
-            // 4. 多段/单段子项目详细清单 (包含每段具体包含的休假天数解构)
-            validSegments.forEachIndexed { idx, seg ->
-                val isAdd = (seg.type == CalculationType.ADD)
-                val typeTag = if (isAdd) LanguageUtils.getString("stage_add_label", language) else LanguageUtils.getString("stage_sub_label", language)
-                val signSymbol = if (isAdd) "+" else "-"
+            if (!hideDuplicateDetail) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.12f))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                val segTotalDays = abs(ChronoUnit.DAYS.between(seg.startDate, seg.endDate)).coerceAtLeast(1L)
-                
-                // 精准拆解子段内部时序，以确保分段轴完全匹配全局时序图的颜色、比例和位置
-                val segBlocks = remember(seg.startDate, seg.endDate) {
-                    decomposeChronologicalBlocks(
+                // 4. 多段子项目详细清单 (包含每段具体包含的休假天数解构)
+                validSegments.forEachIndexed { idx, seg ->
+                    val isAdd = (seg.type == CalculationType.ADD)
+                    val typeTag = if (isAdd) LanguageUtils.getString("stage_add_label", language) else LanguageUtils.getString("stage_sub_label", language)
+                    val signSymbol = if (isAdd) "+" else "-"
+
+                    val segTotalDays = abs(ChronoUnit.DAYS.between(seg.startDate, seg.endDate)).coerceAtLeast(1L)
+                    
+                    // 精准拆解子段内部时序，以确保分段轴完全匹配全局时序图的颜色、比例和位置
+                    val segBlocks = remember(seg.startDate, seg.endDate) {
+                        decomposeChronologicalBlocks(
+                            startDate = seg.startDate,
+                            endDate = seg.endDate,
+                            weekendRule = weekendRule,
+                            enableHolidays = enableHolidays,
+                            holidayRegion = holidayRegion
+                        )
+                    }
+
+                    // 精准拆算该段包含的周末与法定节假日天数
+                    val (_, segStat, segWeek) = DateCalculatorUtils.calculateBreakdown(
                         startDate = seg.startDate,
                         endDate = seg.endDate,
                         weekendRule = weekendRule,
                         enableHolidays = enableHolidays,
                         holidayRegion = holidayRegion
                     )
-                }
+                    val segRestTotal = segStat + segWeek
 
-                // 精准拆算该段包含的周末与法定节假日天数
-                val (_, segStat, segWeek) = DateCalculatorUtils.calculateBreakdown(
-                    startDate = seg.startDate,
-                    endDate = seg.endDate,
-                    weekendRule = weekendRule,
-                    enableHolidays = enableHolidays,
-                    holidayRegion = holidayRegion
-                )
-                val segRestTotal = segStat + segWeek
+                    val titleText = "${seg.remark} ($typeTag)"
 
-                // 核心修复：单段推算时，不显示“(多段加)”标头字样
-                val isSingleStage = (validSegments.size == 1 && (seg.remark == "单段推算" || isEmbedded))
-                val titleText = if (isSingleStage) seg.remark else "${seg.remark} ($typeTag)"
-
-                val restText = if (segRestTotal > 0) {
-                    when (effectiveLang) {
-                        AppLanguage.ENGLISH -> " (incl. $segRestTotal days rest)"
-                        AppLanguage.JAPANESE -> " (休日${segRestTotal}日含む)"
-                        AppLanguage.KOREAN -> " (휴일 ${segRestTotal}일 포함)"
-                        AppLanguage.TRADITIONAL_CHINESE -> " (含 $segRestTotal 天休假)"
-                        else -> " (含 $segRestTotal 天休假)"
-                    }
-                } else ""
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    // 左侧垂直主题色指示线 (高度贯穿子项，跟随 NeumorphicAccent 动态主题色)
-                    Box(
-                        modifier = Modifier
-                            .width(4.dp)
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(if (isAdd) NeumorphicAccent else Color(0xFFEF4444))
-                    )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        // 子项标题行：名称与多段类型 (左) vs 天数统计 (右)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = titleText,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = NeumorphicAccent,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false)
-                            )
-
-                            Text(
-                                text = "$signSymbol${seg.daysCount} $workdayLabel (共 $segTotalDays 日)",
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicTextPrimary
-                            )
+                    val restText = if (segRestTotal > 0) {
+                        when (effectiveLang) {
+                            AppLanguage.ENGLISH -> " (incl. $segRestTotal days rest)"
+                            AppLanguage.JAPANESE -> " (休日${segRestTotal}日含む)"
+                            AppLanguage.KOREAN -> " (휴일 ${segRestTotal}일 포함)"
+                            AppLanguage.TRADITIONAL_CHINESE -> " (含 $segRestTotal 天休假)"
+                            else -> " (含 $segRestTotal 天休假)"
                         }
+                    } else ""
 
-                        Spacer(modifier = Modifier.height(5.dp))
-
-                        // 子项专属时序比例条 (按照实际时间顺序渲染：工作日蓝，周末黄，节假日红)
-                        Row(
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        // 左侧垂直主题色指示线 (高度贯穿子项，跟随 NeumorphicAccent 动态主题色)
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .neumorphicInset(shape = CircleShape, elevation = 1.5.dp)
-                                .background(NeumorphicSunkenBg, shape = CircleShape)
-                                .clip(CircleShape)
-                        ) {
-                            if (segBlocks.isNotEmpty()) {
-                                segBlocks.forEach { block ->
-                                    val weight = (block.daysCount.toFloat() / segTotalDays).coerceAtLeast(0.01f)
-                                    val blockColor = when (block.type) {
-                                        TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
-                                        TimelineBlockType.STATUTORY_HOLIDAY -> Color(0xFFEF4444)
-                                        TimelineBlockType.WEEKEND -> Color(0xFFF59E0B)
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(weight)
-                                            .fillMaxHeight()
-                                            .background(blockColor)
-                                    )
-                                }
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(NeumorphicAccent)
+                                .width(4.dp)
+                                .height(52.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(if (isAdd) NeumorphicAccent else Color(0xFFEF4444))
+                        )
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            // 子项标题行：名称与多段类型 (左) vs 天数统计 (右)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = titleText,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = NeumorphicAccent,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+
+                                Text(
+                                    text = "$signSymbol${seg.daysCount} $workdayLabel (共 $segTotalDays 日)",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeumorphicTextPrimary
                                 )
                             }
+
+                            Spacer(modifier = Modifier.height(5.dp))
+
+                            // 子项专属时序比例条 (按照实际时间顺序渲染：工作日蓝，周末黄，节假日红)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .neumorphicInset(shape = CircleShape, elevation = 1.5.dp)
+                                    .background(NeumorphicSunkenBg, shape = CircleShape)
+                                    .clip(CircleShape)
+                            ) {
+                                if (segBlocks.isNotEmpty()) {
+                                    segBlocks.forEach { block ->
+                                        val weight = (block.daysCount.toFloat() / segTotalDays).coerceAtLeast(0.01f)
+                                        val blockColor = when (block.type) {
+                                            TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
+                                            TimelineBlockType.STATUTORY_HOLIDAY -> Color(0xFFEF4444)
+                                            TimelineBlockType.WEEKEND -> Color(0xFFF59E0B)
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(weight)
+                                                .fillMaxHeight()
+                                                .background(blockColor)
+                                        )
+                                    }
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(NeumorphicAccent)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(5.dp))
+
+                            // 日期区间底纹与包含休假描述 (如：2026年09月27日 ➔ 2026年09月29日 (含 2 天休假))
+                            Text(
+                                text = "${DateCalculatorUtils.formatDate(seg.startDate, language)}  ➔  ${DateCalculatorUtils.formatDate(seg.endDate, language)}$restText",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = NeumorphicTextPrimary.copy(alpha = 0.65f)
+                            )
                         }
-
-                        Spacer(modifier = Modifier.height(5.dp))
-
-                        // 日期区间底纹与包含休假描述 (如：2026年09月27日 ➔ 2026年09月29日 (含 2 天休假))
-                        Text(
-                            text = "${DateCalculatorUtils.formatDate(seg.startDate, language)}  ➔  ${DateCalculatorUtils.formatDate(seg.endDate, language)}$restText",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = NeumorphicTextPrimary.copy(alpha = 0.65f)
-                        )
                     }
-                }
 
-                if (idx < validSegments.size - 1) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    if (idx < validSegments.size - 1) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
                 }
             }
         }
