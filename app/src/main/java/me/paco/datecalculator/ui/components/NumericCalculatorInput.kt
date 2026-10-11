@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
+import me.paco.datecalculator.util.HapticUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +57,7 @@ fun NumericCalculatorInput(
     quickOptions: List<Int> = listOf(5, 15, 30),
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
@@ -133,7 +135,10 @@ fun NumericCalculatorInput(
                         shape = RoundedCornerShape(18.dp)
                     )
                     .clip(RoundedCornerShape(18.dp))
-                    .clickable { onTypeSelected(CalculationType.ADD) },
+                    .clickable {
+                        HapticUtils.performCrispClick(context)
+                        onTypeSelected(CalculationType.ADD)
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -158,7 +163,10 @@ fun NumericCalculatorInput(
                         shape = RoundedCornerShape(18.dp)
                     )
                     .clip(RoundedCornerShape(18.dp))
-                    .clickable { onTypeSelected(CalculationType.SUBTRACT) },
+                    .clickable {
+                        HapticUtils.performCrispClick(context)
+                        onTypeSelected(CalculationType.SUBTRACT)
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -183,6 +191,7 @@ fun NumericCalculatorInput(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) {
+                        HapticUtils.performCrispClick(context)
                         keyboardController?.hide()
                         focusManager.clearFocus()
                         onEqualClick()
@@ -200,10 +209,11 @@ fun NumericCalculatorInput(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 3 个新拟物选天数胶囊选项
+        // 3 个新拟物选天数圆角矩形快捷选项 (与全软件 14.dp 圆角一致)
+        val chipShape = RoundedCornerShape(14.dp)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             quickOptions.forEach { num ->
@@ -220,12 +230,12 @@ fun NumericCalculatorInput(
 
                 val chipModifier = if (isSelected) {
                     Modifier
-                        .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
-                        .background(NeumorphicAccent, shape = CircleShape)
+                        .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
+                        .background(NeumorphicAccent, shape = chipShape)
                 } else {
                     Modifier
-                        .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
+                        .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
+                        .background(NeumorphicBg, shape = chipShape)
                 }
 
                 Box(
@@ -237,11 +247,12 @@ fun NumericCalculatorInput(
                             scaleY = scale
                         }
                         .then(chipModifier)
-                        .clip(CircleShape)
+                        .clip(chipShape)
                         .clickable(
                             interactionSource = interactionSource,
                             indication = null
                         ) {
+                            HapticUtils.performCrispClick(context)
                             keyboardController?.hide()
                             focusManager.clearFocus()
                             onDaysInputChange(num.toString())
@@ -253,7 +264,7 @@ fun NumericCalculatorInput(
                         text = labelText,
                         color = if (isSelected) Color.White else NeumorphicTextPrimary,
                         fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                        fontSize = 13.sp,
+                        fontSize = 12.5.sp,
                         textAlign = TextAlign.Center
                     )
                 }
