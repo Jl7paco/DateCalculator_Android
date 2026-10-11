@@ -50,7 +50,7 @@ enum class EventRepeatMode(val label: String) {
                 NONE -> "None"; WEEKLY -> "Weekly"; MONTHLY -> "Monthly"; YEARLY -> "Yearly"
             }
             AppLanguage.JAPANESE -> when (this) {
-                NONE -> "なし"; WEEKLY -> "毎年"; MONTHLY -> "毎月"; YEARLY -> "毎年"
+                NONE -> "なし"; WEEKLY -> "毎週"; MONTHLY -> "毎月"; YEARLY -> "毎年"
             }
             AppLanguage.KOREAN -> when (this) {
                 NONE -> "없음"; WEEKLY -> "매주"; MONTHLY -> "매월"; YEARLY -> "매년"
@@ -319,6 +319,11 @@ class DateCalculatorViewModel : ViewModel() {
     fun updateWeekendRule(rule: WeekendRule, context: Context? = null) {
         _uiState.value = _uiState.value.copy(weekendRule = rule, showResult = false)
         context?.let { PreferenceUtils.saveWeekendRule(it, rule) }
+    }
+
+    fun updateIsBigWeek(isBigWeek: Boolean, context: Context? = null) {
+        _uiState.value = _uiState.value.copy(isCurrentWeekBigWeek = isBigWeek, showResult = false)
+        context?.let { PreferenceUtils.saveIsBigWeek(it, isBigWeek) }
     }
 
     fun updateHolidayRegion(region: HolidayRegion, context: Context? = null) {

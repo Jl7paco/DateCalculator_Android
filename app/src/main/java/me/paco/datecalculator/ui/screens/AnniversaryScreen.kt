@@ -130,7 +130,6 @@ fun AnniversaryScreen(
     var linkToCountdown by remember { mutableStateOf(true) }
 
     var itemToDelete by remember { mutableStateOf<AnniversaryItem?>(null) }
-    var selectedDetailItem by remember { mutableStateOf<AnniversaryItem?>(null) }
 
     var showHistoryDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
@@ -173,6 +172,13 @@ fun AnniversaryScreen(
     // 新增纪念日 Dialog
     if (showAddDialog) {
         val dialogBg = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg
+        val selectEmojiLabel = when (effectiveLang) {
+            AppLanguage.ENGLISH -> "Select Icon Emoji"
+            AppLanguage.JAPANESE -> "アイコンEmojiを選択"
+            AppLanguage.KOREAN -> "이모지 아이콘 선택"
+            AppLanguage.TRADITIONAL_CHINESE -> "選擇圖標 Emoji"
+            else -> "选择图标 Emoji"
+        }
         val remarkLabel = when (effectiveLang) {
             AppLanguage.ENGLISH -> "Notes & Wishes"
             AppLanguage.JAPANESE -> "一言メモ"
@@ -215,7 +221,7 @@ fun AnniversaryScreen(
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("选择图标 Emoji", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    Text(selectEmojiLabel, fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     val emojiOptions = listOf("❤️", "💍", "🎂", "🎉", "✈️", "🎓", "🎮", "🚗", "🏠", "📚", "🏆", "📌")
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -236,7 +242,7 @@ fun AnniversaryScreen(
                         }
                     }
 
-                    // 1. 纪念日名称输入框 (红圈 3D 凹槽 + 灰色提示文字)
+                    // 1. 纪念日名称输入框
                     Text(LanguageUtils.getString("anniversary_name", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     Box(
                         modifier = Modifier
@@ -264,7 +270,7 @@ fun AnniversaryScreen(
                         )
                     }
 
-                    // 2. 纪念日日期选择框 (黄圈 3D 凹槽 + 样式与年龄计算页 100% 对齐)
+                    // 2. 纪念日日期选择框
                     Text(LanguageUtils.getString("anniversary_date", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     val inputShape14 = RoundedCornerShape(14.dp)
                     Box(
@@ -308,7 +314,7 @@ fun AnniversaryScreen(
                         }
                     }
 
-                    // 3. 备注与想说的话输入框 (红圈 3D 凹槽 + 灰色提示文字)
+                    // 3. 备注短句
                     Text(remarkLabel, fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     Box(
                         modifier = Modifier
@@ -323,7 +329,7 @@ fun AnniversaryScreen(
                         if (remarkInput.isEmpty()) {
                             Text(
                                 text = remarkPlaceholder,
-                                fontSize = 12.5.sp,
+                                fontSize = 13.sp,
                                 color = NeumorphicTextPrimary.copy(alpha = 0.40f)
                             )
                         }
@@ -331,18 +337,18 @@ fun AnniversaryScreen(
                             value = remarkInput,
                             onValueChange = { remarkInput = it },
                             singleLine = true,
-                            textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary),
+                            textStyle = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
 
-                    // 4. 是否联动固定 Switch (样式与系统设置页 100% 对齐)
+                    // 4. 同步倒数日 Toggle 开关
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(syncLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                        Text(syncLabel, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                         NeumorphicSwitch(
                             checked = linkToCountdown,
                             onCheckedChange = { linkToCountdown = it }
@@ -363,14 +369,16 @@ fun AnniversaryScreen(
                             )
                             viewModel.addAnniversary(newItem, context)
 
-                            val fullName = "$selectedEmoji $titleInput"
-                            viewModel.addCustomEvent(
-                                name = fullName,
-                                targetDate = dateInput,
-                                iconEmoji = selectedEmoji,
-                                isPinned = linkToCountdown,
-                                context = context
-                            )
+                            if (linkToCountdown) {
+                                val fullName = "$selectedEmoji $titleInput"
+                                viewModel.addCustomEvent(
+                                    name = fullName,
+                                    targetDate = dateInput,
+                                    iconEmoji = selectedEmoji,
+                                    isPinned = true,
+                                    context = context
+                                )
+                            }
 
                             showAddDialog = false
                             titleInput = ""
@@ -391,12 +399,33 @@ fun AnniversaryScreen(
         )
     }
 
-    // 精准打卡 Dialog
+    // 打卡记录 Dialog
     if (showCheckInDialog) {
         val dialogBg = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg
         val currentCity = uiState.currentCityName
-        val coords = WeatherUtils.getCityCoordinates(currentCity)
-        val nowTimeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        val nowTimeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+
+        val locLabel = when (effectiveLang) {
+            AppLanguage.ENGLISH -> "Location:"
+            AppLanguage.JAPANESE -> "位置:"
+            AppLanguage.KOREAN -> "위치:"
+            AppLanguage.TRADITIONAL_CHINESE -> "定位地點:"
+            else -> "定位地点:"
+        }
+        val timeLabel = when (effectiveLang) {
+            AppLanguage.ENGLISH -> "Check-in Time:"
+            AppLanguage.JAPANESE -> "チェックイン時刻:"
+            AppLanguage.KOREAN -> "체크인 시간:"
+            AppLanguage.TRADITIONAL_CHINESE -> "打卡時刻:"
+            else -> "打卡时刻:"
+        }
+        val eventNameLabel = when (effectiveLang) {
+            AppLanguage.ENGLISH -> "Check-in Event Title"
+            AppLanguage.JAPANESE -> "イベント名"
+            AppLanguage.KOREAN -> "체크인 이벤트 이름"
+            AppLanguage.TRADITIONAL_CHINESE -> "打卡紀念事件名稱"
+            else -> "打卡纪念事件名称"
+        }
 
         AlertDialog(
             onDismissRequest = { showCheckInDialog = false },
@@ -418,13 +447,12 @@ fun AnniversaryScreen(
                     ) {
                         Column {
                             val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
-                            Text("定位地点: $localizedCity", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                            Text("GPS 经纬度: (${coords.first}, ${coords.second})", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
-                            Text("打卡时刻: $nowTimeStr", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                            Text("$locLabel $localizedCity", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                            Text("$timeLabel $nowTimeStr", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    Text("打卡纪念事件名称", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    Text(eventNameLabel, fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     val checkInTitlePlaceholder = when (effectiveLang) {
                         AppLanguage.ENGLISH -> "e.g. Arrived in Paris / First Concert"
                         AppLanguage.JAPANESE -> "例: パリ到着 / 初コンサート"
@@ -470,8 +498,6 @@ fun AnniversaryScreen(
                                 iconEmoji = "📍",
                                 isCheckIn = true,
                                 locationName = currentCity,
-                                latitude = coords.first,
-                                longitude = coords.second,
                                 checkInTimeStr = nowTimeStr,
                                 isPinned = true
                             )
@@ -491,7 +517,7 @@ fun AnniversaryScreen(
                         }
                     }
                 ) {
-                    Text("立即打卡保存", fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                    Text(LanguageUtils.getString("confirm", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent)
                 }
             },
             dismissButton = {
@@ -509,7 +535,7 @@ fun AnniversaryScreen(
         AlertDialog(
             onDismissRequest = { itemToDelete = null },
             title = { Text(LanguageUtils.getString("confirm_delete_anniversary", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary) },
-            text = { Text("${targetItem.iconEmoji} ${targetItem.title}", fontSize = 13.sp, color = NeumorphicTextPrimary) },
+            text = { Text(targetItem.title, fontSize = 13.sp, color = NeumorphicTextPrimary) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -530,15 +556,15 @@ fun AnniversaryScreen(
         )
     }
 
-    val list = uiState.anniversaryList
-
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(14.dp)
+                .padding(16.dp)
         ) {
+            val list = uiState.anniversaryList
+
             // 顶栏 (36dp 高度, 15sp 标题)
             Row(
                 modifier = Modifier
@@ -564,64 +590,41 @@ fun AnniversaryScreen(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showHistoryDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = LanguageUtils.getString("history_title", lang),
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    NeumorphicIconButton(
+                        icon = Icons.Default.History,
+                        onClick = { showHistoryDialog = true },
+                        contentDescription = LanguageUtils.getString("history_title", lang),
+                        size = 32.dp
+                    )
 
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showSettingsDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = LanguageUtils.getString("settings_title", lang),
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    NeumorphicIconButton(
+                        icon = Icons.Default.Settings,
+                        onClick = { showSettingsDialog = true },
+                        contentDescription = LanguageUtils.getString("settings_title", lang),
+                        size = 32.dp
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // 新增纪念日与打卡两个 3D 高亮按键
+            // 2. 快捷按键组：[ 📍 打卡 ] 与 [ + 添加纪念日 ]
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                val btnShape = RoundedCornerShape(16.dp)
-
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(46.dp)
-                        .neumorphicExtruded(shape = btnShape, elevation = 4.dp)
-                        .background(Color(0xFFEC4899), shape = btnShape)
-                        .clip(btnShape)
+                        .graphicsLayer {
+                            scaleX = bounceAnim.value
+                            scaleY = bounceAnim.value
+                        }
+                        .neumorphicExtruded(shape = RoundedCornerShape(14.dp), elevation = 4.dp)
+                        .background(NeumorphicAccent, shape = RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .clickable {
-                            dateInput = LocalDate.now()
-                            titleInput = ""
-                            remarkInput = ""
-                            showCheckInDialog = true
-
                             val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                             val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
@@ -632,12 +635,15 @@ fun AnniversaryScreen(
                                         Manifest.permission.ACCESS_COARSE_LOCATION
                                     )
                                 )
+                            } else {
+                                viewModel.fetchCurrentGpsLocation(context)
+                                showCheckInDialog = true
                             }
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(LanguageUtils.getString("check_in", lang), fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.5.sp)
                     }
@@ -647,19 +653,19 @@ fun AnniversaryScreen(
                     modifier = Modifier
                         .weight(1f)
                         .height(46.dp)
-                        .neumorphicExtruded(shape = btnShape, elevation = 4.dp)
-                        .background(Color(0xFF0D9488), shape = btnShape)
-                        .clip(btnShape)
+                        .neumorphicExtruded(shape = RoundedCornerShape(14.dp), elevation = 4.dp)
+                        .background(NeumorphicAccent, shape = RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .clickable {
-                            dateInput = LocalDate.now()
                             titleInput = ""
                             remarkInput = ""
+                            dateInput = LocalDate.now()
                             showAddDialog = true
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(LanguageUtils.getString("add_anniversary", lang), fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.5.sp)
                     }
@@ -668,33 +674,34 @@ fun AnniversaryScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 纪念日列表展示
+            // 3. 纪念日列表卡片展现层
             if (list.isEmpty()) {
-                val emptyCardShape = RoundedCornerShape(22.dp)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp)
-                        .neumorphicExtruded(shape = emptyCardShape, elevation = 4.dp)
-                        .background(NeumorphicBg, shape = emptyCardShape)
-                        .clip(emptyCardShape),
+                        .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null,
+                            tint = NeumorphicAccent.copy(alpha = 0.4f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(LanguageUtils.getString("no_anniversary_record", lang), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(LanguageUtils.getString("add_anniversary_hint", lang), fontSize = 12.sp, color = NeumorphicTextPrimary.copy(alpha = 0.6f))
                     }
                 }
             } else {
-                val today = LocalDate.now()
+                val cardShape = RoundedCornerShape(22.dp)
 
                 list.forEach { item ->
-                    val totalDaysPassed = DateCalculatorUtils.naturalDaysBetween(item.date, today)
-                    val nextUpcoming = item.getNextUpcomingDate(today)
-                    val daysRemaining = DateCalculatorUtils.naturalDaysBetween(today, nextUpcoming)
-
-                    val cardShape = RoundedCornerShape(22.dp)
+                    val totalDaysPassed = DateCalculatorUtils.naturalDaysBetween(item.date, LocalDate.now())
+                    val upcomingDate = item.getNextUpcomingDate(LocalDate.now())
+                    val daysRemaining = DateCalculatorUtils.naturalDaysBetween(LocalDate.now(), upcomingDate)
 
                     Box(
                         modifier = Modifier
@@ -702,12 +709,7 @@ fun AnniversaryScreen(
                             .padding(vertical = 6.dp)
                             .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
                             .background(NeumorphicBg, shape = cardShape)
-                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = cardShape)
                             .clip(cardShape)
-                            .combinedClickable(
-                                onClick = { selectedDetailItem = item },
-                                onLongClick = { itemToDelete = item }
-                            )
                             .padding(14.dp)
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {

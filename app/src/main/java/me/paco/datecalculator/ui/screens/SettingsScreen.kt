@@ -76,6 +76,7 @@ import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicChip
 import me.paco.datecalculator.ui.components.NeumorphicCustomPopup
 import me.paco.datecalculator.ui.components.NeumorphicRadioButton
+import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicSwitch
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
@@ -612,6 +613,63 @@ fun SettingsScreen(
                                             fontSize = 11.sp,
                                             color = NeumorphicTextPrimary.copy(alpha = 0.65f)
                                         )
+                                    }
+                                }
+                            }
+
+                            if (isSelected && rule == WeekendRule.ALTERNATE_BIG_SMALL_WEEKS) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 28.dp, top = 2.dp, bottom = 4.dp)
+                                        .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                                        .padding(10.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        val subTitle = when (lang.getEffectiveLanguage()) {
+                                            AppLanguage.ENGLISH -> "Current Week Setting:"
+                                            AppLanguage.JAPANESE -> "今週のタイプ設定:"
+                                            AppLanguage.KOREAN -> "이번 주 설정:"
+                                            AppLanguage.TRADITIONAL_CHINESE -> "本週類型設定:"
+                                            else -> "本周类型设置:"
+                                        }
+                                        Text(subTitle, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            val bigLabel = when (lang.getEffectiveLanguage()) {
+                                                AppLanguage.ENGLISH -> "Big Week (2 Days Off)"
+                                                AppLanguage.JAPANESE -> "大週 (土日休み)"
+                                                AppLanguage.KOREAN -> "큰 주 (주말 휴무)"
+                                                AppLanguage.TRADITIONAL_CHINESE -> "大週 (本週雙休)"
+                                                else -> "大周 (本周双休)"
+                                            }
+                                            val smallLabel = when (lang.getEffectiveLanguage()) {
+                                                AppLanguage.ENGLISH -> "Small Week (1 Day Off)"
+                                                AppLanguage.JAPANESE -> "小週 (日曜のみ)"
+                                                AppLanguage.KOREAN -> "작은 주 (일요일 휴무)"
+                                                AppLanguage.TRADITIONAL_CHINESE -> "小週 (本週單休)"
+                                                else -> "小周 (本周单休)"
+                                            }
+
+                                            NeumorphicChip(
+                                                text = bigLabel,
+                                                selected = uiState.isCurrentWeekBigWeek,
+                                                onClick = { viewModel.updateIsBigWeek(true, context) },
+                                                modifier = Modifier.weight(1f)
+                                            )
+
+                                            NeumorphicChip(
+                                                text = smallLabel,
+                                                selected = !uiState.isCurrentWeekBigWeek,
+                                                onClick = { viewModel.updateIsBigWeek(false, context) },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
                                     }
                                 }
                             }

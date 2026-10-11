@@ -6,9 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,9 +30,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,7 +47,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.HolidayRegion
@@ -73,7 +70,7 @@ data class DayTimelineDetail(
 )
 
 /**
- * 1:1 还原参考图的高质感多段/单段时序安排示意图 (支持单点击气泡显示、强对比休假色彩解构)
+ * 1:1 还原参考图的高质感多段/单段时序安排示意图 (按压/滑动触发气泡，松手瞬间隐藏，无缝无分割线进度条)
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -117,7 +114,7 @@ fun TimelineDiagram(
         )
     }
 
-    // 生成每日粒度的完整序列列表用于单点气泡交互
+    // 生成每日粒度的完整序列列表用于按压/滑动气泡交互
     val dayList = remember(baseDate, finalDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek, disableChinaShiftWorkdays) {
         if (baseDate == finalDate) emptyList() else {
             val isForward = baseDate.isBefore(finalDate)
@@ -160,21 +157,14 @@ fun TimelineDiagram(
         allBlocks.filter { it.type == TimelineBlockType.STATUTORY_HOLIDAY }.sumOf { it.daysCount }
     }
 
-    // 单点气泡状态
+    // 气泡状态
     var activeHoverDay by remember { mutableStateOf<DayTimelineDetail?>(null) }
     var barWidthPx by remember { mutableFloatStateOf(1f) }
+    var lastHoverIndex by remember { mutableIntStateOf(-1) }
 
-    // 点击后 3.5 秒自动隐藏气泡
-    LaunchedEffect(activeHoverDay) {
-        if (activeHoverDay != null) {
-            delay(3500)
-            activeHoverDay = null
-        }
-    }
-
-    // 精准高对比色彩映射（确保双休与节假日绝对清晰突出，不与主题色混淆）
-    val weekendColor = Color(0xFFF59E0B) // 高亮鲜黄/橙色
-    val holidayColor = Color(0xFFEF4444) // 高亮珊瑚红色
+    // 高对比色彩映射（确保双休黄与节假日红绝对鲜明突出）
+    val weekendColor = Color(0xFFF59E0B) // 高亮黄/橙
+    val holidayColor = Color(0xFFEF4444) // 高亮红
 
     val containerModifier = if (isEmbedded) {
         modifier.fillMaxWidth()
@@ -351,7 +341,7 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 交互小气泡弹窗浮层 (单点时间轴触发，点击后精准定位日期与休假状态)
+            // 交互小气泡弹窗浮层 (第一版逻辑：按压/滑动时显示，松开手瞬间消失)
             AnimatedVisibility(
                 visible = activeHoverDay != null,
                 enter = fadeIn() + scaleIn(),
@@ -396,7 +386,7 @@ fun TimelineDiagram(
                 }
             }
 
-            // 3. 全局总时序进度条 (单点触发，100% 避免长按滑动引发的屏幕下滚问题)
+            // 3. 全局总时序进度条 (恢复按压/滑动悬浮气泡，手指离开屏幕瞬间即刻消失，无缝无分割线)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -405,23 +395,37 @@ fun TimelineDiagram(
                         barWidthPx = coords.size.width.toFloat()
                     }
                     .pointerInput(dayList) {
-                        detectTapGestures(
-                            onTap = { offset ->
-                                if (dayList.isNotEmpty() && barWidthPx > 0f) {
-                                    val fraction = (offset.x / barWidthPx).coerceIn(0f, 1f)
-                                    val idx = (fraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
-                                    activeHoverDay = dayList[idx]
-                                    HapticUtils.performCrispClick(context)
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull() ?: continue
+
+                                if (change.pressed) {
+                                    change.consume()
+                                    val touchX = change.position.x
+                                    if (dayList.isNotEmpty() && barWidthPx > 0f) {
+                                        val fraction = (touchX / barWidthPx).coerceIn(0f, 1f)
+                                        val idx = (fraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
+                                        if (idx != lastHoverIndex) {
+                                            lastHoverIndex = idx
+                                            activeHoverDay = dayList[idx]
+                                            HapticUtils.performCrispClick(context)
+                                        }
+                                    }
+                                } else {
+                                    // 手指松开/离开瞬间隐退气泡
+                                    activeHoverDay = null
+                                    lastHoverIndex = -1
                                 }
                             }
-                        )
+                        }
                     }
                     .neumorphicInset(shape = CircleShape, elevation = 2.dp)
                     .background(NeumorphicSunkenBg, shape = CircleShape)
                     .clip(CircleShape)
             ) {
                 if (allBlocks.isNotEmpty()) {
-                    allBlocks.forEachIndexed { bIdx, block ->
+                    allBlocks.forEach { block ->
                         val weight = (block.daysCount.toFloat() / totalDurationDays).coerceAtLeast(0.01f)
                         val blockColor = when (block.type) {
                             TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
@@ -435,16 +439,6 @@ fun TimelineDiagram(
                                 .fillMaxHeight()
                                 .background(blockColor)
                         )
-
-                        // 块间 1.5dp 精细高对比分割线，确保多段与周末休假块 100% 清楚可见
-                        if (bIdx < allBlocks.size - 1) {
-                            Spacer(
-                                modifier = Modifier
-                                    .width(1.5.dp)
-                                    .fillMaxHeight()
-                                    .background(NeumorphicSunkenBg)
-                            )
-                        }
                     }
                 } else {
                     Box(
@@ -546,7 +540,7 @@ fun TimelineDiagram(
 
                             Spacer(modifier = Modifier.height(5.dp))
 
-                            // 子项专属时序比例条 (带 1.5dp 精细缝隙与高对比休假调色)
+                            // 子项专属时序比例条
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -556,7 +550,7 @@ fun TimelineDiagram(
                                     .clip(CircleShape)
                             ) {
                                 if (segBlocks.isNotEmpty()) {
-                                    segBlocks.forEachIndexed { sbIdx, block ->
+                                    segBlocks.forEach { block ->
                                         val weight = (block.daysCount.toFloat() / segTotalDays).coerceAtLeast(0.01f)
                                         val blockColor = when (block.type) {
                                             TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
@@ -570,15 +564,6 @@ fun TimelineDiagram(
                                                 .fillMaxHeight()
                                                 .background(blockColor)
                                         )
-
-                                        if (sbIdx < segBlocks.size - 1) {
-                                            Spacer(
-                                                modifier = Modifier
-                                                    .width(1.5.dp)
-                                                    .fillMaxHeight()
-                                                    .background(NeumorphicSunkenBg)
-                                            )
-                                        }
                                     }
                                 } else {
                                     Box(

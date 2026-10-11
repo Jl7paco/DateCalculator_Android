@@ -484,8 +484,18 @@ fun HomeScreen(
 
                     if (homeConfig.showLunar) {
                         Spacer(modifier = Modifier.height(2.dp))
+                        val lunarPrefix = LanguageUtils.getString("lunar", lang)
+                        val leapStr = if (todayLunar.isLeapMonth) {
+                            when (effectiveLang) {
+                                AppLanguage.ENGLISH -> "Leap "
+                                AppLanguage.JAPANESE -> "閏"
+                                AppLanguage.KOREAN -> "윤"
+                                AppLanguage.TRADITIONAL_CHINESE -> "閏"
+                                else -> "闰"
+                            }
+                        } else ""
                         Text(
-                            text = "农历 ${todayLunar.ganZhiYear} (${todayLunar.zodiac}) 年 ${if (todayLunar.isLeapMonth) "闰" else ""}${todayLunar.lunarMonthName}${todayLunar.lunarDayName}",
+                            text = "$lunarPrefix ${todayLunar.ganZhiYear} (${todayLunar.zodiac}) 年 $leapStr${todayLunar.lunarMonthName}${todayLunar.lunarDayName}",
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = NeumorphicAccent
