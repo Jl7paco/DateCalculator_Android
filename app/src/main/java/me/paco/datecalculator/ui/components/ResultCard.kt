@@ -78,7 +78,34 @@ fun ResultCard(
     val descStr = DateCalculatorUtils.formatDateWithWeek(resultDate, appLanguage)
     val isWork = DateCalculatorUtils.isWorkday(resultDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek)
 
-    val titleDisplay = if (dateMode == DateMode.WORKDAY) LanguageUtils.getString("result_title_workday", appLanguage) else LanguageUtils.getString("result_title_natural", appLanguage)
+    val daysValue = daysInput.toLongOrNull() ?: 0L
+    val modeStr = if (dateMode == DateMode.WORKDAY) LanguageUtils.getString("workday", appLanguage) else LanguageUtils.getString("natural_day", appLanguage)
+    val dirStr = if (calculationType == CalculationType.ADD) {
+        when (appLanguage.getEffectiveLanguage()) {
+            AppLanguage.ENGLISH -> "after"
+            AppLanguage.JAPANESE -> "後は"
+            AppLanguage.KOREAN -> "후는"
+            AppLanguage.TRADITIONAL_CHINESE -> "後是"
+            else -> "后是"
+        }
+    } else {
+        when (appLanguage.getEffectiveLanguage()) {
+            AppLanguage.ENGLISH -> "before"
+            AppLanguage.JAPANESE -> "前は"
+            AppLanguage.KOREAN -> "전은"
+            AppLanguage.TRADITIONAL_CHINESE -> "前是"
+            else -> "前是"
+        }
+    }
+
+    val titleDisplay = when (appLanguage.getEffectiveLanguage()) {
+        AppLanguage.ENGLISH -> "$daysValue $modeStr $dirStr"
+        AppLanguage.JAPANESE -> "$daysValue $modeStr $dirStr"
+        AppLanguage.KOREAN -> "$daysValue $modeStr $dirStr"
+        AppLanguage.TRADITIONAL_CHINESE -> "${daysValue}個${modeStr}${dirStr}"
+        else -> "${daysValue}个${modeStr}${dirStr}"
+    }
+
     val chipDisplay = if (isWork) LanguageUtils.getString("workday_chip", appLanguage) else LanguageUtils.getString("weekend_chip", appLanguage)
 
     val copyToast = stringResource(R.string.toast_copied)
