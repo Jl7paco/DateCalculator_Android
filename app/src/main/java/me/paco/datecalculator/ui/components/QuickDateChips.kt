@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,11 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.util.HapticUtils
 import me.paco.datecalculator.util.LanguageUtils
 import java.time.LocalDate
 
@@ -38,16 +40,19 @@ fun QuickDateChips(
     language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val today = LocalDate.now()
     val yesterday = today.minusDays(1)
     val plus1Week = today.plusDays(7)
     val minus1Week = today.minusDays(7)
 
+    val chipShape = RoundedCornerShape(14.dp)
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val dates = listOf(
@@ -69,12 +74,12 @@ fun QuickDateChips(
 
             val shadowModifier = if (isSelected) {
                 Modifier
-                    .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
-                    .background(NeumorphicAccent, shape = CircleShape)
+                    .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
+                    .background(NeumorphicAccent, shape = chipShape)
             } else {
                 Modifier
-                    .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
-                    .background(NeumorphicBg, shape = CircleShape)
+                    .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
+                    .background(NeumorphicBg, shape = chipShape)
             }
 
             Box(
@@ -86,18 +91,21 @@ fun QuickDateChips(
                         scaleY = scale
                     }
                     .then(shadowModifier)
-                    .clip(CircleShape)
+                    .clip(chipShape)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null
-                    ) { onSelectDate(targetDate) },
+                    ) {
+                        HapticUtils.performCrispClick(context)
+                        onSelectDate(targetDate)
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = label,
                     color = if (isSelected) Color.White else NeumorphicTextPrimary,
                     fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     textAlign = TextAlign.Center
                 )
             }

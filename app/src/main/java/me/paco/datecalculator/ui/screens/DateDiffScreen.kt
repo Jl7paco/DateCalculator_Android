@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -56,6 +57,7 @@ import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PushPin
+import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -68,6 +70,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SuggestionChip
+import me.paco.datecalculator.ui.components.QuickDateChips
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -80,6 +83,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -305,7 +309,7 @@ fun DateDiffScreen(
                         }
                     }
 
-                    // 1. 倒数日名称 (红圈 3D 凹槽 + 灰色提示文字)
+                    // 1. 倒数日名称
                     Text(LanguageUtils.getString("anniversary_name", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     Box(
                         modifier = Modifier
@@ -329,11 +333,12 @@ fun DateDiffScreen(
                             onValueChange = { customNameInput = it },
                             singleLine = true,
                             textStyle = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                            cursorBrush = SolidColor(NeumorphicAccent),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
 
-                    // 2. 目标日期选择框 (黄圈 3D 凹槽 + 样式与年龄计算页 100% 对齐)
+                    // 2. 目标日期选择框
                     Text(LanguageUtils.getString("target_date", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     val inputShape14 = RoundedCornerShape(14.dp)
                     Box(
@@ -476,11 +481,10 @@ fun DateDiffScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.EventRepeat,
-                        contentDescription = null,
-                        tint = NeumorphicAccent,
-                        modifier = Modifier.size(18.dp)
+                    NeumorphicIconHeaderBadge(
+                        icon = Icons.Default.EventRepeat,
+                        size = 28.dp,
+                        iconSize = 14.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -492,39 +496,19 @@ fun DateDiffScreen(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showHistoryDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = LanguageUtils.getString("history_title", lang),
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    NeumorphicIconButton(
+                        icon = Icons.Default.History,
+                        onClick = { showHistoryDialog = true },
+                        contentDescription = LanguageUtils.getString("history_title", lang),
+                        size = 32.dp
+                    )
 
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showSettingsDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = LanguageUtils.getString("settings_title", lang),
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    NeumorphicIconButton(
+                        icon = Icons.Default.Settings,
+                        onClick = { showSettingsDialog = true },
+                        contentDescription = LanguageUtils.getString("settings_title", lang),
+                        size = 32.dp
+                    )
                 }
             }
 
@@ -712,68 +696,12 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 四个快捷按键
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val today = LocalDate.now()
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp)
-                        .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 4.dp)
-                        .background(if (uiState.baseDate == today) NeumorphicAccent else NeumorphicBg, shape = RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { viewModel.updateBaseDate(today) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(LanguageUtils.getString("today", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (uiState.baseDate == today) Color.White else NeumorphicTextPrimary)
-                }
-
-                val yesterday = today.minusDays(1)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp)
-                        .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 4.dp)
-                        .background(if (uiState.baseDate == yesterday) NeumorphicAccent else NeumorphicBg, shape = RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { viewModel.updateBaseDate(yesterday) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(LanguageUtils.getString("yesterday", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (uiState.baseDate == yesterday) Color.White else NeumorphicTextPrimary)
-                }
-
-                val plusOneWeek = uiState.baseDate.plusWeeks(1)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp)
-                        .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 4.dp)
-                        .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { viewModel.updateBaseDate(plusOneWeek) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(LanguageUtils.getString("plus_1w", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
-                }
-
-                val minusOneWeek = uiState.baseDate.minusWeeks(1)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp)
-                        .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 4.dp)
-                        .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { viewModel.updateBaseDate(minusOneWeek) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(LanguageUtils.getString("minus_1w", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicTextPrimary)
-                }
-            }
+            // 统一调取 QuickDateChips 全组件，确保 100% 视觉对齐 RoundedCornerShape(14.dp) 样式
+            QuickDateChips(
+                selectedDate = uiState.baseDate,
+                onSelectDate = { date -> viewModel.updateBaseDate(date) },
+                language = lang
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -1069,18 +997,18 @@ fun DateDiffScreen(
 }
 
 private fun calculateNextSolarDate(baseDate: LocalDate, month: Int, day: Int): LocalDate {
-    var target = LocalDate.of(baseDate.year, month, day)
-    if (target.isBefore(baseDate)) {
-        target = LocalDate.of(baseDate.year + 1, month, day)
+    var candidate = LocalDate.of(baseDate.year, month, day)
+    if (candidate.isBefore(baseDate)) {
+        candidate = candidate.plusYears(1)
     }
-    return target
+    return candidate
 }
 
 private fun calculateNextLunarDate(baseDate: LocalDate, lunarMonth: Int, lunarDay: Int): LocalDate {
-    var solar = LunarCalendarUtils.lunarToSolar(baseDate.year, lunarMonth, lunarDay)
-    if (solar == null || solar.isBefore(baseDate)) {
-        solar = LunarCalendarUtils.lunarToSolar(baseDate.year + 1, lunarMonth, lunarDay)
-            ?: baseDate.plusDays(30)
+    var year = baseDate.year
+    var candidate = LunarCalendarUtils.lunarToSolar(year, lunarMonth, lunarDay, false) ?: baseDate
+    if (candidate.isBefore(baseDate)) {
+        candidate = LunarCalendarUtils.lunarToSolar(year + 1, lunarMonth, lunarDay, false) ?: baseDate.plusYears(1)
     }
-    return solar
+    return candidate
 }

@@ -210,7 +210,11 @@ fun ResultCard(
                     segments = listOf(singleSegment),
                     planTitle = "",
                     isEmbedded = true,
-                    language = appLanguage
+                    weekendRule = weekendRule,
+                    enableHolidays = enableHolidays,
+                    holidayRegion = holidayRegion,
+                    language = appLanguage,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
