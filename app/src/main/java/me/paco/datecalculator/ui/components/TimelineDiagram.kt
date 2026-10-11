@@ -1,7 +1,6 @@
 package me.paco.datecalculator.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -9,8 +8,6 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,7 +31,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -52,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.HolidayRegion
@@ -76,7 +71,7 @@ data class DayTimelineDetail(
 )
 
 /**
- * 1:1 还原参考图的高质感多段/单段时序安排示意图 (包含黄色的周末双休图例与可长按滑动交互的小气泡指示)
+ * 1:1 还原参考图的高质感多段/单段时序安排示意图 (包含黄色的周末双休图例，长按/拖动时弹出小气泡，松开手瞬间隐退)
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -128,7 +123,7 @@ fun TimelineDiagram(
             val end = if (isForward) finalDate else baseDate
 
             val list = mutableListOf<DayTimelineDetail>()
-            var curr = start.plusDays(1)
+            var curr = start
             while (!curr.isAfter(end)) {
                 val isShift = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion)
                 val isStat = enableHolidays && RegionalHolidays.isStatutoryHoliday(curr, holidayRegion)
@@ -147,8 +142,8 @@ fun TimelineDiagram(
         }
     }
 
-    val totalDurationDays = remember(baseDate, finalDate) {
-        abs(ChronoUnit.DAYS.between(baseDate, finalDate)).coerceAtLeast(1)
+    val totalDurationDays = remember(allBlocks) {
+        allBlocks.sumOf { it.daysCount }.coerceAtLeast(1)
     }
 
     val totalWorkdays = remember(allBlocks) {
@@ -163,19 +158,10 @@ fun TimelineDiagram(
         allBlocks.filter { it.type == TimelineBlockType.STATUTORY_HOLIDAY }.sumOf { it.daysCount }
     }
 
-    // 交互气泡状态
+    // 交互小气泡状态
     var activeHoverDay by remember { mutableStateOf<DayTimelineDetail?>(null) }
     var barWidthPx by remember { mutableFloatStateOf(1f) }
     var lastHoverIndex by remember { mutableIntStateOf(-1) }
-
-    // 自动隐退气泡倒计时
-    LaunchedEffect(activeHoverDay) {
-        if (activeHoverDay != null) {
-            delay(3000)
-            activeHoverDay = null
-            lastHoverIndex = -1
-        }
-    }
 
     val containerModifier = if (isEmbedded) {
         modifier.fillMaxWidth()
@@ -352,7 +338,7 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 交互小气泡弹窗浮层
+            // 交互小气泡弹窗浮层 (长按/拖动时弹出，松开手指瞬间隐藏)
             AnimatedVisibility(
                 visible = activeHoverDay != null,
                 enter = fadeIn() + scaleIn(),
@@ -397,18 +383,7 @@ fun TimelineDiagram(
                 }
             }
 
-            // 3. 全局总时序进度条 (支持长按/滑动/点击手势，带悬浮气泡)
-            fun updateTouchHover(touchX: Float) {
-                if (dayList.isEmpty() || barWidthPx <= 0f) return
-                val fraction = (touchX / barWidthPx).coerceIn(0f, 1f)
-                val idx = (fraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
-                if (idx != lastHoverIndex) {
-                    lastHoverIndex = idx
-                    activeHoverDay = dayList[idx]
-                    HapticUtils.performCrispClick(context)
-                }
-            }
-
+            // 3. 全局总时序进度条 (长按/按压拖动触发气泡，松开手瞬间隐藏)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -417,14 +392,28 @@ fun TimelineDiagram(
                         barWidthPx = coords.size.width.toFloat()
                     }
                     .pointerInput(dayList) {
-                        detectTapGestures(
-                            onTap = { offset -> updateTouchHover(offset.x) },
-                            onPress = { offset -> updateTouchHover(offset.x) }
-                        )
-                    }
-                    .pointerInput(dayList) {
-                        detectDragGestures { change, _ ->
-                            updateTouchHover(change.position.x)
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull() ?: continue
+
+                                if (change.pressed) {
+                                    val touchX = change.position.x
+                                    if (dayList.isNotEmpty() && barWidthPx > 0f) {
+                                        val fraction = (touchX / barWidthPx).coerceIn(0f, 1f)
+                                        val idx = (fraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
+                                        if (idx != lastHoverIndex) {
+                                            lastHoverIndex = idx
+                                            activeHoverDay = dayList[idx]
+                                            HapticUtils.performCrispClick(context)
+                                        }
+                                    }
+                                } else {
+                                    // 手指离开屏幕瞬间无延迟隐藏气泡
+                                    activeHoverDay = null
+                                    lastHoverIndex = -1
+                                }
+                            }
                         }
                     }
                     .neumorphicInset(shape = CircleShape, elevation = 2.dp)

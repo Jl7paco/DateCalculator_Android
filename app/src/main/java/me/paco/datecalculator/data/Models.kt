@@ -344,7 +344,7 @@ fun decomposeChronologicalBlocks(
     val end = if (isForward) endDate else startDate
 
     val blocks = mutableListOf<ChronologicalBlock>()
-    var curr = start.plusDays(1)
+    var curr = start // 从 start 日期自身开始拆解，包含起始点
 
     fun getType(d: LocalDate): TimelineBlockType {
         val isShift = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(d, holidayRegion)
