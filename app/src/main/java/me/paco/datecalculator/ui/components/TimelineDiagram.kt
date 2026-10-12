@@ -345,68 +345,13 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 3. 全局总时序进度条与悬浮气泡容器 (固定高度 62dp，无论气泡出现与否，进度条位置 100% 绝对保持固定不变！)
+            // 3. 全局总时序进度条 (取消预留间距，按压气泡向上 -38dp 浮层覆盖图示文字，进度条位置 100% 绝对固定)
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(62.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // A. 指向气泡卡片 (置于顶部 0dp，通过 Column 包裹 AnimatedVisibility 确保动画过渡与位移 100% 独立，完全不挤压影响下方进度条的布局位置)
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                ) {
-                    AnimatedVisibility(
-                        visible = activeHoverDay != null,
-                        enter = fadeIn() + scaleIn(),
-                        exit = fadeOut() + scaleOut()
-                    ) {
-                        if (activeHoverDay != null) {
-                            val dayDetail = activeHoverDay!!
-                            val dateFormatted = DateCalculatorUtils.formatDateWithWeek(dayDetail.date, language)
-                            val (typeText, typeColor) = when (dayDetail.type) {
-                                TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> "$workdayLabel 💼" to NeumorphicAccent
-                                TimelineBlockType.STATUTORY_HOLIDAY -> "$holidayLabel 🌸" to holidayColor
-                                TimelineBlockType.WEEKEND -> "$weekendLabel 🏖️" to Color(0xFFD97706)
-                            }
-
-                            // 指向气泡卡片 (自然 3D 新拟物沉降卡片)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(34.dp)
-                                    .neumorphicInset(shape = RoundedCornerShape(10.dp), elevation = 2.dp)
-                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = "📍 $dateFormatted",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = NeumorphicTextPrimary
-                                    )
-                                    Text(
-                                        text = "• $typeText",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = typeColor
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // B. 全局总时序进度条 (固定居于容器底部 Alignment.BottomCenter，位置 100% 绝对保持静止)
+                // A. 全局总时序进度条 (自然居于布局中，按压时位置静止不变)
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .height(18.dp)
                 ) {
@@ -472,7 +417,7 @@ fun TimelineDiagram(
                         }
                     }
 
-                    // C. 触控按压点高亮框 (完美 1:1 对齐用户草图：在进度条按压位置显示高亮瞄准框)
+                    // B. 触控按压点高亮框 (完美 1:1 对齐用户草图：在进度条按压位置显示高亮瞄准框)
                     if (activeHoverDay != null && barWidthPx > 0f) {
                         val density = LocalDensity.current
                         val indicatorWidthDp = 16.dp
@@ -486,6 +431,59 @@ fun TimelineDiagram(
                                 .border(2.dp, Color(0xFFF59E0B), shape = RoundedCornerShape(4.dp))
                                 .background(Color.White.copy(alpha = 0.35f), shape = RoundedCornerShape(4.dp))
                         )
+                    }
+                }
+
+                // C. 指向气泡浮层 (向上偏移 -38dp 浮于上方图示文字之上，完全不挤压占用下方的进度条布局)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = (-38).dp)
+                        .fillMaxWidth()
+                ) {
+                    AnimatedVisibility(
+                        visible = activeHoverDay != null,
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut()
+                    ) {
+                        if (activeHoverDay != null) {
+                            val dayDetail = activeHoverDay!!
+                            val dateFormatted = DateCalculatorUtils.formatDateWithWeek(dayDetail.date, language)
+                            val (typeText, typeColor) = when (dayDetail.type) {
+                                TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> "$workdayLabel 💼" to NeumorphicAccent
+                                TimelineBlockType.STATUTORY_HOLIDAY -> "$holidayLabel 🌸" to holidayColor
+                                TimelineBlockType.WEEKEND -> "$weekendLabel 🏖️" to Color(0xFFD97706)
+                            }
+
+                            // 指向气泡卡片 (3D 新拟物沉降卡片，悬浮在图示文字上方)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(34.dp)
+                                    .neumorphicInset(shape = RoundedCornerShape(10.dp), elevation = 2.dp)
+                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "📍 $dateFormatted",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NeumorphicTextPrimary
+                                    )
+                                    Text(
+                                        text = "• $typeText",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = typeColor
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
