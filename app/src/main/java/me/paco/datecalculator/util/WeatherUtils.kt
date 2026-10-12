@@ -251,11 +251,11 @@ object WeatherUtils {
     }
 
     /**
-     * 实时抓取 Open-Meteo 高精度 ECMWF 官方欧洲中期天气预报中心（IFS 模式）数据 (包含降水概率)
+     * 实时抓取 Open-Meteo 高精度 ECMWF/Best-Match 气象模型气温与降水概率数据
      */
     fun fetchRealLiveWeather(lat: Double, lon: Double): RealTimeWeatherData? {
         return try {
-            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=weather_code,weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&models=ecmwf_ifs025,best_match"
+            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto"
             val url = URL(urlStr)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
@@ -287,7 +287,37 @@ object WeatherUtils {
                             val code = codes.optInt(i, 0)
                             val maxT = maxTemps.optDouble(i, 28.0).toInt()
                             val minT = minTemps.optDouble(i, 20.0).toInt()
-                            val pProb = precipProbs?.optInt(i, 10) ?: 10
+
+                            val pProbRaw = if (precipProbs != null && !precipProbs.isNull(i)) {
+                                precipProbs.optInt(i, -1)
+                            } else {
+                                -1
+                            }
+
+                            val pProb = if (pProbRaw in 0..100) {
+                                pProbRaw
+                            } else {
+                                when (code) {
+                                    0 -> 0            // 晴朗: 0%
+                                    1 -> 10           // 晴间多云: 10%
+                                    2 -> 25           // 多云: 25%
+                                    3 -> 45           // 阴天: 45%
+                                    45, 48 -> 20      // 有雾: 20%
+                                    51, 53, 55 -> 65  // 细雨: 65%
+                                    56, 57 -> 70      // 冻雨: 70%
+                                    61 -> 75          // 小雨: 75%
+                                    63 -> 85          // 中雨: 85%
+                                    65 -> 95          // 大雨: 95%
+                                    66, 67 -> 80      // 冻雨: 80%
+                                    71, 73, 75 -> 70  // 降雪: 70%
+                                    80, 81 -> 80      // 阵雨: 80%
+                                    82 -> 90          // 暴雨: 90%
+                                    85, 86 -> 85      // 阵雪: 85%
+                                    95, 96, 99 -> 95  // 雷阵雨: 95%
+                                    else -> 15
+                                }
+                            }
+
                             val (icon, cond) = parseWmoWeatherCode(code)
 
                             weatherList.add(
@@ -367,6 +397,10 @@ object WeatherUtils {
             val minT = tempBase + (i % 2)
             val maxT = minT + 5 + (abs(baseSeed + i) % 3)
 
+            val pProb = when (condIdx) {
+                0 -> 0; 1 -> 25; 2 -> 45; 3 -> 75; else -> 15
+            }
+
             result.add(
                 DailyWeather(
                     dayName = dayNames[i],
@@ -374,7 +408,7 @@ object WeatherUtils {
                     condition = name,
                     tempMin = minT,
                     tempMax = maxT,
-                    precipProb = 15
+                    precipProb = pProb
                 )
             )
         }
