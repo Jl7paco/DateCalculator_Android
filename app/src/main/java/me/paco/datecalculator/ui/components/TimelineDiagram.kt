@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -437,13 +438,18 @@ fun TimelineDiagram(
                     }
                 }
 
-                // C. 指向气泡浮层 (测量高度严格定为 requiredHeight(0.dp)，在 Compose 测量树中占用 0 像素，下方的分享/复制按钮绝不移动)
+                // C. 指向气泡浮层 (通过 custom layout 离屏测量：渲染出完整高质感气泡，但在测量树中向上汇报 0 像素布局高度，下方的分享/复制按钮绝不移动)
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .offset(y = (-38).dp)
                         .fillMaxWidth()
-                        .requiredHeight(0.dp)
+                        .layout { measurable, constraints ->
+                            val placeable = measurable.measure(constraints)
+                            layout(placeable.width, 0) {
+                                placeable.placeRelative(0, 0)
+                            }
+                        }
                 ) {
                     AnimatedVisibility(
                         visible = activeHoverDay != null,
