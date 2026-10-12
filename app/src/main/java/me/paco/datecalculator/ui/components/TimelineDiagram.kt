@@ -175,10 +175,25 @@ fun TimelineDiagram(
     var touchFraction by remember { mutableFloatStateOf(0.5f) }
     var lastHoverIndex by remember { mutableIntStateOf(-1) }
 
+    val density = LocalDensity.current
+    val bubbleWidthDp = 270.dp
+    val edgeMarginDp = 12.dp
+
+    // 在屏幕中线两侧所能移动的最大安全像素位移 (严格计算气泡半宽与边缘边距，确保气泡绝对不会穿出左右屏幕边界)
+    val maxAllowedOffsetPx = if (barWidthPx > 0f) {
+        val bubbleHalfWidthPx = with(density) { (bubbleWidthDp / 2).toPx() }
+        val edgeMarginPx = with(density) { edgeMarginDp.toPx() }
+        ((barWidthPx / 2f) - bubbleHalfWidthPx - edgeMarginPx).coerceAtLeast(0f)
+    } else 0f
+
+    val rawTargetXOffsetPx = if (activeHoverDay != null && barWidthPx > 0f) {
+        (touchFraction - 0.5f) * barWidthPx * 0.75f
+    } else 0f
+
+    val clampedTargetXOffsetPx = rawTargetXOffsetPx.coerceIn(-maxAllowedOffsetPx, maxAllowedOffsetPx).roundToInt()
+
     val animOffsetXPx by animateIntAsState(
-        targetValue = if (activeHoverDay != null && barWidthPx > 0f) {
-            ((touchFraction - 0.5f) * barWidthPx * 0.60f).roundToInt()
-        } else 0,
+        targetValue = clampedTargetXOffsetPx,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMediumLow
