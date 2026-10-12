@@ -51,7 +51,7 @@ data class DailyWeather(
     val condition: String,
     val tempMin: Int,
     val tempMax: Int,
-    val precipProb: Int = 10
+    val precipProb: Int = 0
 )
 
 data class RealTimeWeatherData(
@@ -251,11 +251,11 @@ object WeatherUtils {
     }
 
     /**
-     * 实时抓取 Open-Meteo 高精度 ECMWF/Best-Match 气象模型气温与降水概率数据
+     * 100% 直连引用 Open-Meteo API 逐小时与逐日降水概率数组 (`precipitation_probability`)
      */
     fun fetchRealLiveWeather(lat: Double, lon: Double): RealTimeWeatherData? {
         return try {
-            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto"
+            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&hourly=precipitation_probability&daily=weather_code,weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_probability_mean&timezone=auto"
             val url = URL(urlStr)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
@@ -273,11 +273,15 @@ object WeatherUtils {
                 val curFeels = current?.optDouble("apparent_temperature", curTemp.toDouble())?.toInt() ?: curTemp
 
                 val daily = json.optJSONObject("daily")
+                val hourly = json.optJSONObject("hourly")
+                val hourlyPrecipProbs = hourly?.optJSONArray("precipitation_probability")
+
                 if (daily != null) {
                     val codes = daily.optJSONArray("weather_code") ?: daily.optJSONArray("weathercode")
                     val maxTemps = daily.optJSONArray("temperature_2m_max")
                     val minTemps = daily.optJSONArray("temperature_2m_min")
-                    val precipProbs = daily.optJSONArray("precipitation_probability_max")
+                    val dailyPrecipMax = daily.optJSONArray("precipitation_probability_max")
+                    val dailyPrecipMean = daily.optJSONArray("precipitation_probability_mean")
 
                     if (codes != null && maxTemps != null && minTemps != null) {
                         val dayNames = listOf("今天", "明天", "后天", "大后天")
@@ -288,35 +292,29 @@ object WeatherUtils {
                             val maxT = maxTemps.optDouble(i, 28.0).toInt()
                             val minT = minTemps.optDouble(i, 20.0).toInt()
 
-                            val pProbRaw = if (precipProbs != null && !precipProbs.isNull(i)) {
-                                precipProbs.optInt(i, -1)
-                            } else {
-                                -1
+                            // 100% 直接引用 API 真实降水概率数据
+                            var pProb = -1
+                            if (dailyPrecipMax != null && !dailyPrecipMax.isNull(i)) {
+                                pProb = dailyPrecipMax.optInt(i, -1)
+                            }
+                            if (pProb < 0 && dailyPrecipMean != null && !dailyPrecipMean.isNull(i)) {
+                                pProb = dailyPrecipMean.optInt(i, -1)
+                            }
+                            // 若 daily 数组为空，从 hourly 24 小时真实数据中提取该日最高降水概率
+                            if (pProb < 0 && hourlyPrecipProbs != null) {
+                                var maxHourlyProb = 0
+                                val startHour = i * 24
+                                val endHour = (i + 1) * 24
+                                for (h in startHour until endHour.coerceAtMost(hourlyPrecipProbs.length())) {
+                                    val hProb = hourlyPrecipProbs.optInt(h, 0)
+                                    if (hProb > maxHourlyProb) {
+                                        maxHourlyProb = hProb
+                                    }
+                                }
+                                pProb = maxHourlyProb
                             }
 
-                            val pProb = if (pProbRaw in 0..100) {
-                                pProbRaw
-                            } else {
-                                when (code) {
-                                    0 -> 0            // 晴朗: 0%
-                                    1 -> 10           // 晴间多云: 10%
-                                    2 -> 25           // 多云: 25%
-                                    3 -> 45           // 阴天: 45%
-                                    45, 48 -> 20      // 有雾: 20%
-                                    51, 53, 55 -> 65  // 细雨: 65%
-                                    56, 57 -> 70      // 冻雨: 70%
-                                    61 -> 75          // 小雨: 75%
-                                    63 -> 85          // 中雨: 85%
-                                    65 -> 95          // 大雨: 95%
-                                    66, 67 -> 80      // 冻雨: 80%
-                                    71, 73, 75 -> 70  // 降雪: 70%
-                                    80, 81 -> 80      // 阵雨: 80%
-                                    82 -> 90          // 暴雨: 90%
-                                    85, 86 -> 85      // 阵雪: 85%
-                                    95, 96, 99 -> 95  // 雷阵雨: 95%
-                                    else -> 15
-                                }
-                            }
+                            if (pProb < 0) pProb = 0
 
                             val (icon, cond) = parseWmoWeatherCode(code)
 
