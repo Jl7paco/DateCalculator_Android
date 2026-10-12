@@ -565,7 +565,17 @@ fun DateDiffScreen(
                 allPinnedCards.forEachIndexed { pIdx, (customItem, pair) ->
                     val (pinnedName, upcoming) = pair
                     val diffDays = DateCalculatorUtils.naturalDaysBetween(uiState.baseDate, upcoming)
-                    val cardBgColor = cardColorPalette[pIdx % cardColorPalette.size]
+                    val cardBgColor = if (isDark) {
+                        listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+                            Color(0xFF065F46).copy(alpha = 0.40f),
+                            Color(0xFF7C2D12).copy(alpha = 0.40f),
+                            Color(0xFF581C87).copy(alpha = 0.40f),
+                            Color(0xFF831843).copy(alpha = 0.40f)
+                        )[pIdx % 5]
+                    } else {
+                        cardColorPalette[pIdx % cardColorPalette.size]
+                    }
 
                     val cardShape = RoundedCornerShape(22.dp)
                     Box(
