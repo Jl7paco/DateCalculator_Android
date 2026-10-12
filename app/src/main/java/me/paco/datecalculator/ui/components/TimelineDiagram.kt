@@ -172,6 +172,7 @@ fun TimelineDiagram(
 
     // 气泡状态
     var activeHoverDay by remember { mutableStateOf<DayTimelineDetail?>(null) }
+    var activeHoverSource by remember { mutableStateOf<String?>(null) }
     var barWidthPx by remember { mutableFloatStateOf(1f) }
     var touchFraction by remember { mutableFloatStateOf(0.5f) }
     var lastHoverIndex by remember { mutableIntStateOf(-1) }
@@ -442,14 +443,16 @@ fun TimelineDiagram(
                                                 }
 
                                                 val idx = (touchFraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
-                                                if (idx != lastHoverIndex) {
+                                                if (idx != lastHoverIndex || activeHoverSource != "MAIN") {
                                                     lastHoverIndex = idx
+                                                    activeHoverSource = "MAIN"
                                                     activeHoverDay = dayList[idx]
                                                     HapticUtils.performCrispClick(context)
                                                 }
                                             }
                                         } else {
                                             // 手指松开/离开瞬间隐退气泡并重置落指坐标
+                                            activeHoverSource = null
                                             activeHoverDay = null
                                             lastHoverIndex = -1
                                             initialTouchX = -1f
@@ -487,8 +490,8 @@ fun TimelineDiagram(
                         }
                     }
 
-                    // B. 触控按压点高亮框 (完美 1:1 对齐用户草图：在进度条按压位置显示高亮瞄准框)
-                    if (activeHoverDay != null && barWidthPx > 0f) {
+                    // B. 触控按压点高亮框 (主轴被按压时显示高亮瞄准框)
+                    if (activeHoverSource == "MAIN" && activeHoverDay != null && barWidthPx > 0f) {
                         val density = LocalDensity.current
                         val indicatorWidthDp = 16.dp
                         val indicatorWidthPx = with(density) { indicatorWidthDp.toPx() }
@@ -504,8 +507,8 @@ fun TimelineDiagram(
                     }
                 }
 
-                // C. 指向气泡浮层 (顺滑左右平移跟随 + 恒定固定 270.dp 宽度，彻底解决文字长度变化导致的位移跳动 bug)
-                if (activeHoverDay != null) {
+                // C. 指向气泡浮层 (主轴被按压时悬浮在主轴正上方)
+                if (activeHoverSource == "MAIN" && activeHoverDay != null) {
                     val density = LocalDensity.current
                     val bubbleOffsetPxY = with(density) { (-48).dp.roundToPx() }
 
@@ -614,6 +617,34 @@ fun TimelineDiagram(
                         }
                     } else ""
 
+                    val segDayList = remember(seg.startDate, seg.endDate, weekendRule, enableHolidays, holidayRegion, isCurrentWeekBigWeek, disableChinaShiftWorkdays) {
+                        if (seg.startDate == seg.endDate) emptyList() else {
+                            val isForward = seg.startDate.isBefore(seg.endDate)
+                            val start = if (isForward) seg.startDate else seg.endDate
+                            val end = if (isForward) seg.endDate else seg.startDate
+
+                            val list = mutableListOf<DayTimelineDetail>()
+                            var curr = start
+                            while (!curr.isAfter(end)) {
+                                val isShift = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion)
+                                val isStat = enableHolidays && RegionalHolidays.isStatutoryHoliday(curr, holidayRegion)
+                                val isWeekend = weekendRule.isWeekend(curr, isCurrentWeekBigWeek)
+
+                                val t = when {
+                                    isShift -> TimelineBlockType.SHIFT_WORKDAY
+                                    isStat -> TimelineBlockType.STATUTORY_HOLIDAY
+                                    isWeekend -> TimelineBlockType.WEEKEND
+                                    else -> TimelineBlockType.WORKDAY
+                                }
+                                list.add(DayTimelineDetail(curr, t))
+                                curr = curr.plusDays(1)
+                            }
+                            list
+                        }
+                    }
+
+                    var subBarWidthPx by remember { mutableFloatStateOf(1f) }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.Top
@@ -654,37 +685,160 @@ fun TimelineDiagram(
 
                             Spacer(modifier = Modifier.height(5.dp))
 
-                            // 子项专属时序比例条
-                            Row(
+                            // 子项专属时序比例条 (支持全功能触控/滑动悬浮气泡交互)
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(8.dp)
-                                    .neumorphicInset(shape = CircleShape, elevation = 1.5.dp)
-                                    .background(NeumorphicSunkenBg, shape = CircleShape)
-                                    .clip(CircleShape)
+                                    .height(14.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                if (segBlocks.isNotEmpty()) {
-                                    segBlocks.forEach { block ->
-                                        val weight = (block.daysCount.toFloat() / segTotalDays).coerceAtLeast(0.01f)
-                                        val blockColor = when (block.type) {
-                                            TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
-                                            TimelineBlockType.STATUTORY_HOLIDAY -> holidayColor
-                                            TimelineBlockType.WEEKEND -> weekendColor
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(10.dp)
+                                        .onGloballyPositioned { coords ->
+                                            subBarWidthPx = coords.size.width.toFloat()
+                                        }
+                                        .pointerInput(segDayList) {
+                                            awaitPointerEventScope {
+                                                while (true) {
+                                                    val event = awaitPointerEvent()
+                                                    val change = event.changes.firstOrNull() ?: continue
+
+                                                    if (change.pressed) {
+                                                        change.consume()
+                                                        val touchX = change.position.x
+                                                        if (segDayList.isNotEmpty() && subBarWidthPx > 0f) {
+                                                            if (initialTouchX < 0f) {
+                                                                initialTouchX = touchX
+                                                                isDraggingThresholdMet = false
+                                                                touchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
+                                                            } else {
+                                                                val dragDistancePx = abs(touchX - initialTouchX)
+                                                                if (dragDistancePx > with(density) { 14.dp.toPx() }) {
+                                                                    isDraggingThresholdMet = true
+                                                                }
+                                                                if (isDraggingThresholdMet) {
+                                                                    touchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
+                                                                }
+                                                            }
+
+                                                            val subIdx = (touchFraction * (segDayList.size - 1)).roundToInt().coerceIn(segDayList.indices)
+                                                            if (subIdx != lastHoverIndex || activeHoverSource != "SUB_$idx") {
+                                                                lastHoverIndex = subIdx
+                                                                activeHoverSource = "SUB_$idx"
+                                                                activeHoverDay = segDayList[subIdx]
+                                                                HapticUtils.performCrispClick(context)
+                                                            }
+                                                        }
+                                                    } else {
+                                                        activeHoverSource = null
+                                                        activeHoverDay = null
+                                                        lastHoverIndex = -1
+                                                        initialTouchX = -1f
+                                                        isDraggingThresholdMet = false
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        .neumorphicInset(shape = CircleShape, elevation = 1.5.dp)
+                                        .background(NeumorphicSunkenBg, shape = CircleShape)
+                                        .clip(CircleShape)
+                                ) {
+                                    if (segBlocks.isNotEmpty()) {
+                                        segBlocks.forEach { block ->
+                                            val weight = (block.daysCount.toFloat() / segTotalDays).coerceAtLeast(0.01f)
+                                            val blockColor = when (block.type) {
+                                                TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
+                                                TimelineBlockType.STATUTORY_HOLIDAY -> holidayColor
+                                                TimelineBlockType.WEEKEND -> weekendColor
+                                            }
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(weight)
+                                                    .fillMaxHeight()
+                                                    .background(blockColor)
+                                            )
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(NeumorphicAccent)
+                                        )
+                                    }
+                                }
+
+                                // 触控按压点高亮框 (在子项进度条按压位置显示高亮瞄准框)
+                                if (activeHoverSource == "SUB_$idx" && activeHoverDay != null && subBarWidthPx > 0f) {
+                                    val indicatorWidthDp = 12.dp
+                                    val indicatorWidthPx = with(density) { indicatorWidthDp.toPx() }
+                                    val offsetX = ((subBarWidthPx * touchFraction) - (indicatorWidthPx / 2f)).coerceIn(0f, subBarWidthPx - indicatorWidthPx)
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(x = with(density) { offsetX.toDp() })
+                                            .width(indicatorWidthDp)
+                                            .fillMaxHeight()
+                                            .border(1.5.dp, Color(0xFFF59E0B), shape = RoundedCornerShape(3.dp))
+                                            .background(Color.White.copy(alpha = 0.35f), shape = RoundedCornerShape(3.dp))
+                                    )
+                                }
+
+                                // 子轴专属指向气泡 (精准吸附在子轴正上方，随触摸位置平移)
+                                if (activeHoverSource == "SUB_$idx" && activeHoverDay != null) {
+                                    val bubbleOffsetPxY = with(density) { (-44).dp.roundToPx() }
+
+                                    Popup(
+                                        alignment = Alignment.TopCenter,
+                                        offset = IntOffset(animOffsetXPx.value.roundToInt(), bubbleOffsetPxY),
+                                        properties = PopupProperties(
+                                            focusable = false,
+                                            dismissOnBackPress = false,
+                                            dismissOnClickOutside = false,
+                                            clippingEnabled = false
+                                        )
+                                    ) {
+                                        val dayDetail = activeHoverDay!!
+                                        val dateFormatted = DateCalculatorUtils.formatDateWithWeek(dayDetail.date, language)
+                                        val (typeText, typeColor) = when (dayDetail.type) {
+                                            TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> "$workdayLabel 💼" to NeumorphicAccent
+                                            TimelineBlockType.STATUTORY_HOLIDAY -> "$holidayLabel 🌸" to holidayColor
+                                            TimelineBlockType.WEEKEND -> "$weekendLabel 🏖️" to Color(0xFFD97706)
                                         }
 
                                         Box(
                                             modifier = Modifier
-                                                .weight(weight)
-                                                .fillMaxHeight()
-                                                .background(blockColor)
-                                        )
+                                                .width(270.dp)
+                                                .height(38.dp)
+                                                .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 6.dp)
+                                                .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                                                .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = RoundedCornerShape(12.dp))
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                Text(
+                                                    text = "📍 $dateFormatted",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = NeumorphicTextPrimary,
+                                                    maxLines = 1
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "• $typeText",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = typeColor,
+                                                    maxLines = 1
+                                                )
+                                            }
+                                        }
                                     }
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(NeumorphicAccent)
-                                    )
                                 }
                             }
 
