@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -160,6 +163,7 @@ fun TimelineDiagram(
     // 气泡状态
     var activeHoverDay by remember { mutableStateOf<DayTimelineDetail?>(null) }
     var barWidthPx by remember { mutableFloatStateOf(1f) }
+    var touchFraction by remember { mutableFloatStateOf(0.5f) }
     var lastHoverIndex by remember { mutableIntStateOf(-1) }
 
     // 高对比色彩映射（确保双休黄与节假日红绝对鲜明突出）
@@ -341,111 +345,148 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 交互小气泡弹窗浮层 (第一版逻辑：按压/滑动时显示，松开手瞬间消失)
-            AnimatedVisibility(
-                visible = activeHoverDay != null,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
-            ) {
-                if (activeHoverDay != null) {
-                    val dayDetail = activeHoverDay!!
-                    val dateFormatted = DateCalculatorUtils.formatDateWithWeek(dayDetail.date, language)
-                    val (typeText, typeColor) = when (dayDetail.type) {
-                        TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> "$workdayLabel 💼" to NeumorphicAccent
-                        TimelineBlockType.STATUTORY_HOLIDAY -> "$holidayLabel 🌸" to holidayColor
-                        TimelineBlockType.WEEKEND -> "$weekendLabel 🏖️" to Color(0xFFD97706)
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 6.dp)
-                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
-                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "📍 $dateFormatted",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicTextPrimary
-                            )
-                            Text(
-                                text = "• $typeText",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = typeColor
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 3. 全局总时序进度条 (恢复按压/滑动悬浮气泡，手指离开屏幕瞬间即刻消失，无缝无分割线)
-            Row(
+            // 3. 全局总时序进度条与悬浮气泡容器 (固定高度 62dp，无论气泡出现与否，进度条位置 100% 绝对保持固定不变！)
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(16.dp)
-                    .onGloballyPositioned { coords ->
-                        barWidthPx = coords.size.width.toFloat()
-                    }
-                    .pointerInput(dayList) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.firstOrNull() ?: continue
+                    .height(62.dp)
+            ) {
+                // A. 指向气泡卡片 (置于顶部 0dp，通过 Column 包裹 AnimatedVisibility 确保动画过渡与位移 100% 独立，完全不挤压影响下方进度条的布局位置)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                ) {
+                    AnimatedVisibility(
+                        visible = activeHoverDay != null,
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut()
+                    ) {
+                        if (activeHoverDay != null) {
+                            val dayDetail = activeHoverDay!!
+                            val dateFormatted = DateCalculatorUtils.formatDateWithWeek(dayDetail.date, language)
+                            val (typeText, typeColor) = when (dayDetail.type) {
+                                TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> "$workdayLabel 💼" to NeumorphicAccent
+                                TimelineBlockType.STATUTORY_HOLIDAY -> "$holidayLabel 🌸" to holidayColor
+                                TimelineBlockType.WEEKEND -> "$weekendLabel 🏖️" to Color(0xFFD97706)
+                            }
 
-                                if (change.pressed) {
-                                    change.consume()
-                                    val touchX = change.position.x
-                                    if (dayList.isNotEmpty() && barWidthPx > 0f) {
-                                        val fraction = (touchX / barWidthPx).coerceIn(0f, 1f)
-                                        val idx = (fraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
-                                        if (idx != lastHoverIndex) {
-                                            lastHoverIndex = idx
-                                            activeHoverDay = dayList[idx]
-                                            HapticUtils.performCrispClick(context)
-                                        }
-                                    }
-                                } else {
-                                    // 手指松开/离开瞬间隐退气泡
-                                    activeHoverDay = null
-                                    lastHoverIndex = -1
+                            // 指向气泡卡片 (自然 3D 新拟物沉降卡片)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(34.dp)
+                                    .neumorphicInset(shape = RoundedCornerShape(10.dp), elevation = 2.dp)
+                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "📍 $dateFormatted",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NeumorphicTextPrimary
+                                    )
+                                    Text(
+                                        text = "• $typeText",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = typeColor
+                                    )
                                 }
                             }
                         }
                     }
-                    .neumorphicInset(shape = CircleShape, elevation = 2.dp)
-                    .background(NeumorphicSunkenBg, shape = CircleShape)
-                    .clip(CircleShape)
-            ) {
-                if (allBlocks.isNotEmpty()) {
-                    allBlocks.forEach { block ->
-                        val weight = (block.daysCount.toFloat() / totalDurationDays).coerceAtLeast(0.01f)
-                        val blockColor = when (block.type) {
-                            TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
-                            TimelineBlockType.STATUTORY_HOLIDAY -> holidayColor
-                            TimelineBlockType.WEEKEND -> weekendColor
-                        }
+                }
 
-                        Box(
-                            modifier = Modifier
-                                .weight(weight)
-                                .fillMaxHeight()
-                                .background(blockColor)
-                        )
-                    }
-                } else {
-                    Box(
+                // B. 全局总时序进度条 (固定居于容器底部 Alignment.BottomCenter，位置 100% 绝对保持静止)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(18.dp)
+                ) {
+                    Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(NeumorphicAccent)
-                    )
+                            .onGloballyPositioned { coords ->
+                                barWidthPx = coords.size.width.toFloat()
+                            }
+                            .pointerInput(dayList) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val change = event.changes.firstOrNull() ?: continue
+
+                                        if (change.pressed) {
+                                            change.consume()
+                                            val touchX = change.position.x
+                                            if (dayList.isNotEmpty() && barWidthPx > 0f) {
+                                                val fraction = (touchX / barWidthPx).coerceIn(0f, 1f)
+                                                touchFraction = fraction
+                                                val idx = (fraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
+                                                if (idx != lastHoverIndex) {
+                                                    lastHoverIndex = idx
+                                                    activeHoverDay = dayList[idx]
+                                                    HapticUtils.performCrispClick(context)
+                                                }
+                                            }
+                                        } else {
+                                            // 手指松开/离开瞬间隐退气泡
+                                            activeHoverDay = null
+                                            lastHoverIndex = -1
+                                        }
+                                    }
+                                }
+                            }
+                            .neumorphicInset(shape = CircleShape, elevation = 2.dp)
+                            .background(NeumorphicSunkenBg, shape = CircleShape)
+                            .clip(CircleShape)
+                    ) {
+                        if (allBlocks.isNotEmpty()) {
+                            allBlocks.forEach { block ->
+                                val weight = (block.daysCount.toFloat() / totalDurationDays).coerceAtLeast(0.01f)
+                                val blockColor = when (block.type) {
+                                    TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> NeumorphicAccent
+                                    TimelineBlockType.STATUTORY_HOLIDAY -> holidayColor
+                                    TimelineBlockType.WEEKEND -> weekendColor
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(weight)
+                                        .fillMaxHeight()
+                                        .background(blockColor)
+                                )
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(NeumorphicAccent)
+                            )
+                        }
+                    }
+
+                    // C. 触控按压点高亮框 (完美 1:1 对齐用户草图：在进度条按压位置显示高亮瞄准框)
+                    if (activeHoverDay != null && barWidthPx > 0f) {
+                        val density = LocalDensity.current
+                        val indicatorWidthDp = 16.dp
+                        val indicatorWidthPx = with(density) { indicatorWidthDp.toPx() }
+                        val offsetX = ((barWidthPx * touchFraction) - (indicatorWidthPx / 2f)).coerceIn(0f, barWidthPx - indicatorWidthPx)
+                        Box(
+                            modifier = Modifier
+                                .offset(x = with(density) { offsetX.toDp() })
+                                .width(indicatorWidthDp)
+                                .fillMaxHeight()
+                                .border(2.dp, Color(0xFFF59E0B), shape = RoundedCornerShape(4.dp))
+                                .background(Color.White.copy(alpha = 0.35f), shape = RoundedCornerShape(4.dp))
+                        )
+                    }
                 }
             }
 
