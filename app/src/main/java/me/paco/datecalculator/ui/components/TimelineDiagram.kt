@@ -24,6 +24,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -438,60 +442,56 @@ fun TimelineDiagram(
                     }
                 }
 
-                // C. 指向气泡浮层 (通过 custom layout 离屏测量：渲染出完整高质感气泡，但在测量树中向上汇报 0 像素布局高度，下方的分享/复制按钮绝不移动)
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = (-38).dp)
-                        .fillMaxWidth()
-                        .layout { measurable, constraints ->
-                            val placeable = measurable.measure(constraints)
-                            layout(placeable.width, 0) {
-                                placeable.placeRelative(0, 0)
-                            }
-                        }
-                ) {
-                    AnimatedVisibility(
-                        visible = activeHoverDay != null,
-                        enter = fadeIn() + scaleIn(),
-                        exit = fadeOut() + scaleOut()
-                    ) {
-                        if (activeHoverDay != null) {
-                            val dayDetail = activeHoverDay!!
-                            val dateFormatted = DateCalculatorUtils.formatDateWithWeek(dayDetail.date, language)
-                            val (typeText, typeColor) = when (dayDetail.type) {
-                                TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> "$workdayLabel 💼" to NeumorphicAccent
-                                TimelineBlockType.STATUTORY_HOLIDAY -> "$holidayLabel 🌸" to holidayColor
-                                TimelineBlockType.WEEKEND -> "$weekendLabel 🏖️" to Color(0xFFD97706)
-                            }
+                // C. 指向气泡浮层 (使用 Popup 独立窗口层渲染：100% 完整显示绝不裁切，可覆盖上方更多区域，且在测量树中占用 0 像素，下方布局绝不下移)
+                if (activeHoverDay != null) {
+                    val density = LocalDensity.current
+                    val bubbleOffsetPxY = with(density) { (-48).dp.roundToPx() }
 
-                            // 指向气泡卡片 (3D 新拟物沉降卡片，悬浮在图示文字上方)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(34.dp)
-                                    .neumorphicInset(shape = RoundedCornerShape(10.dp), elevation = 2.dp)
-                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center
+                    Popup(
+                        alignment = Alignment.TopCenter,
+                        offset = IntOffset(0, bubbleOffsetPxY),
+                        properties = PopupProperties(
+                            focusable = false,
+                            dismissOnBackPress = false,
+                            dismissOnClickOutside = false,
+                            clippingEnabled = false
+                        )
+                    ) {
+                        val dayDetail = activeHoverDay!!
+                        val dateFormatted = DateCalculatorUtils.formatDateWithWeek(dayDetail.date, language)
+                        val (typeText, typeColor) = when (dayDetail.type) {
+                            TimelineBlockType.WORKDAY, TimelineBlockType.SHIFT_WORKDAY -> "$workdayLabel 💼" to NeumorphicAccent
+                            TimelineBlockType.STATUTORY_HOLIDAY -> "$holidayLabel 🌸" to holidayColor
+                            TimelineBlockType.WEEKEND -> "$weekendLabel 🏖️" to Color(0xFFD97706)
+                        }
+
+                        // 完整悬浮指向气泡卡片 (1:1 独立 Popup 图层，永不被裁剪或挤压)
+                        Box(
+                            modifier = Modifier
+                                .wrapContentSize()
+                                .padding(horizontal = 16.dp)
+                                .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 6.dp)
+                                .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                                .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = RoundedCornerShape(12.dp))
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = "📍 $dateFormatted",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = NeumorphicTextPrimary
-                                    )
-                                    Text(
-                                        text = "• $typeText",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = typeColor
-                                    )
-                                }
+                                Text(
+                                    text = "📍 $dateFormatted",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeumorphicTextPrimary
+                                )
+                                Text(
+                                    text = "• $typeText",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = typeColor
+                                )
                             }
                         }
                     }
