@@ -41,7 +41,7 @@ class CountdownWidgetProvider : AppWidgetProvider() {
         fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_countdown)
 
-            val pinnedSet = PreferenceUtils.getPinnedEvents(context).toList()
+            val pinnedSet = PreferenceUtils.getPinnedPresetHolidays(context).toList()
             val list = if (pinnedSet.isNotEmpty()) pinnedSet else listOf("🇨🇳 国庆节", "🎆 元旦", "🧧 春节")
 
             val prefs = context.getSharedPreferences("countdown_widget_prefs", Context.MODE_PRIVATE)

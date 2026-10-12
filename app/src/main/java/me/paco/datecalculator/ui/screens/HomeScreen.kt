@@ -676,7 +676,9 @@ fun HomeScreen(
                                     )
                                     Spacer(modifier = Modifier.height(3.dp))
                                     Text(LanguageUtils.getWeatherCondition(weather.condition, lang), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("💧 ${weather.precipProb}%", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text("$displayMin${unit.symbol}~$displayMax${unit.symbol}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
                                 }
                             }

@@ -11,66 +11,44 @@ import me.paco.datecalculator.data.ThemeColorPreset
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.ui.viewmodel.CustomEventItem
 import me.paco.datecalculator.ui.viewmodel.EventRepeatMode
-import org.json.JSONArray
-import org.json.JSONObject
 import java.time.LocalDate
-
-enum class TemperatureUnit(val symbol: String, val label: String) {
-    CELSIUS("°C", "摄氏度"),
-    FAHRENHEIT("°F", "华氏度");
-
-    fun getLocalizedName(language: AppLanguage): String {
-        return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> "$label ($symbol)"
-            AppLanguage.TRADITIONAL_CHINESE -> when (this) { CELSIUS -> "攝氏度 ($symbol)"; FAHRENHEIT -> "華氏度 ($symbol)" }
-            AppLanguage.ENGLISH -> when (this) { CELSIUS -> "Celsius ($symbol)"; FAHRENHEIT -> "Fahrenheit ($symbol)" }
-            AppLanguage.JAPANESE -> when (this) { CELSIUS -> "摂氏 ($symbol)"; FAHRENHEIT -> "華氏 ($symbol)" }
-            AppLanguage.KOREAN -> when (this) { CELSIUS -> "섭씨 ($symbol)"; FAHRENHEIT -> "화씨 ($symbol)" }
-            else -> "$label ($symbol)"
-        }
-    }
-
-    fun convertTemp(celsiusTemp: Int): Int {
-        return when (this) {
-            CELSIUS -> celsiusTemp
-            FAHRENHEIT -> ((celsiusTemp * 9.0 / 5.0) + 32.0).toInt()
-        }
-    }
-}
 
 object PreferenceUtils {
 
-    private const val PREF_NAME = "date_calculator_prefs"
-
+    private const val PREF_NAME = "date_calc_prefs"
     private const val KEY_HOLIDAY_REGION = "key_holiday_region"
     private const val KEY_WEEKEND_RULE = "key_weekend_rule"
     private const val KEY_IS_BIG_WEEK = "key_is_big_week"
     private const val KEY_IS_GPS_AUTO = "key_is_gps_auto"
     private const val KEY_DISABLE_CHINA_SHIFT = "key_disable_china_shift"
     private const val KEY_IS_HAPTIC_ENABLED = "key_is_haptic_enabled"
-
     private const val KEY_APP_LANGUAGE = "key_app_language"
     private const val KEY_DARK_THEME_MODE = "key_dark_theme_mode"
     private const val KEY_THEME_PRESET = "key_theme_preset"
-    private const val KEY_CUSTOM_PRIMARY_COLOR_HEX = "key_custom_primary_color_hex"
-    private const val KEY_TEMPERATURE_UNIT = "key_temperature_unit"
-
-    private const val KEY_DISABLED_PRESETS = "key_disabled_presets"
+    private const val KEY_CUSTOM_PRIMARY_COLOR = "key_custom_primary_color"
+    private const val KEY_TEMP_UNIT = "key_temp_unit"
     private const val KEY_PINNED_PRESETS = "key_pinned_presets"
-
-    private const val KEY_HOME_SHOW_SCREEN = "key_home_show_screen"
-    private const val KEY_HOME_CALENDAR = "key_home_calendar"
-    private const val KEY_HOME_ALMANAC = "key_home_almanac"
-    private const val KEY_HOME_SOLAR_TERMS = "key_home_solar_terms"
-    private const val KEY_HOME_LUNAR = "key_home_lunar"
-    private const val KEY_HOME_ZODIAC = "key_home_zodiac"
-    private const val KEY_HOME_WEATHER = "key_home_weather"
-
-    private const val KEY_ANNIVERSARIES_LIST = "key_anniversaries_list"
+    private const val KEY_ANNIVERSARIES = "key_anniversaries"
+    private const val KEY_HOME_CONFIG_SHOW_SCREEN = "key_home_config_show_screen"
+    private const val KEY_HOME_CONFIG_CALENDAR = "key_home_config_calendar"
+    private const val KEY_HOME_CONFIG_ALMANAC = "key_home_config_almanac"
+    private const val KEY_HOME_CONFIG_SOLAR_TERMS = "key_home_config_solar_terms"
+    private const val KEY_HOME_CONFIG_LUNAR = "key_home_config_lunar"
+    private const val KEY_HOME_CONFIG_ZODIAC = "key_home_config_zodiac"
+    private const val KEY_HOME_CONFIG_WEATHER = "key_home_config_weather"
+    private const val KEY_LAST_WEATHER_FETCH_TIME = "key_last_weather_fetch_time"
     private const val KEY_CUSTOM_EVENTS_LIST = "key_custom_events_list"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    }
+
+    fun saveLastWeatherFetchTime(context: Context, timeMillis: Long) {
+        getPrefs(context).edit().putLong(KEY_LAST_WEATHER_FETCH_TIME, timeMillis).apply()
+    }
+
+    fun getLastWeatherFetchTime(context: Context): Long {
+        return getPrefs(context).getLong(KEY_LAST_WEATHER_FETCH_TIME, 0L)
     }
 
     fun saveHolidayRegion(context: Context, region: HolidayRegion) {
@@ -162,28 +140,28 @@ object PreferenceUtils {
     }
 
     fun getThemePreset(context: Context): ThemeColorPreset {
-        val name = getPrefs(context).getString(KEY_THEME_PRESET, ThemeColorPreset.CUSTOM.name)
+        val name = getPrefs(context).getString(KEY_THEME_PRESET, ThemeColorPreset.SYSTEM.name)
         return try {
-            ThemeColorPreset.valueOf(name ?: ThemeColorPreset.CUSTOM.name)
+            ThemeColorPreset.valueOf(name ?: ThemeColorPreset.SYSTEM.name)
         } catch (_: Exception) {
-            ThemeColorPreset.CUSTOM
+            ThemeColorPreset.SYSTEM
         }
     }
 
     fun saveCustomPrimaryColorHex(context: Context, colorHex: Long) {
-        getPrefs(context).edit().putLong(KEY_CUSTOM_PRIMARY_COLOR_HEX, colorHex).apply()
+        getPrefs(context).edit().putLong(KEY_CUSTOM_PRIMARY_COLOR, colorHex).apply()
     }
 
     fun getCustomPrimaryColorHex(context: Context): Long {
-        return getPrefs(context).getLong(KEY_CUSTOM_PRIMARY_COLOR_HEX, 0xFF2563EB)
+        return getPrefs(context).getLong(KEY_CUSTOM_PRIMARY_COLOR, 0xFF2563EB)
     }
 
     fun saveTemperatureUnit(context: Context, unit: TemperatureUnit) {
-        getPrefs(context).edit().putString(KEY_TEMPERATURE_UNIT, unit.name).apply()
+        getPrefs(context).edit().putString(KEY_TEMP_UNIT, unit.name).apply()
     }
 
     fun getTemperatureUnit(context: Context): TemperatureUnit {
-        val name = getPrefs(context).getString(KEY_TEMPERATURE_UNIT, TemperatureUnit.CELSIUS.name)
+        val name = getPrefs(context).getString(KEY_TEMP_UNIT, TemperatureUnit.CELSIUS.name)
         return try {
             TemperatureUnit.valueOf(name ?: TemperatureUnit.CELSIUS.name)
         } catch (_: Exception) {
@@ -191,163 +169,131 @@ object PreferenceUtils {
         }
     }
 
-    fun saveDisabledPresetHolidays(context: Context, disabledList: Set<String>) {
-        val jsonArray = JSONArray(disabledList)
-        getPrefs(context).edit().putString(KEY_DISABLED_PRESETS, jsonArray.toString()).apply()
-    }
-
-    fun getDisabledPresetHolidays(context: Context): Set<String> {
-        val jsonStr = getPrefs(context).getString(KEY_DISABLED_PRESETS, null) ?: return emptySet()
-        return try {
-            val array = JSONArray(jsonStr)
-            val result = mutableSetOf<String>()
-            for (i in 0 until array.length()) {
-                result.add(array.getString(i))
-            }
-            result
-        } catch (_: Exception) {
-            emptySet()
-        }
-    }
-
-    fun savePinnedPresetHolidays(context: Context, pinnedList: Set<String>) {
-        val jsonArray = JSONArray(pinnedList)
-        getPrefs(context).edit().putString(KEY_PINNED_PRESETS, jsonArray.toString()).apply()
+    fun savePinnedPresetHolidays(context: Context, pinnedSet: Set<String>) {
+        getPrefs(context).edit().putStringSet(KEY_PINNED_PRESETS, pinnedSet).apply()
     }
 
     fun getPinnedPresetHolidays(context: Context): Set<String> {
-        val jsonStr = getPrefs(context).getString(KEY_PINNED_PRESETS, null) ?: return emptySet()
-        return try {
-            val array = JSONArray(jsonStr)
-            val result = mutableSetOf<String>()
-            for (i in 0 until array.length()) {
-                result.add(array.getString(i))
-            }
-            result
-        } catch (_: Exception) {
-            emptySet()
-        }
-    }
-
-    fun savePinnedEvents(context: Context, pinnedList: Set<String>) {
-        savePinnedPresetHolidays(context, pinnedList)
-    }
-
-    fun getPinnedEvents(context: Context): Set<String> {
-        return getPinnedPresetHolidays(context)
+        val defaults = setOf("🇨🇳 国庆节", "🎆 元旦", "🧧 春节", "🛠️ 五一劳动节")
+        return getPrefs(context).getStringSet(KEY_PINNED_PRESETS, defaults) ?: defaults
     }
 
     fun saveHomeConfig(context: Context, config: HomeConfig) {
         getPrefs(context).edit()
-            .putBoolean(KEY_HOME_SHOW_SCREEN, config.showHomeScreen)
-            .putBoolean(KEY_HOME_CALENDAR, config.showCalendar)
-            .putBoolean(KEY_HOME_ALMANAC, config.showAlmanac)
-            .putBoolean(KEY_HOME_SOLAR_TERMS, config.showSolarTerms)
-            .putBoolean(KEY_HOME_LUNAR, config.showLunar)
-            .putBoolean(KEY_HOME_ZODIAC, config.showZodiacFortune)
-            .putBoolean(KEY_HOME_WEATHER, config.showWeather)
+            .putBoolean(KEY_HOME_CONFIG_SHOW_SCREEN, config.showHomeScreen)
+            .putBoolean(KEY_HOME_CONFIG_CALENDAR, config.showCalendar)
+            .putBoolean(KEY_HOME_CONFIG_ALMANAC, config.showAlmanac)
+            .putBoolean(KEY_HOME_CONFIG_SOLAR_TERMS, config.showSolarTerms)
+            .putBoolean(KEY_HOME_CONFIG_LUNAR, config.showLunar)
+            .putBoolean(KEY_HOME_CONFIG_ZODIAC, config.showZodiacFortune)
+            .putBoolean(KEY_HOME_CONFIG_WEATHER, config.showWeather)
             .apply()
     }
 
     fun getHomeConfig(context: Context): HomeConfig {
         val prefs = getPrefs(context)
         return HomeConfig(
-            showHomeScreen = prefs.getBoolean(KEY_HOME_SHOW_SCREEN, true),
-            showCalendar = prefs.getBoolean(KEY_HOME_CALENDAR, true),
-            showAlmanac = prefs.getBoolean(KEY_HOME_ALMANAC, true),
-            showSolarTerms = prefs.getBoolean(KEY_HOME_SOLAR_TERMS, true),
-            showLunar = prefs.getBoolean(KEY_HOME_LUNAR, true),
-            showZodiacFortune = prefs.getBoolean(KEY_HOME_ZODIAC, true),
-            showWeather = prefs.getBoolean(KEY_HOME_WEATHER, true)
+            showHomeScreen = prefs.getBoolean(KEY_HOME_CONFIG_SHOW_SCREEN, true),
+            showCalendar = prefs.getBoolean(KEY_HOME_CONFIG_CALENDAR, true),
+            showAlmanac = prefs.getBoolean(KEY_HOME_CONFIG_ALMANAC, true),
+            showSolarTerms = prefs.getBoolean(KEY_HOME_CONFIG_SOLAR_TERMS, true),
+            showLunar = prefs.getBoolean(KEY_HOME_CONFIG_LUNAR, true),
+            showZodiacFortune = prefs.getBoolean(KEY_HOME_CONFIG_ZODIAC, true),
+            showWeather = prefs.getBoolean(KEY_HOME_CONFIG_WEATHER, true)
         )
     }
 
     fun saveAnniversaries(context: Context, list: List<AnniversaryItem>) {
-        val jsonArray = JSONArray()
-        list.forEach { item ->
-            val obj = JSONObject().apply {
-                put("id", item.id)
-                put("title", item.title)
-                put("date", item.date.toString())
-                put("iconEmoji", item.iconEmoji)
-                put("isCheckIn", item.isCheckIn)
-                put("locationName", item.locationName)
-                put("latitude", item.latitude)
-                put("longitude", item.longitude)
-                put("checkInTimeStr", item.checkInTimeStr)
-                put("remark", item.remark)
-            }
-            jsonArray.put(obj)
+        val prefs = getPrefs(context)
+        val sb = StringBuilder()
+        list.forEachIndexed { idx, item ->
+            if (idx > 0) sb.append(";;;")
+            sb.append("${item.id}:::${item.title}:::${item.date}:::${item.iconEmoji}:::${item.isCheckIn}:::${item.locationName}:::${item.latitude}:::${item.longitude}:::${item.checkInTimeStr}:::${item.remark}:::${item.isPinned}")
         }
-        getPrefs(context).edit().putString(KEY_ANNIVERSARIES_LIST, jsonArray.toString()).apply()
+        prefs.edit().putString(KEY_ANNIVERSARIES, sb.toString()).apply()
     }
 
     fun getAnniversaries(context: Context): List<AnniversaryItem> {
-        val jsonStr = getPrefs(context).getString(KEY_ANNIVERSARIES_LIST, null) ?: return emptyList()
-        return try {
-            val array = JSONArray(jsonStr)
-            val result = mutableListOf<AnniversaryItem>()
-            for (i in 0 until array.length()) {
-                val obj = array.getJSONObject(i)
-                result.add(
-                    AnniversaryItem(
-                        id = obj.optLong("id", System.currentTimeMillis()),
-                        title = obj.optString("title", ""),
-                        date = LocalDate.parse(obj.optString("date", LocalDate.now().toString())),
-                        iconEmoji = obj.optString("iconEmoji", "❤️"),
-                        isCheckIn = obj.optBoolean("isCheckIn", false),
-                        locationName = obj.optString("locationName", ""),
-                        latitude = obj.optDouble("latitude", 0.0),
-                        longitude = obj.optDouble("longitude", 0.0),
-                        checkInTimeStr = obj.optString("checkInTimeStr", ""),
-                        remark = obj.optString("remark", "")
-                    )
+        val prefs = getPrefs(context)
+        val raw = prefs.getString(KEY_ANNIVERSARIES, "") ?: ""
+        if (raw.isBlank()) {
+            return listOf(
+                AnniversaryItem(
+                    id = 101L,
+                    title = "结婚纪念日",
+                    date = LocalDate.now().minusYears(3).minusDays(120),
+                    iconEmoji = "💍",
+                    remark = "相濡以沫，长生相守",
+                    isPinned = true
+                ),
+                AnniversaryItem(
+                    id = 102L,
+                    title = "恋爱纪念日",
+                    date = LocalDate.now().minusYears(5).minusDays(200),
+                    iconEmoji = "❤️",
+                    remark = "初见如故",
+                    isPinned = true
                 )
+            )
+        }
+
+        return try {
+            raw.split(";;;").mapNotNull { token ->
+                val parts = token.split(":::")
+                if (parts.size >= 11) {
+                    AnniversaryItem(
+                        id = parts[0].toLongOrNull() ?: System.currentTimeMillis(),
+                        title = parts[1],
+                        date = LocalDate.parse(parts[2]),
+                        iconEmoji = parts[3],
+                        isCheckIn = parts[4].toBooleanStrictOrNull() ?: false,
+                        locationName = parts[5],
+                        latitude = parts[6].toDoubleOrNull() ?: 0.0,
+                        longitude = parts[7].toDoubleOrNull() ?: 0.0,
+                        checkInTimeStr = parts[8],
+                        remark = parts[9],
+                        isPinned = parts[10].toBooleanStrictOrNull() ?: false
+                    )
+                } else null
             }
-            result
         } catch (_: Exception) {
             emptyList()
         }
     }
 
     fun saveCustomEvents(context: Context, list: List<CustomEventItem>) {
-        val jsonArray = JSONArray()
-        list.forEach { item ->
-            val obj = JSONObject().apply {
-                put("id", item.id)
-                put("name", item.name)
-                put("targetDate", item.targetDate.toString())
-                put("iconEmoji", item.iconEmoji)
-                put("repeatMode", item.repeatMode.name)
-                put("isPinned", item.isPinned)
-            }
-            jsonArray.put(obj)
+        val prefs = getPrefs(context)
+        val sb = StringBuilder()
+        list.forEachIndexed { idx, item ->
+            if (idx > 0) sb.append(";;;")
+            sb.append("${item.id}:::${item.iconEmoji}:::${item.name}:::${item.targetDate}:::${item.repeatMode.name}:::${item.isPinned}")
         }
-        getPrefs(context).edit().putString(KEY_CUSTOM_EVENTS_LIST, jsonArray.toString()).apply()
+        prefs.edit().putString(KEY_CUSTOM_EVENTS_LIST, sb.toString()).apply()
     }
 
     fun getCustomEvents(context: Context): List<CustomEventItem> {
-        val jsonStr = getPrefs(context).getString(KEY_CUSTOM_EVENTS_LIST, null) ?: return emptyList()
-        return try {
-            val array = JSONArray(jsonStr)
-            val result = mutableListOf<CustomEventItem>()
-            for (i in 0 until array.length()) {
-                val obj = array.getJSONObject(i)
-                val repeatName = obj.optString("repeatMode", EventRepeatMode.NONE.name)
-                val repeatMode = try { EventRepeatMode.valueOf(repeatName) } catch (_: Exception) { EventRepeatMode.NONE }
+        val prefs = getPrefs(context)
+        val raw = prefs.getString(KEY_CUSTOM_EVENTS_LIST, "") ?: ""
+        if (raw.isBlank()) return emptyList()
 
-                result.add(
+        return try {
+            raw.split(";;;").mapNotNull { token ->
+                val parts = token.split(":::")
+                if (parts.size >= 6) {
                     CustomEventItem(
-                        id = obj.optLong("id", System.currentTimeMillis()),
-                        name = obj.optString("name", ""),
-                        targetDate = LocalDate.parse(obj.optString("targetDate", LocalDate.now().toString())),
-                        iconEmoji = obj.optString("iconEmoji", "📌"),
-                        repeatMode = repeatMode,
-                        isPinned = obj.optBoolean("isPinned", false)
+                        id = parts[0].toLongOrNull() ?: System.currentTimeMillis(),
+                        iconEmoji = parts[1],
+                        name = parts[2],
+                        targetDate = LocalDate.parse(parts[3]),
+                        repeatMode = try {
+                            EventRepeatMode.valueOf(parts[4])
+                        } catch (_: Exception) {
+                            EventRepeatMode.NONE
+                        },
+                        isPinned = parts[5].toBooleanStrictOrNull() ?: false
                     )
-                )
+                } else null
             }
-            result
         } catch (_: Exception) {
             emptyList()
         }
