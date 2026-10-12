@@ -1,7 +1,7 @@
 package me.paco.datecalculator.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
@@ -40,6 +40,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -196,14 +197,26 @@ fun TimelineDiagram(
 
     val clampedTargetXOffsetPx = rawTargetXOffsetPx.coerceIn(-maxAllowedOffsetPx, maxAllowedOffsetPx).roundToInt()
 
-    val animOffsetXPx by animateIntAsState(
-        targetValue = clampedTargetXOffsetPx,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "BubbleXOffsetAnimation"
-    )
+    val animOffsetXPx = remember { Animatable(0f) }
+
+    LaunchedEffect(clampedTargetXOffsetPx, activeHoverDay, isDraggingThresholdMet) {
+        val target = clampedTargetXOffsetPx.toFloat()
+        if (activeHoverDay != null) {
+            if (!isDraggingThresholdMet) {
+                // 首次落指：直接 snapTo 瞬移到落指位置，绝不从屏幕中间缓慢动画滑过去！
+                animOffsetXPx.snapTo(target)
+            } else {
+                // 明确左右拖拽时：平滑跟随
+                animOffsetXPx.animateTo(
+                    targetValue = target,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                )
+            }
+        }
+    }
 
     // 高对比色彩映射（确保双休黄与节假日红绝对鲜明突出）
     val weekendColor = Color(0xFFF59E0B) // 高亮黄/橙
@@ -498,7 +511,7 @@ fun TimelineDiagram(
 
                     Popup(
                         alignment = Alignment.TopCenter,
-                        offset = IntOffset(animOffsetXPx, bubbleOffsetPxY),
+                        offset = IntOffset(animOffsetXPx.value.roundToInt(), bubbleOffsetPxY),
                         properties = PopupProperties(
                             focusable = false,
                             dismissOnBackPress = false,
