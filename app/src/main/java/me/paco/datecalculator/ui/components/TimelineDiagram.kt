@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -345,9 +346,11 @@ fun TimelineDiagram(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 3. 全局总时序进度条 (取消预留间距，按压气泡向上 -38dp 浮层覆盖图示文字，进度条位置 100% 绝对固定)
+            // 3. 全局总时序进度条 (固定高度 18dp，气泡向上 -38dp 浮层展示，布局尺寸 100% 绝对恒定，下方子阶段轴 UI 绝不下滑移位)
             Box(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(18.dp)
             ) {
                 // A. 全局总时序进度条 (自然居于布局中，按压时位置静止不变)
                 Box(
@@ -434,12 +437,13 @@ fun TimelineDiagram(
                     }
                 }
 
-                // C. 指向气泡浮层 (向上偏移 -38dp 浮于上方图示文字之上，完全不挤压占用下方的进度条布局)
+                // C. 指向气泡浮层 (测量高度严格定为 requiredHeight(0.dp)，在 Compose 测量树中占用 0 像素，下方的分享/复制按钮绝不移动)
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .offset(y = (-38).dp)
                         .fillMaxWidth()
+                        .requiredHeight(0.dp)
                 ) {
                     AnimatedVisibility(
                         visible = activeHoverDay != null,
