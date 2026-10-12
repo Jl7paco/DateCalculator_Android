@@ -259,7 +259,7 @@ class DateCalculatorViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             val districtLoc = LocationUtils.getCurrentLocationWithDistrict(context)
             val region = LocationUtils.detectCurrentRegion(context)
-            val realWeather = WeatherUtils.fetchRealLiveWeather(districtLoc.latitude, districtLoc.longitude)
+            val realWeather = WeatherUtils.fetchRealLiveWeather(districtLoc.latitude, districtLoc.longitude, region)
                 ?: WeatherUtils.getWeatherForecast(LocalDate.now())
 
             withContext(Dispatchers.Main) {
@@ -273,7 +273,7 @@ class DateCalculatorViewModel : ViewModel() {
             LocationUtils.requestSingleLocationUpdate(context) { freshDist ->
                 if (freshDist != null) {
                     viewModelScope.launch(Dispatchers.IO) {
-                        val freshWeather = WeatherUtils.fetchRealLiveWeather(freshDist.latitude, freshDist.longitude)
+                        val freshWeather = WeatherUtils.fetchRealLiveWeather(freshDist.latitude, freshDist.longitude, region)
                             ?: WeatherUtils.getWeatherForecast(LocalDate.now())
 
                         withContext(Dispatchers.Main) {
