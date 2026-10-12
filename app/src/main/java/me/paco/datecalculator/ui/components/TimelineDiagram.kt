@@ -175,6 +175,10 @@ fun TimelineDiagram(
     var touchFraction by remember { mutableFloatStateOf(0.5f) }
     var lastHoverIndex by remember { mutableIntStateOf(-1) }
 
+    // 落指防抖与死区阈值状态 (彻底消除落指瞬间的物理微抖动)
+    var initialTouchX by remember { mutableFloatStateOf(-1f) }
+    var isDraggingThresholdMet by remember { mutableStateOf(false) }
+
     val density = LocalDensity.current
     val bubbleWidthDp = 270.dp
     val edgeMarginDp = 12.dp
@@ -408,9 +412,23 @@ fun TimelineDiagram(
                                             change.consume()
                                             val touchX = change.position.x
                                             if (dayList.isNotEmpty() && barWidthPx > 0f) {
-                                                val fraction = (touchX / barWidthPx).coerceIn(0f, 1f)
-                                                touchFraction = fraction
-                                                val idx = (fraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
+                                                if (initialTouchX < 0f) {
+                                                    // 首次落指：锁定落指起点位置，绝不因触摸微抖动而发生位移
+                                                    initialTouchX = touchX
+                                                    isDraggingThresholdMet = false
+                                                    touchFraction = (touchX / barWidthPx).coerceIn(0f, 1f)
+                                                } else {
+                                                    val dragDistancePx = abs(touchX - initialTouchX)
+                                                    // 超过 14dp 后才判定为有意识的左右滑移
+                                                    if (dragDistancePx > with(density) { 14.dp.toPx() }) {
+                                                        isDraggingThresholdMet = true
+                                                    }
+                                                    if (isDraggingThresholdMet) {
+                                                        touchFraction = (touchX / barWidthPx).coerceIn(0f, 1f)
+                                                    }
+                                                }
+
+                                                val idx = (touchFraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
                                                 if (idx != lastHoverIndex) {
                                                     lastHoverIndex = idx
                                                     activeHoverDay = dayList[idx]
@@ -418,9 +436,11 @@ fun TimelineDiagram(
                                                 }
                                             }
                                         } else {
-                                            // 手指松开/离开瞬间隐退气泡
+                                            // 手指松开/离开瞬间隐退气泡并重置落指坐标
                                             activeHoverDay = null
                                             lastHoverIndex = -1
+                                            initialTouchX = -1f
+                                            isDraggingThresholdMet = false
                                         }
                                     }
                                 }
