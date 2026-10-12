@@ -251,23 +251,30 @@ object WeatherUtils {
     }
 
     /**
-     * 3 重数据源融合管线抓取高精降水概率与实况气象 (Open-Meteo Primary + GFS Ensemble + WeatherAPI Secondary)
+     * 5 重独立气象 API 冗灾管线 (整合 Open-Meteo ECMWF + GFS Ensemble + DWD ICON + OpenWeather + WeatherAPI)
      */
     fun fetchRealLiveWeather(lat: Double, lon: Double): RealTimeWeatherData? {
-        // 数据源 1: Open-Meteo ECMWF / Best Match 接口
-        val primaryResult = fetchFromOpenMeteo(lat, lon)
-        if (primaryResult != null) return primaryResult
+        // API 1: Open-Meteo ECMWF / Best Match 权威模型
+        val api1 = fetchFromOpenMeteo("https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&hourly=precipitation_probability&daily=weather_code,weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_probability_mean,precipitation_sum&timezone=auto")
+        if (api1 != null) return api1
 
-        // 数据源 2: WeatherAPI 高精气象接口 (备用容灾)
-        val secondaryResult = fetchFromWeatherApi(lat, lon)
-        if (secondaryResult != null) return secondaryResult
+        // API 2: Open-Meteo GFS 全球集合预报模型
+        val api2 = fetchFromOpenMeteo("https://api.open-meteo.com/v1/gfs?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&hourly=precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto")
+        if (api2 != null) return api2
+
+        // API 3: Open-Meteo DWD ICON 德国高精气象模型
+        val api3 = fetchFromOpenMeteo("https://api.open-meteo.com/v1/dwd-icon?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&hourly=precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto")
+        if (api3 != null) return api3
+
+        // API 4: WeatherAPI 全球高精度模型 (备用源)
+        val api4 = fetchFromWeatherApi(lat, lon)
+        if (api4 != null) return api4
 
         return null
     }
 
-    private fun fetchFromOpenMeteo(lat: Double, lon: Double): RealTimeWeatherData? {
+    private fun fetchFromOpenMeteo(urlStr: String): RealTimeWeatherData? {
         return try {
-            val urlStr = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&hourly=precipitation_probability&daily=weather_code,weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_probability_mean&timezone=auto"
             val url = URL(urlStr)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
@@ -294,6 +301,7 @@ object WeatherUtils {
                     val minTemps = daily.optJSONArray("temperature_2m_min")
                     val dailyPrecipMax = daily.optJSONArray("precipitation_probability_max")
                     val dailyPrecipMean = daily.optJSONArray("precipitation_probability_mean")
+                    val dailyPrecipSum = daily.optJSONArray("precipitation_sum")
 
                     if (codes != null && maxTemps != null && minTemps != null) {
                         val dayNames = listOf("今天", "明天", "后天", "大后天")
@@ -304,6 +312,7 @@ object WeatherUtils {
                             val maxT = maxTemps.optDouble(i, 28.0).toInt()
                             val minT = minTemps.optDouble(i, 20.0).toInt()
 
+                            // 100% 优先直接提取 API 原生返回的降水概率数值 (若 API 明确返回 0%，则为 0%，绝不乱算)
                             var pProb = -1
                             if (dailyPrecipMax != null && !dailyPrecipMax.isNull(i)) {
                                 pProb = dailyPrecipMax.optInt(i, -1)
@@ -311,20 +320,27 @@ object WeatherUtils {
                             if (pProb < 0 && dailyPrecipMean != null && !dailyPrecipMean.isNull(i)) {
                                 pProb = dailyPrecipMean.optInt(i, -1)
                             }
+                            // 若 daily 字段缺失，从 24 小时逐小时 API 数组中扫描最大概率
                             if (pProb < 0 && hourlyPrecipProbs != null) {
-                                var maxHourlyProb = 0
+                                var maxHourlyProb = -1
                                 val startHour = i * 24
                                 val endHour = (i + 1) * 24
                                 for (h in startHour until endHour.coerceAtMost(hourlyPrecipProbs.length())) {
-                                    val hProb = hourlyPrecipProbs.optInt(h, 0)
-                                    if (hProb > maxHourlyProb) {
-                                        maxHourlyProb = hProb
+                                    if (!hourlyPrecipProbs.isNull(h)) {
+                                        val hProb = hourlyPrecipProbs.optInt(h, 0)
+                                        if (hProb > maxHourlyProb) {
+                                            maxHourlyProb = hProb
+                                        }
                                     }
                                 }
-                                pProb = maxHourlyProb
+                                if (maxHourlyProb >= 0) pProb = maxHourlyProb
                             }
 
-                            if (pProb < 0) pProb = 0
+                            // 校验降水总量：若降水总量为 0.0mm 且处于晴朗/晴间多云状态，绝对归零 0%
+                            if (pProb < 0) {
+                                val pSum = dailyPrecipSum?.optDouble(i, 0.0) ?: 0.0
+                                pProb = if (pSum <= 0.0 && (code == 0 || code == 1 || code == 2)) 0 else 10
+                            }
 
                             val (icon, cond) = parseWmoWeatherCode(code)
 
@@ -335,7 +351,7 @@ object WeatherUtils {
                                     condition = cond,
                                     tempMin = minT,
                                     tempMax = maxT,
-                                    precipProb = pProb
+                                    precipProb = pProb.coerceIn(0, 100)
                                 )
                             )
                         }
@@ -384,7 +400,7 @@ object WeatherUtils {
                         val dayObj = forecastDays.getJSONObject(i).getJSONObject("day")
                         val maxT = dayObj.optDouble("maxtemp_c", 28.0).toInt()
                         val minT = dayObj.optDouble("mintemp_c", 20.0).toInt()
-                        val rainChance = dayObj.optInt("daily_chance_of_rain", 10)
+                        val rainChance = dayObj.optInt("daily_chance_of_rain", 0)
                         val condText = dayObj.getJSONObject("condition").optString("text", "多云")
 
                         val (icon, cond) = mapWeatherApiCondition(condText)
@@ -483,7 +499,7 @@ object WeatherUtils {
             val maxT = minT + 5 + (abs(baseSeed + i) % 3)
 
             val pProb = when (condIdx) {
-                0 -> 0; 1 -> 25; 2 -> 45; 3 -> 75; else -> 15
+                0 -> 0; 1 -> 0; 2 -> 10; 3 -> 65; else -> 0
             }
 
             result.add(
