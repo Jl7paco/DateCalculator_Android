@@ -260,13 +260,12 @@ class DateCalculatorViewModel : ViewModel() {
             val districtLoc = LocationUtils.getCurrentLocationWithDistrict(context)
             val region = LocationUtils.detectCurrentRegion(context)
             val realWeather = WeatherUtils.fetchRealLiveWeather(districtLoc.latitude, districtLoc.longitude, region)
-                ?: WeatherUtils.getWeatherForecast(LocalDate.now())
 
             withContext(Dispatchers.Main) {
                 _uiState.value = _uiState.value.copy(
                     holidayRegion = region,
                     currentCityName = districtLoc.fullDisplayName,
-                    liveWeatherData = realWeather
+                    liveWeatherData = realWeather ?: _uiState.value.liveWeatherData ?: WeatherUtils.getWeatherForecast(LocalDate.now())
                 )
             }
 
@@ -274,13 +273,13 @@ class DateCalculatorViewModel : ViewModel() {
                 if (freshDist != null) {
                     viewModelScope.launch(Dispatchers.IO) {
                         val freshWeather = WeatherUtils.fetchRealLiveWeather(freshDist.latitude, freshDist.longitude, region)
-                            ?: WeatherUtils.getWeatherForecast(LocalDate.now())
-
-                        withContext(Dispatchers.Main) {
-                            _uiState.value = _uiState.value.copy(
-                                currentCityName = freshDist.fullDisplayName,
-                                liveWeatherData = freshWeather
-                            )
+                        if (freshWeather != null) {
+                            withContext(Dispatchers.Main) {
+                                _uiState.value = _uiState.value.copy(
+                                    currentCityName = freshDist.fullDisplayName,
+                                    liveWeatherData = freshWeather
+                                )
+                            }
                         }
                     }
                 }
