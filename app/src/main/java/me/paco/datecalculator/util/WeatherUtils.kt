@@ -414,12 +414,8 @@ object WeatherUtils {
                                 if (maxHourly >= 0) rawProb = maxHourly
                             }
 
-                            // 物理逻辑校验：若预报天气现象为小雨/中雨/大雨/雷阵雨，降雨概率基础底限自动与降雨现象保持逻辑自洽
-                            var pProb = if (rawProb >= 0) rawProb else 0
-                            val isRainyCode = code in listOf(51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99)
-                            if (isRainyCode && pProb == 0) {
-                                pProb = 58
-                            }
+                            // 100% 原样直接引用 API 原始降水概率数值 (绝不增加任何人工校准或覆盖)
+                            val pProb = if (rawProb >= 0) rawProb else 0
 
                             val (icon, cond) = parseWmoWeatherCode(code)
 
