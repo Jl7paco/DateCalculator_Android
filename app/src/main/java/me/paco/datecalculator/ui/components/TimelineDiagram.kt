@@ -1,6 +1,9 @@
 package me.paco.datecalculator.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -171,6 +174,17 @@ fun TimelineDiagram(
     var barWidthPx by remember { mutableFloatStateOf(1f) }
     var touchFraction by remember { mutableFloatStateOf(0.5f) }
     var lastHoverIndex by remember { mutableIntStateOf(-1) }
+
+    val animOffsetXPx by animateIntAsState(
+        targetValue = if (activeHoverDay != null && barWidthPx > 0f) {
+            ((touchFraction - 0.5f) * barWidthPx * 0.60f).roundToInt()
+        } else 0,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "BubbleXOffsetAnimation"
+    )
 
     // 高对比色彩映射（确保双休黄与节假日红绝对鲜明突出）
     val weekendColor = Color(0xFFF59E0B) // 高亮黄/橙
@@ -442,14 +456,14 @@ fun TimelineDiagram(
                     }
                 }
 
-                // C. 指向气泡浮层 (使用 Popup 独立窗口层渲染：100% 完整显示绝不裁切，可覆盖上方更多区域，且在测量树中占用 0 像素，下方布局绝不下移)
+                // C. 指向气泡浮层 (顺滑左右平移跟随 + 恒定固定 270.dp 宽度，彻底解决文字长度变化导致的位移跳动 bug)
                 if (activeHoverDay != null) {
                     val density = LocalDensity.current
                     val bubbleOffsetPxY = with(density) { (-48).dp.roundToPx() }
 
                     Popup(
                         alignment = Alignment.TopCenter,
-                        offset = IntOffset(0, bubbleOffsetPxY),
+                        offset = IntOffset(animOffsetXPx, bubbleOffsetPxY),
                         properties = PopupProperties(
                             focusable = false,
                             dismissOnBackPress = false,
@@ -465,32 +479,35 @@ fun TimelineDiagram(
                             TimelineBlockType.WEEKEND -> "$weekendLabel 🏖️" to Color(0xFFD97706)
                         }
 
-                        // 完整悬浮指向气泡卡片 (1:1 独立 Popup 图层，永不被裁剪或挤压)
+                        // 完整悬浮指向气泡卡片 (固定 270.dp 尺寸，气泡随触摸位置左右流畅平移)
                         Box(
                             modifier = Modifier
-                                .wrapContentSize()
-                                .padding(horizontal = 16.dp)
+                                .width(270.dp)
+                                .height(38.dp)
                                 .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 6.dp)
                                 .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
                                 .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = RoundedCornerShape(12.dp))
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.Center
                             ) {
                                 Text(
                                     text = "📍 $dateFormatted",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = NeumorphicTextPrimary
+                                    color = NeumorphicTextPrimary,
+                                    maxLines = 1
                                 )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "• $typeText",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = typeColor
+                                    color = typeColor,
+                                    maxLines = 1
                                 )
                             }
                         }
