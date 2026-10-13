@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Close
 import me.paco.datecalculator.util.TemperatureUnit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import me.paco.datecalculator.ui.components.dialogDropShadow3D
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
@@ -576,12 +577,27 @@ fun HomeScreen(
                             )
                         }
 
-                        if (homeConfig.showSolarTerms && todayLunar.solarTerm.isNotEmpty()) {
-                            val termIcon = LunarCalendarUtils.getSolarTermIcon(todayLunar.solarTerm)
+                        if (homeConfig.showSolarTerms) {
+                            val (nextTerm, countdownDays) = LunarCalendarUtils.getNextSolarTermCountdown(selectedCalendarDate)
+                            val termIcon = LunarCalendarUtils.getSolarTermIcon(nextTerm)
+                            val localizedTerm = LunarCalendarUtils.getLocalizedSolarTerm(nextTerm, lang)
+
+                            val chipText = if (countdownDays == 0) {
+                                "$termIcon $localizedTerm"
+                            } else {
+                                when (effectiveLang) {
+                                    AppLanguage.ENGLISH -> "⏳ ${countdownDays}d to $localizedTerm"
+                                    AppLanguage.JAPANESE -> "⏳ ${localizedTerm}まで${countdownDays}日"
+                                    AppLanguage.KOREAN -> "⏳ ${localizedTerm}까지 ${countdownDays}일"
+                                    AppLanguage.TRADITIONAL_CHINESE -> "⏳ 距$localizedTerm $countdownDays 天"
+                                    else -> "⏳ 距$localizedTerm $countdownDays 天"
+                                }
+                            }
+
                             SuggestionChip(
                                 onClick = {},
                                 shape = CircleShape,
-                                label = { Text("$termIcon ${todayLunar.solarTerm}", fontWeight = FontWeight.Bold, fontSize = 10.5.sp) }
+                                label = { Text(chipText, fontWeight = FontWeight.Bold, fontSize = 10.5.sp) }
                             )
                         }
                     }
@@ -789,7 +805,16 @@ fun WeatherDetailOverlayDialog(
     val weather = weatherList.getOrNull(dayIndex)
     if (!visible || weather == null) return
 
+    val isDark = LocalDarkTheme.current
     val cardShape = RoundedCornerShape(26.dp)
+
+    // 以设置菜单 (SettingsOverlayDialog) 的 scrimColor 为 1:1 统一基准
+    val scrimColor = if (isDark) {
+        Color.Black.copy(alpha = 0.55f)
+    } else {
+        Color(0xFFCBD5E1).copy(alpha = 0.40f)
+    }
+
     val sixHourList = remember(weatherList, dayIndex, language) {
         WeatherUtils.generateSixHourForecasts(weatherList, dayIndex, language)
     }
@@ -810,16 +835,32 @@ fun WeatherDetailOverlayDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .background(NeumorphicBg, shape = cardShape)
-                .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.22f), shape = cardShape)
-                .clip(cardShape)
-                .padding(18.dp)
+                .fillMaxSize()
+                .background(scrimColor)
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .clickable(enabled = false) {}
+                    .dialogDropShadow3D(shape = cardShape)
+                    .background(NeumorphicBg, shape = cardShape)
+                    .border(
+                        1.dp,
+                        if (isDark) Color.White.copy(alpha = 0.12f) else NeumorphicAccent.copy(alpha = 0.20f),
+                        shape = cardShape
+                    )
+                    .clip(cardShape)
+                    .padding(18.dp)
+            ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 // 1. 顶栏：地名 + 日期 + 关闭按键
                 Row(
@@ -1007,4 +1048,5 @@ fun WeatherDetailOverlayDialog(
             }
         }
     }
+}
 }

@@ -167,18 +167,19 @@ enum class AppLanguage(
         val langCode = systemLocale.language.lowercase()
         val script = systemLocale.script.lowercase()
         val country = systemLocale.country.uppercase()
+        val localeTag = systemLocale.toLanguageTag().lowercase()
 
         return when {
-            langCode == "zh" -> {
-                if (script == "hant" || country == "TW" || country == "HK" || country == "MO") {
+            langCode.startsWith("zh") || localeTag.contains("zh") || localeTag.contains("hans") || localeTag.contains("hant") || country == "CN" || country == "TW" || country == "HK" || country == "MO" -> {
+                if (script == "hant" || country == "TW" || country == "HK" || country == "MO" || localeTag.contains("hant")) {
                     TRADITIONAL_CHINESE
                 } else {
                     SIMPLIFIED_CHINESE
                 }
             }
-            langCode == "en" -> ENGLISH
-            langCode == "ja" -> JAPANESE
-            langCode == "ko" -> KOREAN
+            langCode.startsWith("en") -> ENGLISH
+            langCode.startsWith("ja") -> JAPANESE
+            langCode.startsWith("ko") -> KOREAN
             else -> SIMPLIFIED_CHINESE
         }
     }

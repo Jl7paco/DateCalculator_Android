@@ -178,22 +178,24 @@ fun DateCalculationScreen(
 
     var showSingleDeadlinePicker by remember { mutableStateOf(false) }
     val singleTargetDate = viewModel.calculateTargetDate()
-    val singleDeadlineText = remember(uiState.baseDate, uiState.daysInput, uiState.calculationType, uiState.dateMode, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays) {
+    val singleDeadlineText = remember(uiState.baseDate, uiState.daysInput, uiState.calculationType, uiState.dateMode, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays, lang) {
         if (uiState.daysInput.isBlank()) {
             when (lang.getEffectiveLanguage()) {
-                AppLanguage.ENGLISH -> "Select Date"
+                AppLanguage.SIMPLIFIED_CHINESE -> "选择日期"
+                AppLanguage.TRADITIONAL_CHINESE -> "選擇日期"
                 AppLanguage.JAPANESE -> "日付を選択"
                 AppLanguage.KOREAN -> "날짜 선택"
-                AppLanguage.TRADITIONAL_CHINESE -> "選擇日期"
+                AppLanguage.ENGLISH -> "Select Date"
                 else -> "选择日期"
             }
         } else {
             val monthDay = singleTargetDate.format(DateTimeFormatter.ofPattern("MM-dd"))
             when (lang.getEffectiveLanguage()) {
-                AppLanguage.ENGLISH -> "Due $monthDay"
+                AppLanguage.SIMPLIFIED_CHINESE -> "截止 $monthDay"
+                AppLanguage.TRADITIONAL_CHINESE -> "截止 $monthDay"
                 AppLanguage.JAPANESE -> "$monthDay 迄"
                 AppLanguage.KOREAN -> "$monthDay 마감"
-                AppLanguage.TRADITIONAL_CHINESE -> "截止 $monthDay"
+                AppLanguage.ENGLISH -> "Due $monthDay"
                 else -> "截止 $monthDay"
             }
         }
@@ -692,10 +694,11 @@ fun DateCalculationScreen(
                                     }
                                 } else {
                                     when (effectiveLang) {
-                                        AppLanguage.ENGLISH -> "Select Date"
+                                        AppLanguage.SIMPLIFIED_CHINESE -> "选择日期"
+                                        AppLanguage.TRADITIONAL_CHINESE -> "選擇日期"
                                         AppLanguage.JAPANESE -> "日付を選択"
                                         AppLanguage.KOREAN -> "날짜 선택"
-                                        AppLanguage.TRADITIONAL_CHINESE -> "選擇日期"
+                                        AppLanguage.ENGLISH -> "Select Date"
                                         else -> "选择日期"
                                     }
                                 }

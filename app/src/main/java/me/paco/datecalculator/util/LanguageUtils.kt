@@ -100,7 +100,7 @@ object LanguageUtils {
         "settings_home_config" to "首页显示模块配置",
         "settings_region" to "法定节假日安排标准地区",
         "settings_gps_auto" to "GPS 自动精确定位所在国家/地区",
-        "settings_sync_holidays" to "一键同步最新国务院/政府法定节假日数据",
+        "settings_sync_holidays" to "获取最新假期",
         "settings_theme" to "主题配色方案",
         "settings_dark_mode" to "深色模式跟随设置",
         "dark_mode_system" to "跟随系统",
@@ -225,7 +225,7 @@ object LanguageUtils {
         "settings_home_config" to "首頁顯示模組配置",
         "settings_region" to "法定節假日安排標準地區",
         "settings_gps_auto" to "GPS 自動精確定位所在國家/地區",
-        "settings_sync_holidays" to "一鍵同步最新國務院/政府法定節假日數據",
+        "settings_sync_holidays" to "獲取最新假期",
         "settings_theme" to "主題配色方案",
         "settings_dark_mode" to "深色模式跟隨設定",
         "dark_mode_system" to "跟隨系統",
@@ -350,7 +350,7 @@ object LanguageUtils {
         "settings_home_config" to "Home Modules Configuration",
         "settings_region" to "Holiday Calendar Region Standard",
         "settings_gps_auto" to "GPS Auto Detect Location Country/Region",
-        "settings_sync_holidays" to "Sync Latest Government Official Holidays",
+        "settings_sync_holidays" to "Fetch Latest Holidays",
         "settings_theme" to "Theme Color Scheme",
         "settings_dark_mode" to "Dark Mode Option",
         "dark_mode_system" to "Follow System",
@@ -475,7 +475,7 @@ object LanguageUtils {
         "settings_home_config" to "ホーム画面モジュール設定",
         "settings_region" to "祝日カレンダー基準地域",
         "settings_gps_auto" to "GPS位置自動判定",
-        "settings_sync_holidays" to "最新の政府祝日データを同期",
+        "settings_sync_holidays" to "最新の祝日データを取得",
         "settings_theme" to "テーマカラー",
         "settings_dark_mode" to "ダークモード設定",
         "dark_mode_system" to "システムに従う",
@@ -600,7 +600,7 @@ object LanguageUtils {
         "settings_home_config" to "홈 모듈 구성",
         "settings_region" to "공휴일 기준 국가/지역",
         "settings_gps_auto" to "GPS 자동 위치 감지",
-        "settings_sync_holidays" to "최신 정부 공식 공휴일 동기화",
+        "settings_sync_holidays" to "최신 휴일 정보 가져오기",
         "settings_theme" to "테마 색상",
         "settings_dark_mode" to "다크 모드 설정",
         "dark_mode_system" to "시스템 설정에 따름",
@@ -730,21 +730,16 @@ object LanguageUtils {
     }
 
     fun getWeatherCondition(rawCondition: String, language: AppLanguage): String {
+        return WeatherUtils.getLocalizedCondition(rawCondition, language)
+    }
+
+    fun getToastPleaseEnterDays(language: AppLanguage): String {
         return when (language.getEffectiveLanguage()) {
-            AppLanguage.SIMPLIFIED_CHINESE -> rawCondition
-            AppLanguage.TRADITIONAL_CHINESE -> when (rawCondition) {
-                "晴朗" -> "晴朗"; "多云" -> "多雲"; "阴天" -> "陰天"; "小雨" -> "小雨"; "雷阵雨" -> "雷陣雨"; else -> rawCondition
-            }
-            AppLanguage.ENGLISH -> when (rawCondition) {
-                "晴朗" -> "Sunny"; "多云" -> "Cloudy"; "阴天" -> "Overcast"; "小雨" -> "Light Rain"; "雷阵雨" -> "Thunderstorm"; else -> rawCondition
-            }
-            AppLanguage.JAPANESE -> when (rawCondition) {
-                "晴朗" -> "快晴"; "多云" -> "晴れ時々曇り"; "阴天" -> "くもり"; "小雨" -> "小雨"; "雷阵雨" -> "雷雨"; else -> rawCondition
-            }
-            AppLanguage.KOREAN -> when (rawCondition) {
-                "晴朗" -> "맑음"; "多云" -> "구름조금"; "阴天" -> "흐림"; "小雨" -> "가랑비"; "雷阵雨" -> "뇌우"; else -> rawCondition
-            }
-            else -> rawCondition
+            AppLanguage.ENGLISH -> "Please enter number of days"
+            AppLanguage.TRADITIONAL_CHINESE -> "請輸入天數"
+            AppLanguage.JAPANESE -> "日数を入力してください"
+            AppLanguage.KOREAN -> "일수를 입력해 주세요"
+            else -> "请输入天数"
         }
     }
 

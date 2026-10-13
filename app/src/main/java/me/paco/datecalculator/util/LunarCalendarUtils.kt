@@ -150,6 +150,18 @@ object LunarCalendarUtils {
         }
     }
 
+    fun getNextSolarTermCountdown(date: LocalDate): Pair<String, Int> {
+        var checkDate = date
+        for (days in 0..30) {
+            val term = getSolarTerm(checkDate)
+            if (term.isNotEmpty()) {
+                return Pair(term, days)
+            }
+            checkDate = checkDate.plusDays(1)
+        }
+        return Pair("立春", 1)
+    }
+
     fun getSolarTermIcon(term: String): String {
         return when (term) {
             "立春", "雨水", "惊蛰" -> "🌱"
