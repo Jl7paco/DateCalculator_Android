@@ -790,13 +790,14 @@ fun TimelineDiagram(
                                     }
                                 }
 
-                                // 触控按压点高亮框 (在子项进度条按压位置显示高亮瞄准框)
+                                // 触控按压点高亮框 (强制对齐 Alignment.CenterStart，解决原本继承 Parent Center 导致 0px 在正中间、最右侧超出屏幕的绝对 bug)
                                 if (activeHoverSource == "SUB_$idx" && activeHoverDay != null && subBarWidthPx > 0f) {
                                     val indicatorWidthDp = 12.dp
                                     val indicatorWidthPx = with(density) { indicatorWidthDp.toPx() }
                                     val offsetX = ((subBarWidthPx * subDayCenterFraction) - (indicatorWidthPx / 2f)).coerceIn(0f, subBarWidthPx - indicatorWidthPx)
                                     Box(
                                         modifier = Modifier
+                                            .align(Alignment.CenterStart)
                                             .offset(x = with(density) { offsetX.toDp() })
                                             .width(indicatorWidthDp)
                                             .fillMaxHeight()
