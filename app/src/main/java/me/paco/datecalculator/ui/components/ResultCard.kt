@@ -137,39 +137,20 @@ fun ResultCard(
                     color = NeumorphicAccent
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Text(
-                    text = dateStr,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = NeumorphicTextPrimary
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = descStr,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = NeumorphicTextPrimary.copy(alpha = 0.85f)
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(resultDate)
-                val fortune = LunarCalendarUtils.getDailyFortune(resultDate, constName, appLanguage)
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    val localizedConstellation = LanguageUtils.getLocalizedConstellation(constName, appLanguage)
-                    SuggestionChip(
-                        onClick = {},
-                        shape = CircleShape,
-                        label = { Text("$constEmoji $localizedConstellation", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    Text(
+                        text = dateStr,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeumorphicTextPrimary
                     )
+
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     SuggestionChip(
                         onClick = {},
@@ -177,16 +158,6 @@ fun ResultCard(
                         label = { Text(chipDisplay, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                     )
                 }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "✨ ${fortune.summary}",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = NeumorphicTextPrimary.copy(alpha = 0.8f)
-                )
 
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
