@@ -135,12 +135,11 @@ fun HomeScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions.values.any { it }) {
-            viewModel.fetchCurrentGpsLocation(context)
+            viewModel.fetchCurrentGpsLocation(context, force = true)
         }
     }
 
     LaunchedEffect(Unit) {
-        viewModel.fetchCurrentGpsLocation(context)
         val hasFine = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -151,7 +150,9 @@ fun HomeScreen(
             Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
-        if (!hasFine && !hasCoarse) {
+        if (hasFine || hasCoarse) {
+            viewModel.fetchCurrentGpsLocation(context, force = true)
+        } else {
             locationPermissionLauncher.launch(
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
