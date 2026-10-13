@@ -815,8 +815,8 @@ fun WeatherDetailOverlayDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
                 .background(NeumorphicBg, shape = cardShape)
+                .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.22f), shape = cardShape)
                 .clip(cardShape)
                 .padding(18.dp)
         ) {
