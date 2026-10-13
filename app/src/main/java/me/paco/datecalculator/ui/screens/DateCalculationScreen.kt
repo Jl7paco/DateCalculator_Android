@@ -179,13 +179,23 @@ fun DateCalculationScreen(
     var showSingleDeadlinePicker by remember { mutableStateOf(false) }
     val singleTargetDate = viewModel.calculateTargetDate()
     val singleDeadlineText = remember(uiState.baseDate, uiState.daysInput, uiState.calculationType, uiState.dateMode, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays) {
-        val monthDay = singleTargetDate.format(DateTimeFormatter.ofPattern("MM-dd"))
-        when (lang.getEffectiveLanguage()) {
-            AppLanguage.ENGLISH -> "Due $monthDay"
-            AppLanguage.JAPANESE -> "$monthDay 迄"
-            AppLanguage.KOREAN -> "$monthDay 마감"
-            AppLanguage.TRADITIONAL_CHINESE -> "截止 $monthDay"
-            else -> "截止 $monthDay"
+        if (uiState.daysInput.isBlank()) {
+            when (lang.getEffectiveLanguage()) {
+                AppLanguage.ENGLISH -> "Due Date"
+                AppLanguage.JAPANESE -> "締切日"
+                AppLanguage.KOREAN -> "마감일"
+                AppLanguage.TRADITIONAL_CHINESE -> "截至日期"
+                else -> "截至日期"
+            }
+        } else {
+            val monthDay = singleTargetDate.format(DateTimeFormatter.ofPattern("MM-dd"))
+            when (lang.getEffectiveLanguage()) {
+                AppLanguage.ENGLISH -> "Due $monthDay"
+                AppLanguage.JAPANESE -> "$monthDay 迄"
+                AppLanguage.KOREAN -> "$monthDay 마감"
+                AppLanguage.TRADITIONAL_CHINESE -> "截止 $monthDay"
+                else -> "截止 $monthDay"
+            }
         }
     }
 
@@ -669,8 +679,8 @@ fun DateCalculationScreen(
 
                                 Spacer(modifier = Modifier.width(4.dp))
 
-                                // 新增：截止日期选择按钮与提示词 (固定尺寸 88.dp，原汁原味 3D 拟物)
-                                val stageCalculatedEndDate = calculatedMultiSegments.getOrNull(index)?.endDate
+                                // 新增：截止日期选择按钮与提示词 (当输入框文字是灰色/为空时不作联动，显示默认截至日期提示)
+                                val stageCalculatedEndDate = if (stage.daysInput.isNotBlank()) calculatedMultiSegments.getOrNull(index)?.endDate else null
                                 val deadlinePromptText = if (stageCalculatedEndDate != null) {
                                     val monthDay = stageCalculatedEndDate.format(DateTimeFormatter.ofPattern("MM-dd"))
                                     when (effectiveLang) {
