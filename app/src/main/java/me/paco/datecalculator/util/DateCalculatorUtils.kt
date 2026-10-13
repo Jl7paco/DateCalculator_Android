@@ -40,6 +40,27 @@ object DateCalculatorUtils {
         }
     }
 
+    fun getLocalizedDayOfWeek(date: LocalDate, language: AppLanguage): String {
+        val dayOfWeek = date.dayOfWeek.value // 1 = Mon, 7 = Sun
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.ENGLISH -> when (dayOfWeek) {
+                1 -> "Mon"; 2 -> "Tue"; 3 -> "Wed"; 4 -> "Thu"; 5 -> "Fri"; 6 -> "Sat"; else -> "Sun"
+            }
+            AppLanguage.JAPANESE -> when (dayOfWeek) {
+                1 -> "月"; 2 -> "火"; 3 -> "水"; 4 -> "木"; 5 -> "金"; 6 -> "土"; else -> "日"
+            }
+            AppLanguage.KOREAN -> when (dayOfWeek) {
+                1 -> "월"; 2 -> "화"; 3 -> "수"; 4 -> "목"; 5 -> "금"; 6 -> "토"; else -> "일"
+            }
+            AppLanguage.TRADITIONAL_CHINESE -> when (dayOfWeek) {
+                1 -> "週一"; 2 -> "週二"; 3 -> "週三"; 4 -> "週四"; 5 -> "週五"; 6 -> "週六"; else -> "週日"
+            }
+            else -> when (dayOfWeek) {
+                1 -> "周一"; 2 -> "周二"; 3 -> "周三"; 4 -> "周四"; 5 -> "周五"; 6 -> "周六"; else -> "周日"
+            }
+        }
+    }
+
     fun formatDateWithWeek(date: LocalDate, language: AppLanguage): String {
         val dateFormatted = formatDate(date, language)
         val weekNum = getWeekOfYear(date)
