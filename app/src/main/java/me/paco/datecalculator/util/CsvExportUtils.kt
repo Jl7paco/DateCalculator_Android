@@ -13,6 +13,7 @@ import me.paco.datecalculator.data.TimelineBlockType
 import me.paco.datecalculator.data.WeekendRule
 import java.io.File
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
@@ -34,7 +35,7 @@ object CsvExportUtils {
     ) {
         try {
             val titleName = planTitle.ifBlank { "排期计划" }
-            val nowStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))
+            val nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))
             val fileName = "DateSchedule_${titleName}_${nowStr}.csv"
 
             val isForward = !baseDate.isAfter(finalDate)

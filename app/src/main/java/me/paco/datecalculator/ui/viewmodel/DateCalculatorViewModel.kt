@@ -116,7 +116,7 @@ data class DateCalculatorUiState(
     val baseDate: LocalDate = LocalDate.now(),
     val endDate: LocalDate = LocalDate.now().plusDays(30),
     val reverseEndDate: LocalDate = LocalDate.now().plusDays(30),
-    val daysInput: String = "15",
+    val daysInput: String = "",
     val calculationType: CalculationType = CalculationType.ADD,
     val dateMode: DateMode = DateMode.WORKDAY,
     val calcSubMode: CalcSubMode = CalcSubMode.FORWARD_DAYS,
@@ -494,7 +494,7 @@ class DateCalculatorViewModel : ViewModel() {
 
     fun calculateTargetDate(): LocalDate {
         val state = _uiState.value
-        val rawDays = state.daysInput.toIntOrNull() ?: 0
+        val rawDays = state.daysInput.toIntOrNull() ?: 7
         return DateCalculatorUtils.calculateTargetDate(
             baseDate = state.baseDate,
             days = rawDays,

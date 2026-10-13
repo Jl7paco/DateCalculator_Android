@@ -16,10 +16,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -52,6 +56,8 @@ fun NumericCalculatorInput(
     selectedType: CalculationType,
     onTypeSelected: (CalculationType) -> Unit,
     onEqualClick: () -> Unit,
+    onDeadlineDatePickerClick: (() -> Unit)? = null,
+    targetDeadlineDateText: String? = null,
     dayUnitLabel: String = "天",
     language: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     quickOptions: List<Int> = listOf(5, 15, 30),
@@ -60,13 +66,6 @@ fun NumericCalculatorInput(
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
-
-    val placeholderText = when (language) {
-        AppLanguage.ENGLISH -> "Enter $dayUnitLabel (e.g. 30)"
-        AppLanguage.JAPANESE -> "$dayUnitLabel 数を入力 (例: 30)"
-        AppLanguage.KOREAN -> "$dayUnitLabel 일수 입력 (예: 30)"
-        else -> "输入${dayUnitLabel}天数 (如: 30)"
-    }
 
     Column(modifier = modifier.fillMaxWidth()) {
 
@@ -94,10 +93,10 @@ fun NumericCalculatorInput(
                     },
                     placeholder = {
                         Text(
-                            text = placeholderText,
-                            color = NeumorphicTextPrimary.copy(alpha = 0.5f),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
+                            text = "7",
+                            color = NeumorphicTextPrimary.copy(alpha = 0.45f),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     },
                     textStyle = TextStyle(
@@ -194,6 +193,9 @@ fun NumericCalculatorInput(
                         HapticUtils.performCrispClick(context)
                         keyboardController?.hide()
                         focusManager.clearFocus()
+                        if (daysInput.isBlank()) {
+                            onDaysInputChange("7")
+                        }
                         onEqualClick()
                     },
                 contentAlignment = Alignment.Center
@@ -209,11 +211,11 @@ fun NumericCalculatorInput(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 3 个新拟物选天数圆角矩形快捷选项 (与全软件 14.dp 圆角一致)
+        // 4个新拟物圆角矩形快捷按键: [5工作日] [15工作日] [30工作日] [📅 截至日期/截止11-03] (尺寸收紧并对齐，圆角矩形设计维持不变)
         val chipShape = RoundedCornerShape(14.dp)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             quickOptions.forEach { num ->
@@ -264,9 +266,75 @@ fun NumericCalculatorInput(
                         text = labelText,
                         color = if (isSelected) Color.White else NeumorphicTextPrimary,
                         fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                        fontSize = 12.5.sp,
-                        textAlign = TextAlign.Center
+                        fontSize = 11.5.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
                     )
+                }
+            }
+
+            // 第 4 个最右侧截止日期选择按键 (保持同款 14.dp 3D 拟物圆角矩形方式)
+            if (onDeadlineDatePickerClick != null) {
+                val promptText = targetDeadlineDateText ?: when (language.getEffectiveLanguage()) {
+                    AppLanguage.ENGLISH -> "Due Date"
+                    AppLanguage.JAPANESE -> "締切日"
+                    AppLanguage.KOREAN -> "마감일"
+                    AppLanguage.TRADITIONAL_CHINESE -> "截至日期"
+                    else -> "截至日期"
+                }
+
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val scale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.92f else 1.0f,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "DeadlineChipPressScale"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .weight(1.15f)
+                        .height(42.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                        .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
+                        .background(NeumorphicBg, shape = chipShape)
+                        .clip(chipShape)
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null
+                        ) {
+                            HapticUtils.performCrispClick(context)
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+                            onDeadlineDatePickerClick()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(horizontal = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EditCalendar,
+                            contentDescription = "Select Deadline Date",
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = promptText,
+                            color = NeumorphicAccent,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
             }
         }

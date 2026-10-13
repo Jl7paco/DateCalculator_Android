@@ -176,6 +176,42 @@ fun DateCalculationScreen(
         )
     }
 
+    var showSingleDeadlinePicker by remember { mutableStateOf(false) }
+    val singleTargetDate = viewModel.calculateTargetDate()
+    val singleDeadlineText = remember(uiState.baseDate, uiState.daysInput, uiState.calculationType, uiState.dateMode, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays) {
+        val monthDay = singleTargetDate.format(DateTimeFormatter.ofPattern("MM-dd"))
+        when (lang.getEffectiveLanguage()) {
+            AppLanguage.ENGLISH -> "Due $monthDay"
+            AppLanguage.JAPANESE -> "$monthDay 迄"
+            AppLanguage.KOREAN -> "$monthDay 마감"
+            AppLanguage.TRADITIONAL_CHINESE -> "截止 $monthDay"
+            else -> "截止 $monthDay"
+        }
+    }
+
+    if (showSingleDeadlinePicker) {
+        DatePickerModal(
+            selectedDate = singleTargetDate,
+            onDateSelected = { selectedDate ->
+                val requiredDays = DateCalculatorUtils.calculateDaysBetweenDates(
+                    startDate = uiState.baseDate,
+                    targetDate = selectedDate,
+                    isWorkdayMode = (uiState.dateMode == DateMode.WORKDAY),
+                    weekendRule = uiState.weekendRule,
+                    enableHolidays = uiState.enableChineseHolidays,
+                    holidayRegion = uiState.holidayRegion,
+                    isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek,
+                    disableChinaShiftWorkdays = uiState.disableChinaShiftWorkdays
+                )
+                viewModel.updateDaysInput(requiredDays.toString())
+                viewModel.updateCalculationType(if (selectedDate.isBefore(uiState.baseDate)) CalculationType.SUBTRACT else CalculationType.ADD)
+                viewModel.performCalculation()
+                showSingleDeadlinePicker = false
+            },
+            onDismiss = { showSingleDeadlinePicker = false }
+        )
+    }
+
     HistoryOverlayDialog(
         visible = showHistoryDialog,
         onDismiss = { showHistoryDialog = false },
@@ -373,6 +409,8 @@ fun DateCalculationScreen(
                     selectedType = uiState.calculationType,
                     onTypeSelected = { viewModel.updateCalculationType(it) },
                     onEqualClick = { viewModel.performCalculation() },
+                    onDeadlineDatePickerClick = { showSingleDeadlinePicker = true },
+                    targetDeadlineDateText = singleDeadlineText,
                     dayUnitLabel = if (uiState.dateMode == DateMode.WORKDAY) LanguageUtils.getString("workday", lang) else LanguageUtils.getString("natural_day", lang),
                     language = lang
                 )
