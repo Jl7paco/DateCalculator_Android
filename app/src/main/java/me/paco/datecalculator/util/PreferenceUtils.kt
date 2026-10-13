@@ -29,6 +29,7 @@ object PreferenceUtils {
     private const val KEY_TEMP_UNIT = "key_temp_unit"
     private const val KEY_PINNED_PRESETS = "key_pinned_presets"
     private const val KEY_ANNIVERSARIES = "key_anniversaries"
+    private const val KEY_LAST_CITY_NAME = "key_last_city_name"
     private const val KEY_HOME_CONFIG_SHOW_SCREEN = "key_home_config_show_screen"
     private const val KEY_HOME_CONFIG_CALENDAR = "key_home_config_calendar"
     private const val KEY_HOME_CONFIG_ALMANAC = "key_home_config_almanac"
@@ -41,6 +42,16 @@ object PreferenceUtils {
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    }
+
+    fun saveLastCityName(context: Context, cityName: String) {
+        if (cityName.isNotBlank()) {
+            getPrefs(context).edit().putString(KEY_LAST_CITY_NAME, cityName).apply()
+        }
+    }
+
+    fun getLastCityName(context: Context): String {
+        return getPrefs(context).getString(KEY_LAST_CITY_NAME, "深圳市 · 南山区") ?: "深圳市 · 南山区"
     }
 
     fun saveLastWeatherFetchTime(context: Context, timeMillis: Long) {
@@ -174,7 +185,7 @@ object PreferenceUtils {
     }
 
     fun getPinnedPresetHolidays(context: Context): Set<String> {
-        val defaults = setOf("🇨🇳 国庆节", "🎆 元旦", "🧧 春节", "🛠️ 五一劳动节")
+        val defaults = emptySet<String>()
         return getPrefs(context).getStringSet(KEY_PINNED_PRESETS, defaults) ?: defaults
     }
 

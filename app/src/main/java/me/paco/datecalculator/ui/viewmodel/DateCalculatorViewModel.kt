@@ -181,6 +181,8 @@ class DateCalculatorViewModel : ViewModel() {
             }
         } else _uiState.value.customEvents
 
+        val savedCityName = PreferenceUtils.getLastCityName(context)
+
         _uiState.value = _uiState.value.copy(
             holidayRegion = region,
             weekendRule = weekendRule,
@@ -194,6 +196,7 @@ class DateCalculatorViewModel : ViewModel() {
             appLanguage = appLanguage,
             temperatureUnit = tempUnit,
             homeConfig = homeConfig,
+            currentCityName = savedCityName,
             pinnedPresetHolidays = savedPinnedSet,
             customEvents = updatedCustomEvents,
             anniversaryList = savedAnniversaries
@@ -281,6 +284,8 @@ class DateCalculatorViewModel : ViewModel() {
                 val region = LocationUtils.detectCurrentRegion(context)
                 val realWeather = WeatherUtils.fetchRealLiveWeather(districtLoc.latitude, districtLoc.longitude, region)
                 Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Weather API fetch took ${System.currentTimeMillis() - netStartMs}ms")
+
+                PreferenceUtils.saveLastCityName(context, districtLoc.fullDisplayName)
 
                 withContext(Dispatchers.Main) {
                     _uiState.value = _uiState.value.copy(
