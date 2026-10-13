@@ -148,10 +148,22 @@ fun LunarConverterScreen(
 
     val lang = uiState.appLanguage
 
+    var fireworksTriggerCount by remember { mutableIntStateOf(0) }
+    var isUserChangedDate by remember { mutableStateOf(false) }
+
+    LaunchedEffect(solarDate) {
+        if (isUserChangedDate) {
+            if (LunarCalendarUtils.isImportantTraditionalFestival(solarDate)) {
+                fireworksTriggerCount++
+            }
+        }
+    }
+
     if (showSolarPicker) {
         DatePickerModal(
             selectedDate = solarDate,
             onDateSelected = { date ->
+                isUserChangedDate = true
                 solarDate = date
                 showLunarResult = true
                 val lunarResult = LunarCalendarUtils.solarToLunar(date)
@@ -338,6 +350,7 @@ fun LunarConverterScreen(
                 QuickDateChips(
                     selectedDate = solarDate,
                     onSelectDate = { date ->
+                        isUserChangedDate = true
                         solarDate = date
                         showLunarResult = true
                         triggerBounce++
@@ -925,8 +938,8 @@ fun LunarConverterScreen(
         }
 
         FireworksAnimation(
-            trigger = uiState.fireworksTrigger,
-            onAnimationFinished = { viewModel.resetFireworks() }
+            trigger = fireworksTriggerCount,
+            onAnimationFinished = { fireworksTriggerCount = 0 }
         )
     }
 }

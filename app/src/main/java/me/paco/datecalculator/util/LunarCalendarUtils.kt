@@ -233,6 +233,21 @@ object LunarCalendarUtils {
         return ""
     }
 
+    /**
+     * 判断是否为重要传统节日 (冬至、清明、春节、除夕、元宵节、端午节、七夕节、中秋节、重阳节、国庆节、元旦等)，用于触发庆贺烟花
+     */
+    fun isImportantTraditionalFestival(date: LocalDate): Boolean {
+        val lunarResult = solarToLunar(date)
+        val festival = lunarResult.festival
+        val term = lunarResult.solarTerm
+
+        if (term == "冬至" || term == "清明") return true
+
+        return festival in listOf(
+            "春节", "除夕", "元宵节", "端午节", "七夕节", "中秋节", "重阳节", "国庆节", "元旦"
+        )
+    }
+
     fun getAlmanacYiJi(date: LocalDate): AlmanacYiJi {
         val epochDay = date.toEpochDay()
         val dayHash = abs(epochDay.toInt() * 10007)
