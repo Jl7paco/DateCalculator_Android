@@ -2,47 +2,49 @@
 
 ---
 
+## 📋 v3.0.5 ➔ v3.0.6 缺陷修复与体验优化明细
+
+### Bug 1: 导出的 CSV 表格在 Windows Excel 下单元格显示为黑色/斜纹网格
+- **现象**：导出的 CSV 文件在 Windows 版 Microsoft Excel 中打开时，Unicode 颜色方块显示为黑白/斜纹网格，无法呈现彩色单元格填充。
+- **原因**：普通 `.csv` 纯文本格式不支持 CSS / HTML 单元格背景颜色样式，受限于 Excel 的 Plain Text 解析器。
+- **解决**：将导出格式升级为符合微软规范的原生 `.xls` 电子表格（HTML 表格结构）。使用 `background-color: #2563EB` (蓝色工作日)、`#F59E0B` (黄色双休)、`#EF4444` (红色节假日)，在 Excel / WPS 中打开时能够呈现 100% 真实单元格背景颜色填充的横向甘特图。
+
+### Bug 2: 子时间轴触控高亮框与气泡位置偏离
+- **现象**：在多段模式的子时间轴上按压时，点击最左端选定框出现在中间，点击最右端选定框飞出屏幕。
+- **原因**：
+  1. 子时间轴的外层容器继承了父级的 `Alignment.Center` 居中对齐，导致相对偏移 `0` 时被渲染在子轴中间。
+  2. 气泡的最大允许位移值 `maxSubAllowedOffsetPx` 被误用了子轴狭窄宽度，导致位移量被强行锁死在 ±3dp 以内。
+- **解决**：
+  1. 为子时间轴高亮选定框显式绑定 `.align(Alignment.CenterStart)`。
+  2. 基于卡片绝对坐标推算 `subDayCenterFraction`，使触控点、高亮瞄准框与悬浮气泡达成 1:1 几何精确定位。
+
+### Bug 3: 界面有时出现 1.5 秒以上的卡死/丢帧 (Davey Frame Drop)
+- **现象**：在主页滑动或切换页面时，偶尔出现页面冻结 1~2 秒。
+- **原因**：`HomeScreen.kt` 函数体积过大（编译字节码达 21,480 条，突破 Android ART 虚拟机 20,000 条方法指令上限），导致 ART 编译器放弃 JIT 编译并降级为解释执行（Interpreted Mode）；同时 GPS/天气 API 在重组时被无防抖频繁触发。
+- **解决**：
+  1. 将 `HomeScreen.kt` 拆分为 5 个独立的 `@Composable` 模块化子函数，将指令数降至 2,000~3,000 条，全量恢复 JIT 机器码极速编译。
+  2. 在 ViewModel 中加入 10 分钟天气请求防抖锁（`isFetchingLocation` / `lastLocationFetchTime`），消除无效请求。
+
+### Bug 4: 设置菜单点击“二十四节气”开关无显隐变化
+- **现象**：在设置中开启或关闭二十四节气开关，主页卡片无任何变化。
+- **原因**：之前的代码仅在当前日期正好是二十四节气当天（如冬至当天）才渲染芯片。普通日期下 `todayLunar.solarTerm` 为空。
+- **解决**：增加节气倒计时推算逻辑 `getNextSolarTermCountdown`：节气当天显示节气图标（如 `❄️ 冬至`），非节气当天显示倒计时（如 `⏳ 距霜降 5 天`）。开启/关闭开关时芯片即刻显隐。
+
+### Bug 5: 农历转换界面首次进入时自动弹出烟花
+- **现象**：每次打开农历转换 Tab，页面初始化时总会弹出一阵庆祝烟花。
+- **原因**：`uiState.fireworksTrigger` 在页面首次挂载时触发了 `FireworksAnimation`。
+- **解决**：为农历转换界面建立独立防抖触发器，首次进入默认静默；仅当用户手动选择/转换至重大传统节日（春节、除夕、元宵、端午、七夕、中秋、重阳、冬至、清明、国庆、元旦）时才触发庆贺烟花。
+
+### Bug 6: 二级天气弹窗左侧与顶部白色光影溢出
+- **现象**：点击天气进入二级 6 小时预报弹窗时，弹窗卡片的左侧与顶部边缘在浅色模式下有一条白光溢出。
+- **原因**：外层卡片使用了外扩投影 `neumorphicExtruded`，向外投射的白光照射到了 Dialog 的暗色蒙层背景上。
+- **解决**：将外层卡片重构为带 26dp 圆角的 `border` 与 `clip` 包裹结构，消除向外外扩的白光。
+
+---
+
 ## 📋 v3.0.1 ➔ v3.0.2 缺陷修复全量对比
 
 ### Bug 1: 语言未新增【跟随系统】选项
 - **现象**：系统语言为英文、日文或韩文时，应用无法自动跟随系统语言。
 - **原因**：`AppLanguage` 枚举遗漏了 `SYSTEM` 选项。
 - **解决**：在 `AppLanguage` 中新增 `SYSTEM("system", "跟随系统")`，并通过 `getEffectiveLanguage()` 智能动态读取 Android 系统 `Locale.getDefault()`。
-
-### Bug 2: 农历与老黄历（宜/忌）未根据语言统一规则
-- **现象**：之前农历/黄历过度依赖 `HolidayRegion` 地区判断，导致选成英文语言时部分卡片依然渲染老黄历。
-- **原因**：黄历与农历展示逻辑未完全与 `appLanguage` 绑定。
-- **解决**：重构农历与黄历规则：**仅在简体中文 (`SIMPLIFIED_CHINESE`) 或 繁体中文 (`TRADITIONAL_CHINESE`) 界面下展示农历与老黄历（宜/忌）**。英文、日文、韩文下 100% 强制隐藏农历月日与老黄历卡片。
-
-### Bug 3: 多段模式阶段名称未随语言转换
-- **现象**：在多段加减计算模式中，新增阶段或默认生成的阶段显示为简体中文“第一段时间”、“第二段时间”。
-- **原因**：`DateCalculatorViewModel.kt` 的 `addCalculationStage` 硬编码了中文。
-- **解决**：重构 ViewModel 与 View，调用 `LanguageUtils.getLocalizedStageTitle(index + 1, lang)`，英文下显示 `Stage 1 / Stage 2`，日文下显示 `第1段階 / 第2段階`，韩文下显示 `1단계 / 2단계`，繁体中文下显示 `第1段時間 / 第2段時間`。
-
-### Bug 4: 单段模式、结果卡片、周数与星座遗漏翻译
-- **现象**：单段加减模式的 `+` / `-` 按钮、结果卡片细节描述、周数（如 `第40周`）以及生肖星座在英文模式下显示中文。
-- **原因**：部分格式化函数（如 `formatDateWithWeek`）未透传当前 `appLanguage` 参数。
-- **解决**：
-  1. 为 `DateCalculatorUtils.formatDateWithWeek(date, lang)` 透传 `lang`，英文格式化为 `Sep 27, 2026 (Wk 40)`，韩文格式化为 `2026년 9월 27일 (40주차)`。
-  2. 为生肖和 12 星座建立 `LanguageUtils.getLocalizedConstellation()` 与 `getLocalizedZodiac()`，英文格式化为 `Virgo` / `Libra` / `Dragon`。
-  3. 补齐天气第 4 天 `LanguageUtils.getDayName("大后天", lang)` 翻译（`3 Days Later` / `明々後日` / `글피`）。
-
-### Bug 5: 桌面小组件无 previewImage 缩略图与 3D 新拟物样式不吻合
-- **现象**：在手机“添加桌面小组件”列表面板中无法预览小组件缩略图，且小组件外观与主应用 3D 新拟物风格不一致。
-- **原因**：小组件配置文件遗漏了 `android:previewLayout` 与 `android:previewImage`。
-- **解决**：
-  1. 为 5 款小组件 Provider 配置文件添加 `android:previewLayout` 与 `android:previewImage`，可以在桌面选单面板中直接预览 3D 新拟物外观。
-  2. 升级小组件 XML 绘图资源（`widget_bg_neumorphic.xml`），采用 **22dp 柔和圆角、`#F2F5FA` 拟物底色与 `#CBD5E1` 3D 浮雕边框**。
-  3. 新增桌面 **`📍 1键打卡`** 广播与桌面 **`+15天 / +30天 / +100天`** 实时日期计算功能。
-
-### Bug 6: 英文快捷按键“Yesterday”超长与切页开关“Calendar Day”不居中
-- **现象**：倒数日页面英文快捷按键“Yesterday”文字太长溢出；`Workday / Calendar Day` 胶囊开关在英文下文字不居中。
-- **原因**：胶囊开关固定宽度仅 130dp，在英文较长词组下空间不足。
-- **解决**：
-  1. 将英文快捷按键“Yesterday”精简缩写为 **`Yest`**。
-  2. 拓宽 `WorkdayNaturalSwitch` 非中文模式宽度至 **150dp**，并加上 `TextAlign.Center` 与 `TextOverflow.Ellipsis` 保护。
-
-### Bug 7: 模式三向切换按钮底部带有椭圆大阴影
-- **现象**：`加减天数` | `区间拆算` | `多段加减` 三个按钮外层容器底部带有大块凹陷椭圆阴影。
-- **原因**：外层 `Box` 施加了 `.neumorphicInset` 组合修饰符。
-- **解决**：移除外层容器凹陷阴影，更名为 **“多段加减”**（`Multi-Stage Calc`），界面干练流畅。

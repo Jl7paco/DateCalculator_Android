@@ -1,10 +1,10 @@
-# 📅 DateCalculator (日期计算器) - Android v3.0.2
+# 📅 DateCalculator (日期计算器) - Android v3.0.6
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-blue.svg)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-2024.02-green.svg)](https://developer.android.com)
 [![Material 3](https://img.shields.io/badge/Material%203-Neumorphic-purple.svg)](https://m3.material.io)
 [![Android SDK](https://img.shields.io/badge/API-26%2B%20(Android%208.0%2B)-orange.svg)](https://developer.android.com)
-[![Version](https://img.shields.io/badge/Version-v3.0.2-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v3.0.6-brightgreen.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
 **日期计算器** 是一款基于 **Kotlin** 与 **Jetpack Compose** 打造的高颜值、全功能 Android 日期算法应用。界面采用新拟物 (Neumorphism) 3D 光影设计，内置工作日计算、多段推算、建除十二神正统老黄历、星体行运每日运势、倒数日推算、重要纪念日与 GPS 精准打卡、农历公历双向转换、年龄精准推算及 **5 款桌面小组件 (AppWidgets)**。
@@ -28,12 +28,12 @@
 ### 2. 🌐 多语言 i18n 体系与华人/非华人农历规则
 - **新增【跟随系统 (System Default)】语言选项**：设为全应用默认语言，自动读取系统 `Locale.getDefault()` 并适配中/英/日/韩。
 - **农历与老黄历语言统一规则**：仅在 **【简体中文】** 或 **【繁體中文】** 界面设置下展示农历月日与老黄历（宜/忌）。非中文界面（English, 日本語, 한국어）下 **100% 彻底隐藏农历月日与老黄历卡片**。
-- **100% 多语言动态绑定**：阶段名 (`Stage 1 / Stage 2`)、单段计算、周数 (`Sep 27, 2026 (Wk 40)`）、12 星座 (`Virgo`, `Libra`)、生肖 (`Dragon`)、天气第 4 天 (`3 Days Later`) 实现全量多语言翻译。
+- **100% 多语言动态绑定**：阶段名 (`Stage 1 / Stage 2`)、单段计算、周数 (`Sep 27, 2026 (Wk 40)`)、12 星座 (`Virgo`, `Libra`)、生肖 (`Dragon`)、天气第 4 天 (`3 Days Later`) 实现全量多语言翻译。
 
 ### 3. 🌟 “首页”全能看板
 - **7×6 扩展月历视图**：显示公历、农历月日、二十四节气与法定节假日放假（**“休”**）与调休补班（**“班”**）角标。单元格 44dp 高度确保文字完整无压缩。非中文模式下自动隐藏农历文字。
 - **当日老黄历与节气 Card**：仅中文模式下展示正统老黄历“宜”与“忌”事项。
-- **📍 GPS 实时天气推算 Card**：动态读取 GPS 定位或城市数据库，推算城市当日及未来三日天气状况，城市名称支持多语言翻译。
+- **📍 GPS 实时天气推算 Card**：动态读取 GPS 定位或城市数据库，推算城市当日及未来三日天气状况，支持点击天数进入二级 6 小时精细时段预报（包含今天/明天时段标注与降水概率）。
 - **⭐ 星座每日运势 Card**：结合天体行运相位推算每日综合星级评分、幸运数字、幸运颜色与开运指南。
 
 ### 4. ❤️ “重要纪念日”与 📍 GPS 精准打卡
@@ -42,8 +42,8 @@
 
 ### 5. 📅 核心日期计算与多段拖拽模式
 - **工作日 / 自然日推算**：支持按加减天数推算目标日期，内置多国家/地区法定节假日与调休补班逻辑。
-- **多段加减 (`Multi-Stage Calc`) 自由拖拽调换**：支持添加多段时间段，每个时间段配备 **`DragHandle` 拖拽句柄图标**，按住即可上下自由拖拽调换阶段顺序。
-- **总时间安排主时间轴**：直观展示工作日、周末双休与法定节假日的真实时间比例条。支持导出为标准 CSV 电子表格文件。
+- **阶段截止日期“选择日期”联动**：多段加减每行配备 3D 拟物“选择日期”按钮，可输入天数自动推算截止日期，也可直接在日历中选择目标截止日期并反向倒推所需天数。
+- **总时间安排主时间轴**：直观展示工作日、周末双休与法定节假日的真实时间比例条。支持导出为 **原生 `.xls` 电子表格（包含 1:1 单元格背景颜色填充甘特图）**。
 
 ### 6. 🎂 年龄计算器与生日倒计时
 - **精确推算多维年龄**：选择出生日期后，自动计算精确的实岁年龄（X岁 X个月 X天）、总生活自然日天数、总月数、总周数。
@@ -51,22 +51,23 @@
 
 ---
 
-## 🛠️ v3.0.1 ➔ v3.0.2 更新与 Bug 修复明细
+## 🛠️ v3.0.5 ➔ v3.0.6 更新明细
 
-更详细的缺陷日志请参阅：🐛 **[BUGLIST.md](./BUGLIST.md)**
+更详细的变更历史与缺陷日志请参阅：变更日志 **[CHANGELOG.md](./CHANGELOG.md)** / 🐛 **[BUGLIST.md](./BUGLIST.md)**
 
-1. **新增【跟随系统】语言选项**：设为全应用默认语言，自动适配系统 Language。
-2. **农历与老黄历统一规则**：仅在简体中文/繁体中文界面下显示农历与黄历，非中文界面下 100% 彻底隐藏。
-3. **补齐全量遗漏翻译**：阶段名 (`Stage 1 / Stage 2`)、单段计算、周数 (`Wk 40`)、12 星座 (`Virgo`)、生肖 (`Dragon`)、天气第 4 天 (`3 Days Later`) 实现全量翻译。
-4. **小组件配置 previewLayout 预览缩略图**：可在桌面添加小组件选单中直接预览 3D 新拟物原生外观。
-5. **UI 精细微调**：英文“Yesterday”缩写为 **`Yest`**；拓宽 `Workday / Calendar Day` 胶囊开关宽度至 150dp 居中；彻底去除了模式切换按钮底部的凹陷椭圆阴影，更名为 **“多段加减”** (`Multi-Stage Calc`)。
+1. **“选择日期”截止日期双向联动**：单段与多段模式下均支持选择目标日期并反向倒推所需天数，空值状态时提示文案解耦保持“选择日期”。
+2. **原生 `.xls` 单元格颜色填充甘特图导出**：导出升维为 `.xls` 格式，在 Excel / WPS 中打开呈现蓝色工作日、黄色双休、红色节假日 1:1 真实单元格背景填充甘特图。
+3. **主页天气置顶与 6 小时精细预报**：天气卡片置顶显示，点击天数展开包含“今天/明天/后天”标注的 4 个 6 小时时段温度与降水概率预报。
+4. **单段结果卡片精简**：去除冗余的周数副标题与运势文案，将结果日期与工作日标签合并至同一行高亮展示。
+5. **架构模块化与 JIT 极速编译**：重构拆分主界面 `HomeScreen` 为 5 个独立子组件，消除 JIT 指令数超限引发的丢帧卡顿，加入 GPS 天气获取防抖锁。
+6. **子时间轴绝对坐标归一化吸附**：重构触控高亮框与气泡绝对坐标，消除定位偏离。
 
 ---
 
-## 📲 最新安装包下载 (v3.0.2)
+## 📲 最新安装包下载 (v3.0.6)
 
-- 📦 **[DateCalculator-v3.0.2.apk](./DateCalculator-v3.0.2.apk)** (22.9 MB 测试安装包)
-- 🚀 **[DateCalculator-v3.0.2.aab](./DateCalculator-v3.0.2.aab)** (15.0 MB 官方 App Bundle)
+- 📦 **[DateCalculator-v3.0.6-R8-Optimized.apk](./DateCalculator-v3.0.6-R8-Optimized.apk)** (6.6 MB R8 混淆极速测试包)
+- 🚀 **[DateCalculator-v3.0.6-R8-Optimized.aab](./DateCalculator-v3.0.6-R8-Optimized.aab)** (18.2 MB R8 混淆正式发布包)
 
 ---
 

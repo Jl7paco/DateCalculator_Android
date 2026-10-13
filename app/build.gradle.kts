@@ -21,8 +21,8 @@ android {
         applicationId = "me.paco.datecalculator"
         minSdk = 26
         targetSdk = 36
-        versionCode = 305
-        versionName = "3.0.5"
+        versionCode = 306
+        versionName = "3.0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -33,11 +33,13 @@ android {
     signingConfigs {
         create("release") {
             val storeFilePath = keystoreProperties.getProperty("storeFile")
-            if (storeFilePath != null) {
+            if (storeFilePath != null && file(storeFilePath).exists()) {
                 storeFile = file(storeFilePath)
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
+            } else {
+                initWith(getByName("debug"))
             }
         }
     }
