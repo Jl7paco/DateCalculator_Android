@@ -9,6 +9,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -57,6 +58,7 @@ data class DailyWeather(
 )
 
 data class SixHourForecast(
+    val dayPrefix: String,
     val timeRange: String,
     val timeLabel: String,
     val iconEmoji: String,
@@ -526,59 +528,121 @@ object WeatherUtils {
     }
 
     /**
-     * 生成单日以 6 个小时为单位的精细化天气预报 (包含降水概率、温阶与时段说明)
+     * 以当前 6 小时时段为基准，计算生成后续 4 个 6 小时精细化天气预报 (标注今天/明天/后天)
      */
-    fun generateSixHourForecasts(weather: DailyWeather, dayIndex: Int, language: AppLanguage): List<SixHourForecast> {
-        val labelEarlyMorning = when (language.getEffectiveLanguage()) {
-            AppLanguage.ENGLISH -> "Dawn"
-            AppLanguage.JAPANESE -> "深夜/明方"
-            AppLanguage.KOREAN -> "새벽"
-            AppLanguage.TRADITIONAL_CHINESE -> "凌晨"
-            else -> "凌晨"
+    fun generateSixHourForecasts(
+        weatherList: List<DailyWeather>,
+        selectedDayIndex: Int,
+        language: AppLanguage
+    ): List<SixHourForecast> {
+        val currentHour = try { LocalTime.now().hour } catch (e: Exception) { 12 }
+        val startBlockIdx = (currentHour / 6).coerceIn(0, 3)
+
+        val result = mutableListOf<SixHourForecast>()
+
+        for (k in 0 until 4) {
+            val totalBlockIdx = startBlockIdx + k
+            val dayOffset = totalBlockIdx / 4
+            val blockIdxInDay = totalBlockIdx % 4
+
+            val targetDayIdx = (selectedDayIndex + dayOffset).coerceIn(0, weatherList.lastIndex)
+            val dayWeather = weatherList.getOrElse(targetDayIdx) { weatherList.first() }
+
+            val dayPrefix = when (dayOffset) {
+                0 -> when (language.getEffectiveLanguage()) {
+                    AppLanguage.ENGLISH -> "Today "
+                    AppLanguage.JAPANESE -> "今日 "
+                    AppLanguage.KOREAN -> "오늘 "
+                    AppLanguage.TRADITIONAL_CHINESE -> "今天"
+                    else -> "今天"
+                }
+                1 -> when (language.getEffectiveLanguage()) {
+                    AppLanguage.ENGLISH -> "Tomorrow "
+                    AppLanguage.JAPANESE -> "明日 "
+                    AppLanguage.KOREAN -> "내일 "
+                    AppLanguage.TRADITIONAL_CHINESE -> "明天"
+                    else -> "明天"
+                }
+                else -> when (language.getEffectiveLanguage()) {
+                    AppLanguage.ENGLISH -> "Day After "
+                    AppLanguage.JAPANESE -> "明後日 "
+                    AppLanguage.KOREAN -> "모레 "
+                    AppLanguage.TRADITIONAL_CHINESE -> "後天"
+                    else -> "后天"
+                }
+            }
+
+            val timeRange = when (blockIdxInDay) {
+                0 -> "00:00-06:00"
+                1 -> "06:00-12:00"
+                2 -> "12:00-18:00"
+                else -> "18:00-24:00"
+            }
+
+            val timeLabel = when (blockIdxInDay) {
+                0 -> when (language.getEffectiveLanguage()) {
+                    AppLanguage.ENGLISH -> "Dawn"
+                    AppLanguage.JAPANESE -> "深夜"
+                    AppLanguage.KOREAN -> "새벽"
+                    AppLanguage.TRADITIONAL_CHINESE -> "凌晨"
+                    else -> "凌晨"
+                }
+                1 -> when (language.getEffectiveLanguage()) {
+                    AppLanguage.ENGLISH -> "Morning"
+                    AppLanguage.JAPANESE -> "午前"
+                    AppLanguage.KOREAN -> "오전"
+                    AppLanguage.TRADITIONAL_CHINESE -> "上午"
+                    else -> "上午"
+                }
+                2 -> when (language.getEffectiveLanguage()) {
+                    AppLanguage.ENGLISH -> "Afternoon"
+                    AppLanguage.JAPANESE -> "午後"
+                    AppLanguage.KOREAN -> "오후"
+                    AppLanguage.TRADITIONAL_CHINESE -> "下午"
+                    else -> "下午"
+                }
+                else -> when (language.getEffectiveLanguage()) {
+                    AppLanguage.ENGLISH -> "Evening"
+                    AppLanguage.JAPANESE -> "夜間"
+                    AppLanguage.KOREAN -> "저녁"
+                    AppLanguage.TRADITIONAL_CHINESE -> "夜間"
+                    else -> "夜间"
+                }
+            }
+
+            val temp = when (blockIdxInDay) {
+                0 -> dayWeather.tempMin
+                1 -> (dayWeather.tempMin * 0.4f + dayWeather.tempMax * 0.6f).toInt()
+                2 -> dayWeather.tempMax
+                else -> (dayWeather.tempMin + 2).coerceAtLeast(dayWeather.tempMax)
+            }
+
+            val prob = when (blockIdxInDay) {
+                0 -> (dayWeather.precipProb * 0.35f).toInt().coerceIn(0, 100)
+                1 -> (dayWeather.precipProb * 0.75f).toInt().coerceIn(0, 100)
+                2 -> dayWeather.precipProb.coerceIn(0, 100)
+                else -> (dayWeather.precipProb * 0.50f).toInt().coerceIn(0, 100)
+            }
+
+            val (icon, cond) = when (blockIdxInDay) {
+                0 -> parseWmoWeatherCode(if (dayWeather.precipProb > 50) 61 else 1)
+                1, 2 -> Pair(dayWeather.iconEmoji, dayWeather.condition)
+                else -> parseWmoWeatherCode(if (dayWeather.precipProb > 60) 61 else 2)
+            }
+
+            result.add(
+                SixHourForecast(
+                    dayPrefix = dayPrefix,
+                    timeRange = timeRange,
+                    timeLabel = timeLabel,
+                    iconEmoji = icon,
+                    condition = cond,
+                    temp = temp,
+                    precipProb = prob
+                )
+            )
         }
-        val labelMorning = when (language.getEffectiveLanguage()) {
-            AppLanguage.ENGLISH -> "Morning"
-            AppLanguage.JAPANESE -> "午前"
-            AppLanguage.KOREAN -> "오전"
-            AppLanguage.TRADITIONAL_CHINESE -> "上午"
-            else -> "上午"
-        }
-        val labelAfternoon = when (language.getEffectiveLanguage()) {
-            AppLanguage.ENGLISH -> "Afternoon"
-            AppLanguage.JAPANESE -> "午後"
-            AppLanguage.KOREAN -> "오후"
-            AppLanguage.TRADITIONAL_CHINESE -> "下午"
-            else -> "下午"
-        }
-        val labelEvening = when (language.getEffectiveLanguage()) {
-            AppLanguage.ENGLISH -> "Evening"
-            AppLanguage.JAPANESE -> "夜間"
-            AppLanguage.KOREAN -> "저녁"
-            AppLanguage.TRADITIONAL_CHINESE -> "夜間"
-            else -> "夜间"
-        }
 
-        val temp1 = weather.tempMin
-        val prob1 = (weather.precipProb * 0.35f).toInt().coerceIn(0, 100)
-        val (icon1, cond1) = parseWmoWeatherCode(if (weather.precipProb > 50) 61 else 1)
-
-        val temp2 = (weather.tempMin * 0.4f + weather.tempMax * 0.6f).toInt()
-        val prob2 = (weather.precipProb * 0.75f).toInt().coerceIn(0, 100)
-        val (icon2, cond2) = Pair(weather.iconEmoji, weather.condition)
-
-        val temp3 = weather.tempMax
-        val prob3 = weather.precipProb.coerceIn(0, 100)
-        val (icon3, cond3) = Pair(weather.iconEmoji, weather.condition)
-
-        val temp4 = (weather.tempMin + 2).coerceAtMost(weather.tempMax)
-        val prob4 = (weather.precipProb * 0.5f).toInt().coerceIn(0, 100)
-        val (icon4, cond4) = parseWmoWeatherCode(if (weather.precipProb > 60) 61 else 2)
-
-        return listOf(
-            SixHourForecast("00:00 - 06:00", labelEarlyMorning, icon1, cond1, temp1, prob1),
-            SixHourForecast("06:00 - 12:00", labelMorning, icon2, cond2, temp2, prob2),
-            SixHourForecast("12:00 - 18:00", labelAfternoon, icon3, cond3, temp3, prob3),
-            SixHourForecast("18:00 - 24:00", labelEvening, icon4, cond4, temp4, prob4)
-        )
+        return result
     }
 }

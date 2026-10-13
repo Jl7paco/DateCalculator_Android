@@ -762,10 +762,10 @@ fun HomeScreen(
         }
 
         if (selectedWeatherDayDetail != null) {
-            val (detailWeather, dayIdx) = selectedWeatherDayDetail!!
+            val (_, dayIdx) = selectedWeatherDayDetail!!
             WeatherDetailOverlayDialog(
                 visible = true,
-                weather = detailWeather,
+                weatherList = weatherList,
                 dayIndex = dayIdx,
                 cityName = uiState.currentCityName,
                 temperatureUnit = uiState.temperatureUnit,
@@ -779,18 +779,19 @@ fun HomeScreen(
 @Composable
 fun WeatherDetailOverlayDialog(
     visible: Boolean,
-    weather: DailyWeather?,
+    weatherList: List<DailyWeather>,
     dayIndex: Int,
     cityName: String,
     temperatureUnit: TemperatureUnit,
     language: AppLanguage,
     onDismiss: () -> Unit
 ) {
+    val weather = weatherList.getOrNull(dayIndex)
     if (!visible || weather == null) return
 
     val cardShape = RoundedCornerShape(26.dp)
-    val sixHourList = remember(weather, dayIndex, language) {
-        WeatherUtils.generateSixHourForecasts(weather, dayIndex, language)
+    val sixHourList = remember(weatherList, dayIndex, language) {
+        WeatherUtils.generateSixHourForecasts(weatherList, dayIndex, language)
     }
 
     val localizedCity = LanguageUtils.getLocalizedCityName(cityName, language)
@@ -814,9 +815,10 @@ fun WeatherDetailOverlayDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .neumorphicExtruded(shape = cardShape, elevation = 8.dp)
+                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
                 .background(NeumorphicBg, shape = cardShape)
-                .padding(20.dp)
+                .clip(cardShape)
+                .padding(18.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 // 1. 顶栏：地名 + 日期 + 关闭按键
@@ -827,7 +829,7 @@ fun WeatherDetailOverlayDialog(
                 ) {
                     Text(
                         text = dialogTitle,
-                        fontSize = 14.5.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = NeumorphicAccent,
                         maxLines = 1,
@@ -861,8 +863,9 @@ fun WeatherDetailOverlayDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 3.dp)
                         .background(NeumorphicSunkenBg, shape = RoundedCornerShape(16.dp))
+                        .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 3.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .padding(12.dp)
                 ) {
                     Row(
@@ -932,65 +935,71 @@ fun WeatherDetailOverlayDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // 3. 4 个 6 小时时段分块卡片 (00:00-06:00, 06:00-12:00, 12:00-18:00, 18:00-24:00)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // 3. 4 个 6 小时时段分块卡片 (与主页面天气卡片 100% 保持一致的横向并排 4 栏架构)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     sixHourList.forEach { item ->
                         val itemTemp = temperatureUnit.convertTemp(item.temp)
                         val condLoc = WeatherUtils.getLocalizedCondition(item.condition, language)
 
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 2.dp)
-                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(14.dp))
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .weight(1f)
+                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                                .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .padding(vertical = 8.dp, horizontal = 2.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // 时段名称与时间范围
-                                Column {
-                                    Text(
-                                        text = "${item.timeLabel} (${item.timeRange})",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = NeumorphicTextPrimary
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(item.iconEmoji, fontSize = 14.sp)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(condLoc, fontSize = 11.5.sp, color = NeumorphicTextPrimary.copy(alpha = 0.75f))
-                                    }
-                                }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "${item.dayPrefix}${item.timeLabel}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeumorphicTextPrimary,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = item.timeRange,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = NeumorphicTextPrimary.copy(alpha = 0.6f),
+                                    maxLines = 1
+                                )
 
-                                // 温度与降水概率
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "$itemTemp${temperatureUnit.symbol}",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = NeumorphicAccent
-                                    )
+                                Spacer(modifier = Modifier.height(3.dp))
 
-                                    Spacer(modifier = Modifier.width(14.dp))
+                                Text(text = item.iconEmoji, fontSize = 17.sp)
 
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0xFF0284C7).copy(alpha = 0.15f))
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                                    ) {
-                                        Text(
-                                            text = "💧 ${item.precipProb}%",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = Color(0xFF0284C7)
-                                        )
-                                    }
-                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+
+                                Text(
+                                    text = condLoc,
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = NeumorphicTextPrimary,
+                                    maxLines = 1
+                                )
+
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Text(
+                                    text = "💧 ${item.precipProb}%",
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0284C7)
+                                )
+
+                                Spacer(modifier = Modifier.height(3.dp))
+
+                                Text(
+                                    text = "$itemTemp${temperatureUnit.symbol}",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = NeumorphicAccent
+                                )
                             }
                         }
                     }
