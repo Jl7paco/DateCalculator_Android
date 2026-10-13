@@ -925,11 +925,11 @@ fun WeatherDetailOverlayDialog(
     val maxDisplay = temperatureUnit.convertTemp(weather.tempMax)
 
     val dialogTitle = when (language.getEffectiveLanguage()) {
-        AppLanguage.ENGLISH -> "📍 $localizedCity · $dayTitle Detailed Weather"
-        AppLanguage.JAPANESE -> "📍 $localizedCity · $dayTitle 詳細天気予報"
-        AppLanguage.KOREAN -> "📍 $localizedCity · $dayTitle 상세 날씨"
-        AppLanguage.TRADITIONAL_CHINESE -> "📍 $localizedCity · $dayTitle 詳細天氣推算"
-        else -> "📍 $localizedCity · $dayTitle 详细天气推算"
+        AppLanguage.ENGLISH -> "📍 $localizedCity · $dayTitle Weather Details"
+        AppLanguage.JAPANESE -> "📍 $localizedCity · $dayTitle 天気詳細"
+        AppLanguage.KOREAN -> "📍 $localizedCity · $dayTitle 날씨 상세"
+        AppLanguage.TRADITIONAL_CHINESE -> "📍 $localizedCity · $dayTitle 天氣詳情"
+        else -> "📍 $localizedCity · $dayTitle 天气详情"
     }
 
     Dialog(
