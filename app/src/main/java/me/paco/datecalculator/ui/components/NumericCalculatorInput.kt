@@ -276,11 +276,11 @@ fun NumericCalculatorInput(
             // 第 4 个最右侧截止日期选择按键 (保持同款 14.dp 3D 拟物圆角矩形方式)
             if (onDeadlineDatePickerClick != null) {
                 val promptText = targetDeadlineDateText ?: when (language.getEffectiveLanguage()) {
-                    AppLanguage.ENGLISH -> "Due Date"
-                    AppLanguage.JAPANESE -> "締切日"
-                    AppLanguage.KOREAN -> "마감일"
-                    AppLanguage.TRADITIONAL_CHINESE -> "截至日期"
-                    else -> "截至日期"
+                    AppLanguage.ENGLISH -> "Select Date"
+                    AppLanguage.JAPANESE -> "日付を選択"
+                    AppLanguage.KOREAN -> "날짜 선택"
+                    AppLanguage.TRADITIONAL_CHINESE -> "選擇日期"
+                    else -> "选择日期"
                 }
 
                 val interactionSource = remember { MutableInteractionSource() }

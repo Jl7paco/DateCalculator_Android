@@ -181,11 +181,11 @@ fun DateCalculationScreen(
     val singleDeadlineText = remember(uiState.baseDate, uiState.daysInput, uiState.calculationType, uiState.dateMode, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays) {
         if (uiState.daysInput.isBlank()) {
             when (lang.getEffectiveLanguage()) {
-                AppLanguage.ENGLISH -> "Due Date"
-                AppLanguage.JAPANESE -> "締切日"
-                AppLanguage.KOREAN -> "마감일"
-                AppLanguage.TRADITIONAL_CHINESE -> "截至日期"
-                else -> "截至日期"
+                AppLanguage.ENGLISH -> "Select Date"
+                AppLanguage.JAPANESE -> "日付を選択"
+                AppLanguage.KOREAN -> "날짜 선택"
+                AppLanguage.TRADITIONAL_CHINESE -> "選擇日期"
+                else -> "选择日期"
             }
         } else {
             val monthDay = singleTargetDate.format(DateTimeFormatter.ofPattern("MM-dd"))
@@ -692,11 +692,11 @@ fun DateCalculationScreen(
                                     }
                                 } else {
                                     when (effectiveLang) {
-                                        AppLanguage.ENGLISH -> "Due Date"
-                                        AppLanguage.JAPANESE -> "締切日"
-                                        AppLanguage.KOREAN -> "마감일"
-                                        AppLanguage.TRADITIONAL_CHINESE -> "截至日期"
-                                        else -> "截至日期"
+                                        AppLanguage.ENGLISH -> "Select Date"
+                                        AppLanguage.JAPANESE -> "日付を選択"
+                                        AppLanguage.KOREAN -> "날짜 선택"
+                                        AppLanguage.TRADITIONAL_CHINESE -> "選擇日期"
+                                        else -> "选择日期"
                                     }
                                 }
 
