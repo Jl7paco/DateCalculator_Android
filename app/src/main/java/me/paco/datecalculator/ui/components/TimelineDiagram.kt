@@ -442,7 +442,7 @@ fun TimelineDiagram(
                                                     }
                                                 }
 
-                                                val idx = (touchFraction * (dayList.size - 1)).roundToInt().coerceIn(dayList.indices)
+                                                val idx = (touchFraction * dayList.size).toInt().coerceIn(dayList.indices)
                                                 if (idx != lastHoverIndex || activeHoverSource != "MAIN") {
                                                     lastHoverIndex = idx
                                                     activeHoverSource = "MAIN"
@@ -646,13 +646,21 @@ fun TimelineDiagram(
                     var subBarWidthPx by remember { mutableFloatStateOf(1f) }
                     var subTouchFraction by remember { mutableFloatStateOf(0.5f) }
 
-                    // 精确计算子轴气泡与高亮选区的 1:1 坐标对齐 (计算子轴在卡片内的绝对坐标，确保气泡与高亮框 100% 精确吸附在按压手指正上方)
+                    // 精确计算子轴气泡与高亮选区的 1:1 坐标对齐 (计算当前选中天数的视觉几何中心点，确保气泡与高亮框 100% 精确对齐)
+                    val activeSubDayIndex = if (segDayList.isNotEmpty()) {
+                        (subTouchFraction * segDayList.size).toInt().coerceIn(segDayList.indices)
+                    } else 0
+
+                    val subDayCenterFraction = if (segDayList.isNotEmpty()) {
+                        (activeSubDayIndex + 0.5f) / segDayList.size.toFloat()
+                    } else 0.5f
+
                     val subBarLeftOffsetDp = 30.dp
                     val bubbleHalfWidthDp = 135.dp
                     val edgeMarginDpSub = 12.dp
 
                     val subBarCenterXDp = subBarLeftOffsetDp + with(density) { (subBarWidthPx / 2f).toDp() }
-                    val fingerXDp = subBarLeftOffsetDp + with(density) { (subTouchFraction * subBarWidthPx).toDp() }
+                    val fingerXDp = subBarLeftOffsetDp + with(density) { (subDayCenterFraction * subBarWidthPx).toDp() }
 
                     val outerCardWidthDp = with(density) { barWidthPx.toDp() } + 32.dp
                     val minBubbleCenterX = edgeMarginDpSub + bubbleHalfWidthDp
@@ -737,7 +745,7 @@ fun TimelineDiagram(
                                                         if (segDayList.isNotEmpty() && subBarWidthPx > 0f) {
                                                             subTouchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
 
-                                                            val subIdx = (subTouchFraction * (segDayList.size - 1)).roundToInt().coerceIn(segDayList.indices)
+                                                            val subIdx = (subTouchFraction * segDayList.size).toInt().coerceIn(segDayList.indices)
                                                             if (subIdx != lastHoverIndex || activeHoverSource != "SUB_$idx") {
                                                                 lastHoverIndex = subIdx
                                                                 activeHoverSource = "SUB_$idx"
@@ -786,7 +794,7 @@ fun TimelineDiagram(
                                 if (activeHoverSource == "SUB_$idx" && activeHoverDay != null && subBarWidthPx > 0f) {
                                     val indicatorWidthDp = 12.dp
                                     val indicatorWidthPx = with(density) { indicatorWidthDp.toPx() }
-                                    val offsetX = ((subBarWidthPx * subTouchFraction) - (indicatorWidthPx / 2f)).coerceIn(0f, subBarWidthPx - indicatorWidthPx)
+                                    val offsetX = ((subBarWidthPx * subDayCenterFraction) - (indicatorWidthPx / 2f)).coerceIn(0f, subBarWidthPx - indicatorWidthPx)
                                     Box(
                                         modifier = Modifier
                                             .offset(x = with(density) { offsetX.toDp() })
