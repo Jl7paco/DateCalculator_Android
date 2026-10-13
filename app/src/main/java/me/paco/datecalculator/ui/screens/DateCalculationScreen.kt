@@ -114,6 +114,7 @@ import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.ShareUtils
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -450,6 +451,11 @@ fun DateCalculationScreen(
             val stageDaysFocusRequesters = remember(uiState.stages.size) {
                 List(uiState.stages.size) { FocusRequester() }
             }
+            var stagePickerStageId by remember { mutableStateOf<Long?>(null) }
+
+            val (_, calculatedMultiSegments) = remember(uiState.baseDate, uiState.stages, uiState.dateMode, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays) {
+                viewModel.calculateMultiStageTimeline()
+            }
 
             if (uiState.isMultiStageExtensionEnabled) {
                 Box(
@@ -560,15 +566,16 @@ fun DateCalculationScreen(
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
 
+                                // 天数输入框 (收紧尺寸至 52.dp)
                                 Box(
                                     modifier = Modifier
-                                        .width(70.dp)
+                                        .width(52.dp)
                                         .height(38.dp)
                                         .neumorphicInset(shape = RoundedCornerShape(8.dp), elevation = 2.dp)
                                         .background(NeumorphicSunkenBg, shape = RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 8.dp),
+                                        .padding(horizontal = 6.dp),
                                     contentAlignment = Alignment.CenterStart
                                 ) {
                                     if (stage.daysInput.isEmpty()) {
@@ -581,7 +588,7 @@ fun DateCalculationScreen(
                                         }
                                         Text(
                                             text = daysPlaceholder,
-                                            fontSize = 12.sp,
+                                            fontSize = 11.5.sp,
                                             color = NeumorphicTextPrimary.copy(alpha = 0.45f),
                                             fontWeight = FontWeight.Medium
                                         )
@@ -622,8 +629,67 @@ fun DateCalculationScreen(
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
 
+                                // 新增：截止日期选择按钮与提示词 (固定尺寸 88.dp，原汁原味 3D 拟物)
+                                val stageCalculatedEndDate = calculatedMultiSegments.getOrNull(index)?.endDate
+                                val deadlinePromptText = if (stageCalculatedEndDate != null) {
+                                    val monthDay = stageCalculatedEndDate.format(DateTimeFormatter.ofPattern("MM-dd"))
+                                    when (effectiveLang) {
+                                        AppLanguage.ENGLISH -> "Due $monthDay"
+                                        AppLanguage.JAPANESE -> "$monthDay 迄"
+                                        AppLanguage.KOREAN -> "$monthDay 마감"
+                                        AppLanguage.TRADITIONAL_CHINESE -> "截止 $monthDay"
+                                        else -> "截止 $monthDay"
+                                    }
+                                } else {
+                                    when (effectiveLang) {
+                                        AppLanguage.ENGLISH -> "Due Date"
+                                        AppLanguage.JAPANESE -> "締切日"
+                                        AppLanguage.KOREAN -> "마감일"
+                                        AppLanguage.TRADITIONAL_CHINESE -> "截至日期"
+                                        else -> "截至日期"
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(88.dp)
+                                        .height(38.dp)
+                                        .neumorphicInset(shape = RoundedCornerShape(8.dp), elevation = 2.dp)
+                                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            stagePickerStageId = stage.id
+                                        }
+                                        .padding(horizontal = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.EditCalendar,
+                                            contentDescription = "Select Deadline",
+                                            tint = NeumorphicAccent,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text(
+                                            text = deadlinePromptText,
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (stageCalculatedEndDate != null) NeumorphicAccent else NeumorphicTextPrimary.copy(alpha = 0.5f),
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(4.dp))
+
+                                // 事项/备注输入框 (缩减尺寸后自适应占据剩余空间)
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -635,15 +701,15 @@ fun DateCalculationScreen(
                                 ) {
                                     if (stage.remark.isEmpty()) {
                                         val defaultRemarkPlaceholder = when (lang) {
-                                            AppLanguage.ENGLISH -> "Stage ${index + 1} Note"
+                                            AppLanguage.ENGLISH -> "Note ${index + 1}"
                                             AppLanguage.JAPANESE -> "第${index + 1}段階メモ"
                                             AppLanguage.KOREAN -> "${index + 1}단계 메모"
-                                            AppLanguage.TRADITIONAL_CHINESE -> "第${index + 1}段想法/事項"
-                                            else -> "第${index + 1}段时间想法/事项"
+                                            AppLanguage.TRADITIONAL_CHINESE -> "第${index + 1}段想法"
+                                            else -> "第${index + 1}段时间想法"
                                         }
                                         Text(
                                             text = defaultRemarkPlaceholder,
-                                            fontSize = 11.5.sp,
+                                            fontSize = 11.sp,
                                             color = NeumorphicTextPrimary.copy(alpha = 0.45f),
                                             fontWeight = FontWeight.Medium
                                         )
@@ -772,6 +838,26 @@ fun DateCalculationScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+            }
+
+            if (stagePickerStageId != null) {
+                val targetStageIndex = uiState.stages.indexOfFirst { it.id == stagePickerStageId }
+                val initialDate = if (targetStageIndex >= 0) {
+                    calculatedMultiSegments.getOrNull(targetStageIndex)?.endDate ?: uiState.baseDate
+                } else {
+                    uiState.baseDate
+                }
+
+                DatePickerModal(
+                    selectedDate = initialDate,
+                    onDateSelected = { selectedDate ->
+                        stagePickerStageId?.let { stageId ->
+                            viewModel.updateStageTargetDeadlineDate(stageId, selectedDate)
+                        }
+                        stagePickerStageId = null
+                    },
+                    onDismiss = { stagePickerStageId = null }
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))

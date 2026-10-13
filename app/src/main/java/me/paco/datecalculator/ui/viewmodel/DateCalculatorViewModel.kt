@@ -434,6 +434,37 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(stages = updated)
     }
 
+    fun updateStageTargetDeadlineDate(stageId: Long, targetDeadlineDate: LocalDate) {
+        val state = _uiState.value
+        val (_, multiSegments) = calculateMultiStageTimeline()
+        val index = state.stages.indexOfFirst { it.id == stageId }
+        if (index == -1) return
+
+        val prevEndDate = if (index == 0) {
+            state.baseDate
+        } else {
+            multiSegments.getOrNull(index - 1)?.endDate ?: state.baseDate
+        }
+
+        val requiredDays = DateCalculatorUtils.calculateDaysBetweenDates(
+            startDate = prevEndDate,
+            targetDate = targetDeadlineDate,
+            isWorkdayMode = (state.dateMode == DateMode.WORKDAY),
+            weekendRule = state.weekendRule,
+            enableHolidays = state.enableChineseHolidays,
+            holidayRegion = state.holidayRegion,
+            isCurrentWeekBigWeek = state.isCurrentWeekBigWeek,
+            disableChinaShiftWorkdays = state.disableChinaShiftWorkdays
+        )
+
+        val newType = if (targetDeadlineDate.isBefore(prevEndDate)) CalculationType.SUBTRACT else CalculationType.ADD
+
+        val updated = state.stages.map {
+            if (it.id == stageId) it.copy(daysInput = requiredDays.toString(), type = newType) else it
+        }
+        _uiState.value = state.copy(stages = updated)
+    }
+
     fun updateStageType(stageId: Long, type: CalculationType) {
         val updated = _uiState.value.stages.map {
             if (it.id == stageId) it.copy(type = type) else it

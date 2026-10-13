@@ -118,6 +118,41 @@ object DateCalculatorUtils {
         return currentDate
     }
 
+    fun calculateDaysBetweenDates(
+        startDate: LocalDate,
+        targetDate: LocalDate,
+        isWorkdayMode: Boolean = true,
+        weekendRule: WeekendRule = WeekendRule.STANDARD_FIVE_DAYS,
+        enableHolidays: Boolean = true,
+        holidayRegion: HolidayRegion = HolidayRegion.CHINA,
+        isCurrentWeekBigWeek: Boolean = true,
+        disableChinaShiftWorkdays: Boolean = false
+    ): Int {
+        if (startDate == targetDate) return 0
+        val isAdd = !targetDate.isBefore(startDate)
+        if (!isWorkdayMode) {
+            return abs(ChronoUnit.DAYS.between(startDate, targetDate)).toInt()
+        }
+
+        var count = 0
+        var curr = if (isAdd) startDate.plusDays(1) else startDate.minusDays(1)
+        val limit = if (isAdd) targetDate else startDate.minusDays(1)
+
+        while (if (isAdd) !curr.isAfter(limit) else !curr.isBefore(targetDate)) {
+            val isShift = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion)
+            val isStat = enableHolidays && RegionalHolidays.isStatutoryHoliday(curr, holidayRegion)
+            val isWeekend = weekendRule.isWeekend(curr, isCurrentWeekBigWeek)
+
+            val isWork = if (isShift) true else if (isStat) false else !isWeekend
+            if (isWork) {
+                count++
+            }
+            curr = if (isAdd) curr.plusDays(1) else curr.minusDays(1)
+        }
+
+        return count
+    }
+
     fun computeMultiStageSequence(
         baseDate: LocalDate,
         stages: List<CalculationStage>,
