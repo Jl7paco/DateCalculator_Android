@@ -256,39 +256,44 @@ class DateCalculatorViewModel : ViewModel() {
         PreferenceUtils.saveAnniversaries(context, updated)
     }
 
-    fun fetchCurrentGpsLocation(context: Context) {
+    private var lastLocationFetchTime = 0L
+    private var isFetchingLocation = false
+
+    fun fetchCurrentGpsLocation(context: Context, force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && isFetchingLocation) {
+            Log.d("PerfLog", "Skipping fetchCurrentGpsLocation - already in flight.")
+            return
+        }
+        if (!force && lastLocationFetchTime > 0L && (now - lastLocationFetchTime < 10 * 60 * 1000L)) {
+            Log.d("PerfLog", "Skipping fetchCurrentGpsLocation - fetched recently (${(now - lastLocationFetchTime) / 1000}s ago).")
+            return
+        }
+
+        isFetchingLocation = true
+        lastLocationFetchTime = now
         val startMs = System.currentTimeMillis()
         Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Starting fetchCurrentGpsLocation...")
         viewModelScope.launch(Dispatchers.IO) {
-            val netStartMs = System.currentTimeMillis()
-            val districtLoc = LocationUtils.getCurrentLocationWithDistrict(context)
-            val region = LocationUtils.detectCurrentRegion(context)
-            val realWeather = WeatherUtils.fetchRealLiveWeather(districtLoc.latitude, districtLoc.longitude, region)
-            Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Weather API fetch took ${System.currentTimeMillis() - netStartMs}ms")
+            try {
+                val netStartMs = System.currentTimeMillis()
+                val districtLoc = LocationUtils.getCurrentLocationWithDistrict(context)
+                val region = LocationUtils.detectCurrentRegion(context)
+                val realWeather = WeatherUtils.fetchRealLiveWeather(districtLoc.latitude, districtLoc.longitude, region)
+                Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Weather API fetch took ${System.currentTimeMillis() - netStartMs}ms")
 
-            withContext(Dispatchers.Main) {
-                _uiState.value = _uiState.value.copy(
-                    holidayRegion = region,
-                    currentCityName = districtLoc.fullDisplayName,
-                    liveWeatherData = realWeather ?: _uiState.value.liveWeatherData ?: WeatherUtils.getWeatherForecast(LocalDate.now())
-                )
-                Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Main UI state updated for weather in ${System.currentTimeMillis() - startMs}ms total")
-            }
-
-            LocationUtils.requestSingleLocationUpdate(context) { freshDist ->
-                if (freshDist != null) {
-                    viewModelScope.launch(Dispatchers.IO) {
-                        val freshWeather = WeatherUtils.fetchRealLiveWeather(freshDist.latitude, freshDist.longitude, region)
-                        if (freshWeather != null) {
-                            withContext(Dispatchers.Main) {
-                                _uiState.value = _uiState.value.copy(
-                                    currentCityName = freshDist.fullDisplayName,
-                                    liveWeatherData = freshWeather
-                                )
-                            }
-                        }
-                    }
+                withContext(Dispatchers.Main) {
+                    _uiState.value = _uiState.value.copy(
+                        holidayRegion = region,
+                        currentCityName = districtLoc.fullDisplayName,
+                        liveWeatherData = realWeather ?: _uiState.value.liveWeatherData ?: WeatherUtils.getWeatherForecast(LocalDate.now())
+                    )
+                    Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Main UI state updated for weather in ${System.currentTimeMillis() - startMs}ms total")
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isFetchingLocation = false
             }
         }
     }
