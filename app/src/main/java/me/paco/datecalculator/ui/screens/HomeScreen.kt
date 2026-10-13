@@ -37,11 +37,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
-import me.paco.datecalculator.util.TemperatureUnit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import me.paco.datecalculator.ui.components.dialogDropShadow3D
-import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.HorizontalDivider
@@ -61,16 +58,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import me.paco.datecalculator.util.SixHourForecast
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.data.HomeConfig
 import me.paco.datecalculator.data.RegionalHolidays
+import me.paco.datecalculator.data.ZodiacFortune
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
@@ -78,19 +76,28 @@ import me.paco.datecalculator.ui.components.NeumorphicIconButton
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.SettingsOverlayDialog
+import me.paco.datecalculator.ui.components.dialogDropShadow3D
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
+import me.paco.datecalculator.util.AlmanacYiJi
 import me.paco.datecalculator.util.DailyWeather
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
+import me.paco.datecalculator.util.LunarDate
+import me.paco.datecalculator.util.RealTimeWeatherData
+import me.paco.datecalculator.util.SixHourForecast
+import me.paco.datecalculator.util.TemperatureUnit
 import me.paco.datecalculator.util.WeatherUtils
 import java.time.LocalDate
 import java.time.YearMonth
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * 模块化、极速 JIT 机器码编译重构的首页 (通过函数分块将字节码控制在编译器上限以内，恢复 120Hz 极速流畅体验)
+ */
 @Composable
 fun HomeScreen(
     viewModel: DateCalculatorViewModel,
@@ -104,6 +111,7 @@ fun HomeScreen(
     val effectiveLang = lang.getEffectiveLanguage()
     val isChineseLanguage = (effectiveLang == AppLanguage.SIMPLIFIED_CHINESE || effectiveLang == AppLanguage.TRADITIONAL_CHINESE)
     val isSimplifiedChinese = (effectiveLang == AppLanguage.SIMPLIFIED_CHINESE)
+    val isDark = LocalDarkTheme.current
 
     var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
     var selectedCalendarDate by remember { mutableStateOf(LocalDate.now()) }
@@ -113,7 +121,6 @@ fun HomeScreen(
     var selectedWeatherDayDetail by remember { mutableStateOf<Pair<DailyWeather, Int>?>(null) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "IconAnimation")
-
     val weatherFloatScale by infiniteTransition.animateFloat(
         initialValue = 0.94f,
         targetValue = 1.08f,
@@ -154,12 +161,11 @@ fun HomeScreen(
         }
     }
 
-    val todayLunar = LunarCalendarUtils.solarToLunar(selectedCalendarDate)
-    val almanac = LunarCalendarUtils.getAlmanacYiJi(selectedCalendarDate)
-    val (constName, constEmoji) = LunarCalendarUtils.getConstellationInfo(selectedCalendarDate)
-    val fortune = LunarCalendarUtils.getDailyFortune(selectedCalendarDate, constName, lang)
-    val realWeatherData = uiState.liveWeatherData ?: WeatherUtils.getWeatherForecast(selectedCalendarDate)
-    val weatherList = realWeatherData.dailyList
+    val todayLunar = remember(selectedCalendarDate) { LunarCalendarUtils.solarToLunar(selectedCalendarDate) }
+    val almanac = remember(selectedCalendarDate) { LunarCalendarUtils.getAlmanacYiJi(selectedCalendarDate) }
+    val (constName, _) = remember(selectedCalendarDate) { LunarCalendarUtils.getConstellationInfo(selectedCalendarDate) }
+    val fortune = remember(selectedCalendarDate, constName, lang) { LunarCalendarUtils.getDailyFortune(selectedCalendarDate, constName, lang) }
+    val realWeatherData = uiState.liveWeatherData ?: remember(selectedCalendarDate) { WeatherUtils.getWeatherForecast(selectedCalendarDate) }
 
     HistoryOverlayDialog(
         visible = showHistoryDialog,
@@ -181,598 +187,75 @@ fun HomeScreen(
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
-        // 顶栏 (36dp 高度, 15sp 标题，包含经典微图标)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Home,
-                    contentDescription = null,
-                    tint = NeumorphicAccent,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = LanguageUtils.getString("app_title", lang),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = NeumorphicTextPrimary
-                )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NeumorphicIconButton(
-                    icon = Icons.Default.History,
-                    onClick = { showHistoryDialog = true },
-                    contentDescription = LanguageUtils.getString("history_title", lang),
-                    size = 32.dp
-                )
-
-                NeumorphicIconButton(
-                    icon = Icons.Default.Settings,
-                    onClick = { showSettingsDialog = true },
-                    contentDescription = LanguageUtils.getString("settings_title", lang),
-                    size = 32.dp
-                )
-            }
-        }
+        // 1. 顶栏 (标题 + 历史/设置按键)
+        HomeHeaderSection(
+            lang = lang,
+            onHistoryClick = { showHistoryDialog = true },
+            onSettingsClick = { showSettingsDialog = true }
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ================= 月历视图 (切换月份的箭头直接贴合在月份两侧，避免与“今天”产生误解) =================
+        // 2. 月历视图卡片
         if (homeConfig.showCalendar) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // 左侧组：日历图标 + 上个月 [<] 年月标题 [>] 下个月
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                tint = NeumorphicAccent,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            // 上个月箭头 [<]
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                                    .background(NeumorphicBg, shape = CircleShape)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        currentYearMonth = currentYearMonth.minusMonths(1)
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "上个月",
-                                    tint = NeumorphicAccent,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            Text(
-                                text = LanguageUtils.getLocalizedYearMonth(currentYearMonth, lang),
-                                fontSize = 15.5.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = NeumorphicTextPrimary
-                            )
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            // 下个月箭头 [>]
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                                    .background(NeumorphicBg, shape = CircleShape)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        currentYearMonth = currentYearMonth.plusMonths(1)
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                    contentDescription = "下个月",
-                                    tint = NeumorphicAccent,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                            }
-                        }
-
-                        // 右侧：独立“今天”跳转胶囊按键
-                        Box(
-                            modifier = Modifier
-                                .height(28.dp)
-                                .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                                .background(NeumorphicAccent, shape = CircleShape)
-                                .clip(CircleShape)
-                                .clickable {
-                                    currentYearMonth = YearMonth.now()
-                                    selectedCalendarDate = LocalDate.now()
-                                }
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = LanguageUtils.getString("today", lang),
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.5.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    val weekTitles = LanguageUtils.getWeekHeaders(lang)
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        weekTitles.forEachIndexed { idx, w ->
-                            val isWeekendCol = (idx == 0 || idx == 6)
-                            Text(
-                                text = w,
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.Center,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isWeekendCol) Color(0xFFEF4444) else NeumorphicTextPrimary.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    val firstDayOfMonth = currentYearMonth.atDay(1)
-                    val daysInMonth = currentYearMonth.lengthOfMonth()
-                    val startOffset = firstDayOfMonth.dayOfWeek.value % 7 // 0 = Sunday
-                    val totalGridCells = ((daysInMonth + startOffset + 6) / 7) * 7
-
-                    val rows = totalGridCells / 7
-                    for (r in 0 until rows) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            for (c in 0 until 7) {
-                                val cellIdx = r * 7 + c
-                                val dayNum = cellIdx - startOffset + 1
-
-                                if (dayNum in 1..daysInMonth) {
-                                    val cellDate = currentYearMonth.atDay(dayNum)
-                                    val isToday = cellDate == LocalDate.now()
-                                    val isSelected = cellDate == selectedCalendarDate
-
-                                    val isStatutory = uiState.enableChineseHolidays && RegionalHolidays.isStatutoryHoliday(cellDate, uiState.holidayRegion)
-                                    val isShift = uiState.enableChineseHolidays && !uiState.disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(cellDate, uiState.holidayRegion)
-                                    val isWeekend = uiState.weekendRule.isWeekend(cellDate, uiState.isCurrentWeekBigWeek)
-
-                                    // 核心规则：仅在简体中文/繁体中文界面设置下展示农历
-                                    val dayLunar = LunarCalendarUtils.solarToLunar(cellDate)
-                                    val lunarText = if (isChineseLanguage) {
-                                        if (dayLunar.solarTerm.isNotEmpty()) dayLunar.solarTerm
-                                        else if (dayLunar.festival.isNotEmpty()) dayLunar.festival.take(2)
-                                        else dayLunar.lunarDayName
-                                    } else ""
-
-                                    val cellShape = RoundedCornerShape(10.dp)
-                                    val cellModifier = if (isSelected) {
-                                        Modifier
-                                            .neumorphicExtruded(shape = cellShape, elevation = 3.dp)
-                                            .background(NeumorphicAccent, shape = cellShape)
-                                    } else if (isToday) {
-                                        Modifier
-                                            .border(1.2.dp, NeumorphicAccent, shape = cellShape)
-                                            .background(NeumorphicBg, shape = cellShape)
-                                    } else {
-                                        Modifier.background(Color.Transparent)
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(42.dp)
-                                            .then(cellModifier)
-                                            .clip(cellShape)
-                                            .clickable {
-                                                selectedCalendarDate = cellDate
-                                                viewModel.updateBaseDate(cellDate)
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.Center
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                val textColor = if (isSelected) Color.White
-                                                else if (isStatutory) Color(0xFFEF4444)
-                                                else if (isShift) Color(0xFF10B981)
-                                                else if (isWeekend) Color(0xFFF59E0B)
-                                                else NeumorphicTextPrimary
-
-                                                Text(
-                                                    text = dayNum.toString(),
-                                                    fontSize = 12.5.sp,
-                                                    fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Bold,
-                                                    color = textColor,
-                                                    maxLines = 1,
-                                                    softWrap = false
-                                                )
-
-                                                // 规则：休与班的脚标字只在简体中文设置下才显示
-                                                if (isSimplifiedChinese && isStatutory) {
-                                                    Text(" 休", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFFEF4444))
-                                                } else if (isSimplifiedChinese && isShift) {
-                                                    Text(" 班", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFF10B981))
-                                                }
-                                            }
-
-                                            if (lunarText.isNotEmpty()) {
-                                                Text(
-                                                    text = lunarText,
-                                                    fontSize = 9.sp,
-                                                    color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
-                                                    maxLines = 1,
-                                                    softWrap = false,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
-                            }
-                        }
-                    }
+            HomeCalendarSection(
+                currentYearMonth = currentYearMonth,
+                selectedCalendarDate = selectedCalendarDate,
+                uiState = uiState,
+                lang = lang,
+                isChineseLanguage = isChineseLanguage,
+                isSimplifiedChinese = isSimplifiedChinese,
+                onMonthChange = { currentYearMonth = it },
+                onTodayClick = {
+                    currentYearMonth = YearMonth.now()
+                    selectedCalendarDate = LocalDate.now()
+                },
+                onDateSelect = { cellDate ->
+                    selectedCalendarDate = cellDate
+                    viewModel.updateBaseDate(cellDate)
                 }
-            }
+            )
 
-            // 增加透气拉开的舒适间距（28dp），完全消除下方信息卡片紧贴月历底部的拥挤感
             Spacer(modifier = Modifier.height(28.dp))
         }
 
-        // ================= 当日天气预报、农历黄历、星座运势 =================
-
-        // 1. 天气预报 Card (顺序调整置顶；点击任意天进入二级详细天气与 6 小时时段预报)
+        // 3. 当日天气预报 Card (置顶)
         if (homeConfig.showWeather) {
-            val weatherShape = RoundedCornerShape(22.dp)
-            val unit = uiState.temperatureUnit
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .neumorphicExtruded(shape = weatherShape, elevation = 5.dp)
-                    .background(NeumorphicBg, shape = weatherShape)
-                    .padding(12.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // 左上角：定位位置
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { viewModel.fetchCurrentGpsLocation(context) }
-                        ) {
-                            Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
-                            Text("📍 $localizedCity", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 13.5.sp)
-                        }
-
-                        // 右上角：当前温度与当前体感温度
-                        val curDisplayTemp = unit.convertTemp(realWeatherData.currentTemp)
-                        val curDisplayFeels = unit.convertTemp(realWeatherData.currentFeelsLikeTemp)
-                        val feelsLabel = when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "Feels"
-                            AppLanguage.JAPANESE -> "体感"
-                            AppLanguage.KOREAN -> "체감"
-                            AppLanguage.TRADITIONAL_CHINESE -> "體感"
-                            else -> "体感"
-                        }
-
-                        Text(
-                            text = "$curDisplayTemp${unit.symbol} · $feelsLabel $curDisplayFeels${unit.symbol}",
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = NeumorphicAccent
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        weatherList.forEachIndexed { i, weather ->
-                            val displayMin = unit.convertTemp(weather.tempMin)
-                            val displayMax = unit.convertTemp(weather.tempMax)
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
-                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        selectedWeatherDayDetail = Pair(weather, i)
-                                    }
-                                    .padding(vertical = 8.dp, horizontal = 2.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(LanguageUtils.getDayName(weather.dayName, lang), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text(
-                                        text = weather.iconEmoji,
-                                        fontSize = 17.sp,
-                                        modifier = Modifier.graphicsLayer {
-                                            scaleX = weatherFloatScale
-                                            scaleY = weatherFloatScale
-                                        }
-                                    )
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text(LanguageUtils.getWeatherCondition(weather.condition, lang), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text("💧 ${weather.precipProb}%", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text("$displayMin${unit.symbol}~$displayMax${unit.symbol}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            HomeWeatherSection(
+                uiState = uiState,
+                realWeatherData = realWeatherData,
+                lang = lang,
+                effectiveLang = effectiveLang,
+                weatherFloatScale = weatherFloatScale,
+                onLocationClick = { viewModel.fetchCurrentGpsLocation(context) },
+                onDayClick = { weather, idx -> selectedWeatherDayDetail = Pair(weather, idx) }
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // 2. 当日农历、节气与老黄历宜忌 Card (顺序调整置于天气卡片下方)
+        // 4. 当日农历、节气与老黄历宜忌 Card
         if (isChineseLanguage && (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac)) {
-            val combinedShape = RoundedCornerShape(22.dp)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .neumorphicExtruded(shape = combinedShape, elevation = 5.dp)
-                    .background(NeumorphicBg, shape = combinedShape)
-                    .padding(12.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate, lang),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = NeumorphicTextPrimary
-                            )
-                        }
-
-                        if (homeConfig.showSolarTerms) {
-                            val (nextTerm, countdownDays) = LunarCalendarUtils.getNextSolarTermCountdown(selectedCalendarDate)
-                            val termIcon = LunarCalendarUtils.getSolarTermIcon(nextTerm)
-                            val localizedTerm = LunarCalendarUtils.getLocalizedSolarTerm(nextTerm, lang)
-
-                            val chipText = if (countdownDays == 0) {
-                                "$termIcon $localizedTerm"
-                            } else {
-                                when (effectiveLang) {
-                                    AppLanguage.ENGLISH -> "⏳ ${countdownDays}d to $localizedTerm"
-                                    AppLanguage.JAPANESE -> "⏳ ${localizedTerm}まで${countdownDays}日"
-                                    AppLanguage.KOREAN -> "⏳ ${localizedTerm}까지 ${countdownDays}일"
-                                    AppLanguage.TRADITIONAL_CHINESE -> "⏳ 距$localizedTerm $countdownDays 天"
-                                    else -> "⏳ 距$localizedTerm $countdownDays 天"
-                                }
-                            }
-
-                            SuggestionChip(
-                                onClick = {},
-                                shape = CircleShape,
-                                label = { Text(chipText, fontWeight = FontWeight.Bold, fontSize = 10.5.sp) }
-                            )
-                        }
-                    }
-
-                    if (homeConfig.showLunar) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        val lunarPrefix = LanguageUtils.getString("lunar", lang)
-                        val leapStr = if (todayLunar.isLeapMonth) {
-                            when (effectiveLang) {
-                                AppLanguage.ENGLISH -> "Leap "
-                                AppLanguage.JAPANESE -> "閏"
-                                AppLanguage.KOREAN -> "윤"
-                                AppLanguage.TRADITIONAL_CHINESE -> "閏"
-                                else -> "闰"
-                            }
-                        } else ""
-                        Text(
-                            text = "$lunarPrefix ${todayLunar.ganZhiYear} (${todayLunar.zodiac}) 年 $leapStr${todayLunar.lunarMonthName}${todayLunar.lunarDayName}",
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = NeumorphicAccent
-                        )
-                    }
-
-                    if (homeConfig.showAlmanac) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        val isDark = LocalDarkTheme.current
-                        val yiChipBg = if (isDark) Color(0xFF065F46).copy(alpha = 0.55f) else Color(0xFFD1FAE5)
-                        val yiChipBorder = if (isDark) Color(0xFF10B981).copy(alpha = 0.5f) else Color(0xFF10B981).copy(alpha = 0.35f)
-                        val yiChipText = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
-
-                        val jiChipBg = if (isDark) Color(0xFF334155).copy(alpha = 0.65f) else Color(0xFFF1F5F9)
-                        val jiChipBorder = if (isDark) Color(0xFF94A3B8).copy(alpha = 0.5f) else Color(0xFF94A3B8).copy(alpha = 0.35f)
-                        val jiChipText = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
-
-                        // 老黄历宜忌 (跟随语言翻译)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF10B981)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(LanguageUtils.getString("yi_label", lang), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
-                            }
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            FlowRow(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                verticalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                almanac.yiList.forEach { yiItem ->
-                                    val translatedYi = LanguageUtils.getLocalizedAlmanacItem(yiItem, lang)
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(yiChipBg)
-                                            .border(0.5.dp, yiChipBorder, shape = RoundedCornerShape(6.dp))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text(translatedYi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = yiChipText)
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF64748B)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(LanguageUtils.getString("ji_label", lang), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
-                            }
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            FlowRow(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                verticalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                almanac.jiList.forEach { jiItem ->
-                                    val translatedJi = LanguageUtils.getLocalizedAlmanacItem(jiItem, lang)
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(jiChipBg)
-                                            .border(0.5.dp, jiChipBorder, shape = RoundedCornerShape(6.dp))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text(translatedJi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = jiChipText)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            HomeAlmanacSection(
+                selectedCalendarDate = selectedCalendarDate,
+                todayLunar = todayLunar,
+                almanac = almanac,
+                homeConfig = homeConfig,
+                lang = lang,
+                effectiveLang = effectiveLang,
+                isDark = isDark
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // 3. 星座与运势 Card (星座名称多语言翻译)
+        // 5. 星座与每日运势 Card
         if (homeConfig.showZodiacFortune) {
-            val fortuneShape = RoundedCornerShape(22.dp)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .neumorphicExtruded(shape = fortuneShape, elevation = 5.dp)
-                    .background(NeumorphicBg, shape = fortuneShape)
-                    .padding(14.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = NeumorphicAccent,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            val localizedConstellation = LanguageUtils.getLocalizedConstellation(fortune.constellation, lang)
-                            Text("$localizedConstellation (${fortune.dateRange}) ${LanguageUtils.getString("fortune_suffix", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
-                        }
-
-                        Row {
-                            repeat(fortune.starRating) {
-                                Text("⭐", fontSize = 11.sp)
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = fortune.summary,
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = NeumorphicTextPrimary,
-                        lineHeight = 18.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text("${LanguageUtils.getString("lucky_number", lang)}: ${fortune.luckyNumber}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                        Text("${LanguageUtils.getString("lucky_color", lang)}: ${fortune.luckyColor}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                    }
-                }
-            }
+            HomeFortuneSection(
+                fortune = fortune,
+                homeConfig = homeConfig,
+                lang = lang
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -781,7 +264,7 @@ fun HomeScreen(
             val (_, dayIdx) = selectedWeatherDayDetail!!
             WeatherDetailOverlayDialog(
                 visible = true,
-                weatherList = weatherList,
+                weatherList = realWeatherData.dailyList,
                 dayIndex = dayIdx,
                 cityName = uiState.currentCityName,
                 temperatureUnit = uiState.temperatureUnit,
@@ -792,6 +275,622 @@ fun HomeScreen(
     }
 }
 
+/**
+ * 1. 首页顶栏 (独立子组件)
+ */
+@Composable
+private fun HomeHeaderSection(
+    lang: AppLanguage,
+    onHistoryClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(36.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.Home,
+                contentDescription = null,
+                tint = NeumorphicAccent,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = LanguageUtils.getString("app_title", lang),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicTextPrimary
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            NeumorphicIconButton(
+                icon = Icons.Default.History,
+                onClick = onHistoryClick,
+                contentDescription = LanguageUtils.getString("history_title", lang),
+                size = 32.dp
+            )
+
+            NeumorphicIconButton(
+                icon = Icons.Default.Settings,
+                onClick = onSettingsClick,
+                contentDescription = LanguageUtils.getString("settings_title", lang),
+                size = 32.dp
+            )
+        }
+    }
+}
+
+/**
+ * 2. 首页月历视图卡片 (独立重组隔离子组件)
+ */
+@Composable
+private fun HomeCalendarSection(
+    currentYearMonth: YearMonth,
+    selectedCalendarDate: LocalDate,
+    uiState: DateCalculatorUiState,
+    lang: AppLanguage,
+    isChineseLanguage: Boolean,
+    isSimplifiedChinese: Boolean,
+    onMonthChange: (YearMonth) -> Unit,
+    onTodayClick: () -> Unit,
+    onDateSelect: (LocalDate) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarMonth,
+                        contentDescription = null,
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { onMonthChange(currentYearMonth.minusMonths(1)) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "上个月",
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Text(
+                        text = LanguageUtils.getLocalizedYearMonth(currentYearMonth, lang),
+                        fontSize = 15.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeumorphicTextPrimary
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { onMonthChange(currentYearMonth.plusMonths(1)) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "下个月",
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .height(28.dp)
+                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                        .background(NeumorphicAccent, shape = CircleShape)
+                        .clip(CircleShape)
+                        .clickable { onTodayClick() }
+                        .padding(horizontal = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = LanguageUtils.getString("today", lang),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.5.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            val weekTitles = LanguageUtils.getWeekHeaders(lang)
+            Row(modifier = Modifier.fillMaxWidth()) {
+                weekTitles.forEachIndexed { idx, w ->
+                    val isWeekendCol = (idx == 0 || idx == 6)
+                    Text(
+                        text = w,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isWeekendCol) Color(0xFFEF4444) else NeumorphicTextPrimary.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            val firstDayOfMonth = currentYearMonth.atDay(1)
+            val daysInMonth = currentYearMonth.lengthOfMonth()
+            val startOffset = firstDayOfMonth.dayOfWeek.value % 7
+            val totalGridCells = ((daysInMonth + startOffset + 6) / 7) * 7
+
+            val rows = totalGridCells / 7
+            for (r in 0 until rows) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    for (c in 0 until 7) {
+                        val cellIdx = r * 7 + c
+                        val dayNum = cellIdx - startOffset + 1
+
+                        if (dayNum in 1..daysInMonth) {
+                            val cellDate = currentYearMonth.atDay(dayNum)
+                            val isToday = cellDate == LocalDate.now()
+                            val isSelected = cellDate == selectedCalendarDate
+
+                            val isStatutory = uiState.enableChineseHolidays && RegionalHolidays.isStatutoryHoliday(cellDate, uiState.holidayRegion)
+                            val isShift = uiState.enableChineseHolidays && !uiState.disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(cellDate, uiState.holidayRegion)
+                            val isWeekend = uiState.weekendRule.isWeekend(cellDate, uiState.isCurrentWeekBigWeek)
+
+                            val dayLunar = LunarCalendarUtils.solarToLunar(cellDate)
+                            val lunarText = if (isChineseLanguage) {
+                                if (dayLunar.solarTerm.isNotEmpty()) dayLunar.solarTerm
+                                else if (dayLunar.festival.isNotEmpty()) dayLunar.festival.take(2)
+                                else dayLunar.lunarDayName
+                            } else ""
+
+                            val cellShape = RoundedCornerShape(10.dp)
+                            val cellModifier = if (isSelected) {
+                                Modifier
+                                    .neumorphicExtruded(shape = cellShape, elevation = 3.dp)
+                                    .background(NeumorphicAccent, shape = cellShape)
+                            } else if (isToday) {
+                                Modifier
+                                    .border(1.2.dp, NeumorphicAccent, shape = cellShape)
+                                    .background(NeumorphicBg, shape = cellShape)
+                            } else {
+                                Modifier.background(Color.Transparent)
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(42.dp)
+                                    .then(cellModifier)
+                                    .clip(cellShape)
+                                    .clickable { onDateSelect(cellDate) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val textColor = if (isSelected) Color.White
+                                        else if (isStatutory) Color(0xFFEF4444)
+                                        else if (isShift) Color(0xFF10B981)
+                                        else if (isWeekend) Color(0xFFF59E0B)
+                                        else NeumorphicTextPrimary
+
+                                        Text(
+                                            text = dayNum.toString(),
+                                            fontSize = 12.5.sp,
+                                            fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Bold,
+                                            color = textColor,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+
+                                        if (isSimplifiedChinese && isStatutory) {
+                                            Text(" 休", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFFEF4444))
+                                        } else if (isSimplifiedChinese && isShift) {
+                                            Text(" 班", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFF10B981))
+                                        }
+                                    }
+
+                                    if (lunarText.isNotEmpty()) {
+                                        Text(
+                                            text = lunarText,
+                                            fontSize = 9.sp,
+                                            color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 3. 首页天气预报 Card (独立重组隔离子组件)
+ */
+@Composable
+private fun HomeWeatherSection(
+    uiState: DateCalculatorUiState,
+    realWeatherData: RealTimeWeatherData,
+    lang: AppLanguage,
+    effectiveLang: AppLanguage,
+    weatherFloatScale: Float,
+    onLocationClick: () -> Unit,
+    onDayClick: (DailyWeather, Int) -> Unit
+) {
+    val weatherShape = RoundedCornerShape(22.dp)
+    val unit = uiState.temperatureUnit
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .neumorphicExtruded(shape = weatherShape, elevation = 5.dp)
+            .background(NeumorphicBg, shape = weatherShape)
+            .padding(12.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onLocationClick() }
+                ) {
+                    Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
+                    Text("📍 $localizedCity", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 13.5.sp)
+                }
+
+                val curDisplayTemp = unit.convertTemp(realWeatherData.currentTemp)
+                val curDisplayFeels = unit.convertTemp(realWeatherData.currentFeelsLikeTemp)
+                val feelsLabel = when (effectiveLang) {
+                    AppLanguage.ENGLISH -> "Feels"
+                    AppLanguage.JAPANESE -> "体感"
+                    AppLanguage.KOREAN -> "체감"
+                    AppLanguage.TRADITIONAL_CHINESE -> "體感"
+                    else -> "体感"
+                }
+
+                Text(
+                    text = "$curDisplayTemp${unit.symbol} · $feelsLabel $curDisplayFeels${unit.symbol}",
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = NeumorphicAccent
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                realWeatherData.dailyList.forEachIndexed { i, weather ->
+                    val displayMin = unit.convertTemp(weather.tempMin)
+                    val displayMax = unit.convertTemp(weather.tempMax)
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onDayClick(weather, i) }
+                            .padding(vertical = 8.dp, horizontal = 2.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(LanguageUtils.getDayName(weather.dayName, lang), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = weather.iconEmoji,
+                                fontSize = 17.sp,
+                                modifier = Modifier.graphicsLayer {
+                                    scaleX = weatherFloatScale
+                                    scaleY = weatherFloatScale
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(LanguageUtils.getWeatherCondition(weather.condition, lang), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("💧 ${weather.precipProb}%", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text("$displayMin${unit.symbol}~$displayMax${unit.symbol}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 4. 农历、节气与老黄历 Card (独立重组隔离子组件)
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HomeAlmanacSection(
+    selectedCalendarDate: LocalDate,
+    todayLunar: LunarDate,
+    almanac: AlmanacYiJi,
+    homeConfig: HomeConfig,
+    lang: AppLanguage,
+    effectiveLang: AppLanguage,
+    isDark: Boolean
+) {
+    val combinedShape = RoundedCornerShape(22.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .neumorphicExtruded(shape = combinedShape, elevation = 5.dp)
+            .background(NeumorphicBg, shape = combinedShape)
+            .padding(12.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = DateCalculatorUtils.formatDateWithWeek(selectedCalendarDate, lang),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeumorphicTextPrimary
+                    )
+                }
+
+                if (homeConfig.showSolarTerms) {
+                    val (nextTerm, countdownDays) = LunarCalendarUtils.getNextSolarTermCountdown(selectedCalendarDate)
+                    val termIcon = LunarCalendarUtils.getSolarTermIcon(nextTerm)
+                    val localizedTerm = LunarCalendarUtils.getLocalizedSolarTerm(nextTerm, lang)
+
+                    val chipText = if (countdownDays == 0) {
+                        "$termIcon $localizedTerm"
+                    } else {
+                        when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "⏳ ${countdownDays}d to $localizedTerm"
+                            AppLanguage.JAPANESE -> "⏳ ${localizedTerm}まで${countdownDays}日"
+                            AppLanguage.KOREAN -> "⏳ ${localizedTerm}까지 ${countdownDays}일"
+                            AppLanguage.TRADITIONAL_CHINESE -> "⏳ 距$localizedTerm $countdownDays 天"
+                            else -> "⏳ 距$localizedTerm $countdownDays 天"
+                        }
+                    }
+
+                    SuggestionChip(
+                        onClick = {},
+                        shape = CircleShape,
+                        label = { Text(chipText, fontWeight = FontWeight.Bold, fontSize = 10.5.sp) }
+                    )
+                }
+            }
+
+            if (homeConfig.showLunar) {
+                Spacer(modifier = Modifier.height(2.dp))
+                val lunarPrefix = LanguageUtils.getString("lunar", lang)
+                val leapStr = if (todayLunar.isLeapMonth) {
+                    when (effectiveLang) {
+                        AppLanguage.ENGLISH -> "Leap "
+                        AppLanguage.JAPANESE -> "閏"
+                        AppLanguage.KOREAN -> "윤"
+                        AppLanguage.TRADITIONAL_CHINESE -> "閏"
+                        else -> "闰"
+                    }
+                } else ""
+                Text(
+                    text = "$lunarPrefix ${todayLunar.ganZhiYear} (${todayLunar.zodiac}) 年 $leapStr${todayLunar.lunarMonthName}${todayLunar.lunarDayName}",
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicAccent
+                )
+            }
+
+            if (homeConfig.showAlmanac) {
+                Spacer(modifier = Modifier.height(6.dp))
+                HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
+                Spacer(modifier = Modifier.height(6.dp))
+
+                val yiChipBg = if (isDark) Color(0xFF065F46).copy(alpha = 0.55f) else Color(0xFFD1FAE5)
+                val yiChipBorder = if (isDark) Color(0xFF10B981).copy(alpha = 0.5f) else Color(0xFF10B981).copy(alpha = 0.35f)
+                val yiChipText = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
+
+                val jiChipBg = if (isDark) Color(0xFF334155).copy(alpha = 0.65f) else Color(0xFFF1F5F9)
+                val jiChipBorder = if (isDark) Color(0xFF94A3B8).copy(alpha = 0.5f) else Color(0xFF94A3B8).copy(alpha = 0.35f)
+                val jiChipText = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF10B981)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(LanguageUtils.getString("yi_label", lang), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    FlowRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        almanac.yiList.forEach { yiItem ->
+                            val translatedYi = LanguageUtils.getLocalizedAlmanacItem(yiItem, lang)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(yiChipBg)
+                                    .border(0.5.dp, yiChipBorder, shape = RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(translatedYi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = yiChipText)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF64748B)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(LanguageUtils.getString("ji_label", lang), color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    FlowRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        almanac.jiList.forEach { jiItem ->
+                            val translatedJi = LanguageUtils.getLocalizedAlmanacItem(jiItem, lang)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(jiChipBg)
+                                    .border(0.5.dp, jiChipBorder, shape = RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(translatedJi, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = jiChipText)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 5. 星座与运势 Card (独立重组隔离子组件)
+ */
+@Composable
+private fun HomeFortuneSection(
+    fortune: ZodiacFortune,
+    homeConfig: HomeConfig,
+    lang: AppLanguage
+) {
+    val fortuneShape = RoundedCornerShape(22.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .neumorphicExtruded(shape = fortuneShape, elevation = 5.dp)
+            .background(NeumorphicBg, shape = fortuneShape)
+            .padding(14.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    val localizedConstellation = LanguageUtils.getLocalizedConstellation(fortune.constellation, lang)
+                    Text("$localizedConstellation (${fortune.dateRange}) ${LanguageUtils.getString("fortune_suffix", lang)}", fontWeight = FontWeight.Bold, color = NeumorphicAccent, fontSize = 13.sp)
+                }
+
+                Row {
+                    repeat(fortune.starRating) {
+                        Text("⭐", fontSize = 11.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = fortune.summary,
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = NeumorphicTextPrimary,
+                lineHeight = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("${LanguageUtils.getString("lucky_number", lang)}: ${fortune.luckyNumber}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                Text("${LanguageUtils.getString("lucky_color", lang)}: ${fortune.luckyColor}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+            }
+        }
+    }
+}
+
+/**
+ * 二级天气 6 小时精细预报弹窗卡片 (优化边框渲染，完全消减顶部与左侧白色发光溢出)
+ */
 @Composable
 fun WeatherDetailOverlayDialog(
     visible: Boolean,
@@ -808,7 +907,6 @@ fun WeatherDetailOverlayDialog(
     val isDark = LocalDarkTheme.current
     val cardShape = RoundedCornerShape(26.dp)
 
-    // 以设置菜单 (SettingsOverlayDialog) 的 scrimColor 为 1:1 统一基准
     val scrimColor = if (isDark) {
         Color.Black.copy(alpha = 0.55f)
     } else {
@@ -861,186 +959,184 @@ fun WeatherDetailOverlayDialog(
                     .clip(cardShape)
                     .padding(18.dp)
             ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // 1. 顶栏：地名 + 日期 + 关闭按键
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = dialogTitle,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = NeumorphicAccent,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { onDismiss() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = NeumorphicTextPrimary.copy(alpha = 0.7f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // 2. 总体全天概要 Card
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(16.dp))
-                        .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 3.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .padding(12.dp)
-                ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(weather.iconEmoji, fontSize = 28.sp)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                val condLocalized = WeatherUtils.getLocalizedCondition(weather.condition, language)
-                                Text(
-                                    text = condLocalized,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = NeumorphicTextPrimary
-                                )
-                                Text(
-                                    text = "$minDisplay° ~ $maxDisplay°${temperatureUnit.symbol}",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = NeumorphicAccent
-                                )
-                            }
-                        }
+                        Text(
+                            text = dialogTitle,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = NeumorphicAccent,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "💧 ${weather.precipProb}%",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF0284C7)
-                            )
-                            val precipLabel = when (language.getEffectiveLanguage()) {
-                                AppLanguage.ENGLISH -> "Max Precip"
-                                AppLanguage.JAPANESE -> "最高降水率"
-                                AppLanguage.KOREAN -> "최고 강수확률"
-                                AppLanguage.TRADITIONAL_CHINESE -> "最高降水概率"
-                                else -> "全天最高降水概率"
-                            }
-                            Text(
-                                text = precipLabel,
-                                fontSize = 11.sp,
-                                color = NeumorphicTextPrimary.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                val hourlyLabel = when (language.getEffectiveLanguage()) {
-                    AppLanguage.ENGLISH -> "6-Hour Detailed Forecast"
-                    AppLanguage.JAPANESE -> "6時間毎の詳細天気"
-                    AppLanguage.KOREAN -> "6시간 단위 상세 예보"
-                    AppLanguage.TRADITIONAL_CHINESE -> "以6小時為單元的詳細預報"
-                    else -> "以 6 小时为单元的详细预报"
-                }
-
-                Text(
-                    text = hourlyLabel,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = NeumorphicTextPrimary.copy(alpha = 0.85f)
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // 3. 4 个 6 小时时段分块卡片 (与主页面天气卡片 100% 保持一致的横向并排 4 栏架构)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    sixHourList.forEach { item ->
-                        val itemTemp = temperatureUnit.convertTemp(item.temp)
-                        val condLoc = WeatherUtils.getLocalizedCondition(item.condition, language)
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
-                                .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .padding(vertical = 8.dp, horizontal = 2.dp),
+                                .size(28.dp)
+                                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                .background(NeumorphicBg, shape = CircleShape)
+                                .clip(CircleShape)
+                                .clickable { onDismiss() },
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = NeumorphicTextPrimary.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(16.dp))
+                            .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 3.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(weather.iconEmoji, fontSize = 28.sp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    val condLocalized = WeatherUtils.getLocalizedCondition(weather.condition, language)
+                                    Text(
+                                        text = condLocalized,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = NeumorphicTextPrimary
+                                    )
+                                    Text(
+                                        text = "$minDisplay° ~ $maxDisplay°${temperatureUnit.symbol}",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NeumorphicAccent
+                                    )
+                                }
+                            }
+
+                            Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = "${item.dayPrefix}${item.timeLabel}",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = NeumorphicTextPrimary,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    text = item.timeRange,
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = NeumorphicTextPrimary.copy(alpha = 0.6f),
-                                    maxLines = 1
-                                )
-
-                                Spacer(modifier = Modifier.height(3.dp))
-
-                                Text(text = item.iconEmoji, fontSize = 17.sp)
-
-                                Spacer(modifier = Modifier.height(3.dp))
-
-                                Text(
-                                    text = condLoc,
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = NeumorphicTextPrimary,
-                                    maxLines = 1
-                                )
-
-                                Spacer(modifier = Modifier.height(2.dp))
-
-                                Text(
-                                    text = "💧 ${item.precipProb}%",
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    text = "💧 ${weather.precipProb}%",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.ExtraBold,
                                     color = Color(0xFF0284C7)
                                 )
-
-                                Spacer(modifier = Modifier.height(3.dp))
-
+                                val precipLabel = when (language.getEffectiveLanguage()) {
+                                    AppLanguage.ENGLISH -> "Max Precip"
+                                    AppLanguage.JAPANESE -> "最高降水率"
+                                    AppLanguage.KOREAN -> "최고 강수확률"
+                                    AppLanguage.TRADITIONAL_CHINESE -> "最高降水概率"
+                                    else -> "全天最高降水概率"
+                                }
                                 Text(
-                                    text = "$itemTemp${temperatureUnit.symbol}",
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = NeumorphicAccent
+                                    text = precipLabel,
+                                    fontSize = 11.sp,
+                                    color = NeumorphicTextPrimary.copy(alpha = 0.6f)
                                 )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    val hourlyLabel = when (language.getEffectiveLanguage()) {
+                        AppLanguage.ENGLISH -> "6-Hour Detailed Forecast"
+                        AppLanguage.JAPANESE -> "6時間毎の詳細天気"
+                        AppLanguage.KOREAN -> "6시간 단위 상세 예보"
+                        AppLanguage.TRADITIONAL_CHINESE -> "以6小時為單元的詳細預報"
+                        else -> "以 6 小时为单元的详细预报"
+                    }
+
+                    Text(
+                        text = hourlyLabel,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeumorphicTextPrimary.copy(alpha = 0.85f)
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        sixHourList.forEach { item ->
+                            val itemTemp = temperatureUnit.convertTemp(item.temp)
+                            val condLoc = WeatherUtils.getLocalizedCondition(item.condition, language)
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                                    .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .padding(vertical = 8.dp, horizontal = 2.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "${item.dayPrefix}${item.timeLabel}",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NeumorphicTextPrimary,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = item.timeRange,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = NeumorphicTextPrimary.copy(alpha = 0.6f),
+                                        maxLines = 1
+                                    )
+
+                                    Spacer(modifier = Modifier.height(3.dp))
+
+                                    Text(text = item.iconEmoji, fontSize = 17.sp)
+
+                                    Spacer(modifier = Modifier.height(3.dp))
+
+                                    Text(
+                                        text = condLoc,
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = NeumorphicTextPrimary,
+                                        maxLines = 1
+                                    )
+
+                                    Spacer(modifier = Modifier.height(2.dp))
+
+                                    Text(
+                                        text = "💧 ${item.precipProb}%",
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0284C7)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(3.dp))
+
+                                    Text(
+                                        text = "$itemTemp${temperatureUnit.symbol}",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = NeumorphicAccent
+                                    )
+                                }
                             }
                         }
                     }
@@ -1048,5 +1144,4 @@ fun WeatherDetailOverlayDialog(
             }
         }
     }
-}
 }

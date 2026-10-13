@@ -1,6 +1,7 @@
 package me.paco.datecalculator.ui.viewmodel
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -256,10 +257,14 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun fetchCurrentGpsLocation(context: Context) {
+        val startMs = System.currentTimeMillis()
+        Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Starting fetchCurrentGpsLocation...")
         viewModelScope.launch(Dispatchers.IO) {
+            val netStartMs = System.currentTimeMillis()
             val districtLoc = LocationUtils.getCurrentLocationWithDistrict(context)
             val region = LocationUtils.detectCurrentRegion(context)
             val realWeather = WeatherUtils.fetchRealLiveWeather(districtLoc.latitude, districtLoc.longitude, region)
+            Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Weather API fetch took ${System.currentTimeMillis() - netStartMs}ms")
 
             withContext(Dispatchers.Main) {
                 _uiState.value = _uiState.value.copy(
@@ -267,6 +272,7 @@ class DateCalculatorViewModel : ViewModel() {
                     currentCityName = districtLoc.fullDisplayName,
                     liveWeatherData = realWeather ?: _uiState.value.liveWeatherData ?: WeatherUtils.getWeatherForecast(LocalDate.now())
                 )
+                Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Main UI state updated for weather in ${System.currentTimeMillis() - startMs}ms total")
             }
 
             LocationUtils.requestSingleLocationUpdate(context) { freshDist ->
@@ -509,8 +515,9 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun calculateMultiStageTimeline(): Pair<LocalDate, List<StageSegmentResult>> {
+        val startMs = System.currentTimeMillis()
         val state = _uiState.value
-        return DateCalculatorUtils.computeMultiStageSequence(
+        val result = DateCalculatorUtils.computeMultiStageSequence(
             baseDate = state.baseDate,
             stages = state.stages,
             isWorkdayMode = (state.dateMode == DateMode.WORKDAY),
@@ -520,6 +527,11 @@ class DateCalculatorViewModel : ViewModel() {
             isCurrentWeekBigWeek = state.isCurrentWeekBigWeek,
             disableChinaShiftWorkdays = state.disableChinaShiftWorkdays
         )
+        val elapsed = System.currentTimeMillis() - startMs
+        if (elapsed > 2) {
+            Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] calculateMultiStageTimeline took ${elapsed}ms for ${state.stages.size} stages")
+        }
+        return result
     }
 
     fun calculateRangeBreakdown(): RangeBreakdownResult {

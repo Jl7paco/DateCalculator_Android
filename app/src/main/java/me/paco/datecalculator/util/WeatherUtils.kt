@@ -361,6 +361,8 @@ object WeatherUtils {
     }
 
     private fun fetchFromOpenMeteo(urlStr: String): RealTimeWeatherData? {
+        val startMs = System.currentTimeMillis()
+        Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] Starting HTTP fetchFromOpenMeteo...")
         return try {
             val url = URL(urlStr)
             val conn = url.openConnection() as HttpURLConnection
@@ -370,6 +372,7 @@ object WeatherUtils {
             conn.readTimeout = 7000
 
             val responseCode = conn.responseCode
+            Log.d("PerfLog", "[THREAD: ${Thread.currentThread().name}] OpenMeteo HTTP response ${responseCode} took ${System.currentTimeMillis() - startMs}ms")
             if (responseCode == 200) {
                 val reader = BufferedReader(InputStreamReader(conn.inputStream))
                 val response = reader.readText()
