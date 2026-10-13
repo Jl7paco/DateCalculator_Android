@@ -644,6 +644,40 @@ fun TimelineDiagram(
                     }
 
                     var subBarWidthPx by remember { mutableFloatStateOf(1f) }
+                    var subTouchFraction by remember { mutableFloatStateOf(0.5f) }
+                    var subInitialTouchX by remember { mutableFloatStateOf(-1f) }
+                    var isSubDraggingThresholdMet by remember { mutableStateOf(false) }
+
+                    val maxSubAllowedOffsetPx = if (subBarWidthPx > 0f) {
+                        val bubbleHalfWidthPx = with(density) { (bubbleWidthDp / 2).toPx() }
+                        val edgeMarginPx = with(density) { edgeMarginDp.toPx() }
+                        ((subBarWidthPx / 2f) - bubbleHalfWidthPx - edgeMarginPx).coerceAtLeast(0f)
+                    } else 0f
+
+                    val rawSubTargetXOffsetPx = if (activeHoverSource == "SUB_$idx" && activeHoverDay != null && subBarWidthPx > 0f) {
+                        (subTouchFraction - 0.5f) * subBarWidthPx * 0.75f
+                    } else 0f
+
+                    val clampedSubTargetXOffsetPx = rawSubTargetXOffsetPx.coerceIn(-maxSubAllowedOffsetPx, maxSubAllowedOffsetPx).roundToInt()
+
+                    val subAnimOffsetXPx = remember { Animatable(0f) }
+
+                    LaunchedEffect(clampedSubTargetXOffsetPx, activeHoverSource, isSubDraggingThresholdMet) {
+                        val target = clampedSubTargetXOffsetPx.toFloat()
+                        if (activeHoverSource == "SUB_$idx" && activeHoverDay != null) {
+                            if (!isSubDraggingThresholdMet) {
+                                subAnimOffsetXPx.snapTo(target)
+                            } else {
+                                subAnimOffsetXPx.animateTo(
+                                    targetValue = target,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                )
+                            }
+                        }
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -709,21 +743,21 @@ fun TimelineDiagram(
                                                         change.consume()
                                                         val touchX = change.position.x
                                                         if (segDayList.isNotEmpty() && subBarWidthPx > 0f) {
-                                                            if (initialTouchX < 0f) {
-                                                                initialTouchX = touchX
-                                                                isDraggingThresholdMet = false
-                                                                touchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
+                                                            if (subInitialTouchX < 0f) {
+                                                                subInitialTouchX = touchX
+                                                                isSubDraggingThresholdMet = false
+                                                                subTouchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
                                                             } else {
-                                                                val dragDistancePx = abs(touchX - initialTouchX)
+                                                                val dragDistancePx = abs(touchX - subInitialTouchX)
                                                                 if (dragDistancePx > with(density) { 14.dp.toPx() }) {
-                                                                    isDraggingThresholdMet = true
+                                                                    isSubDraggingThresholdMet = true
                                                                 }
-                                                                if (isDraggingThresholdMet) {
-                                                                    touchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
+                                                                if (isSubDraggingThresholdMet) {
+                                                                    subTouchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
                                                                 }
                                                             }
 
-                                                            val subIdx = (touchFraction * (segDayList.size - 1)).roundToInt().coerceIn(segDayList.indices)
+                                                            val subIdx = (subTouchFraction * (segDayList.size - 1)).roundToInt().coerceIn(segDayList.indices)
                                                             if (subIdx != lastHoverIndex || activeHoverSource != "SUB_$idx") {
                                                                 lastHoverIndex = subIdx
                                                                 activeHoverSource = "SUB_$idx"
@@ -735,8 +769,8 @@ fun TimelineDiagram(
                                                         activeHoverSource = null
                                                         activeHoverDay = null
                                                         lastHoverIndex = -1
-                                                        initialTouchX = -1f
-                                                        isDraggingThresholdMet = false
+                                                        subInitialTouchX = -1f
+                                                        isSubDraggingThresholdMet = false
                                                     }
                                                 }
                                             }
@@ -774,7 +808,7 @@ fun TimelineDiagram(
                                 if (activeHoverSource == "SUB_$idx" && activeHoverDay != null && subBarWidthPx > 0f) {
                                     val indicatorWidthDp = 12.dp
                                     val indicatorWidthPx = with(density) { indicatorWidthDp.toPx() }
-                                    val offsetX = ((subBarWidthPx * touchFraction) - (indicatorWidthPx / 2f)).coerceIn(0f, subBarWidthPx - indicatorWidthPx)
+                                    val offsetX = ((subBarWidthPx * subTouchFraction) - (indicatorWidthPx / 2f)).coerceIn(0f, subBarWidthPx - indicatorWidthPx)
                                     Box(
                                         modifier = Modifier
                                             .offset(x = with(density) { offsetX.toDp() })
@@ -791,7 +825,7 @@ fun TimelineDiagram(
 
                                     Popup(
                                         alignment = Alignment.TopCenter,
-                                        offset = IntOffset(animOffsetXPx.value.roundToInt(), bubbleOffsetPxY),
+                                        offset = IntOffset(subAnimOffsetXPx.value.roundToInt(), bubbleOffsetPxY),
                                         properties = PopupProperties(
                                             focusable = false,
                                             dismissOnBackPress = false,
