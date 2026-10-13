@@ -193,7 +193,7 @@ fun TimelineDiagram(
     } else 0f
 
     val rawTargetXOffsetPx = if (activeHoverDay != null && barWidthPx > 0f) {
-        (touchFraction - 0.5f) * barWidthPx * 0.75f
+        (touchFraction - 0.5f) * barWidthPx
     } else 0f
 
     val clampedTargetXOffsetPx = rawTargetXOffsetPx.coerceIn(-maxAllowedOffsetPx, maxAllowedOffsetPx).roundToInt()
@@ -646,14 +646,14 @@ fun TimelineDiagram(
                     var subBarWidthPx by remember { mutableFloatStateOf(1f) }
                     var subTouchFraction by remember { mutableFloatStateOf(0.5f) }
 
-                    val maxSubAllowedOffsetPx = if (subBarWidthPx > 0f) {
+                    val maxSubAllowedOffsetPx = if (barWidthPx > 0f) {
                         val bubbleHalfWidthPx = with(density) { (bubbleWidthDp / 2).toPx() }
                         val edgeMarginPx = with(density) { edgeMarginDp.toPx() }
-                        ((subBarWidthPx / 2f) - bubbleHalfWidthPx - edgeMarginPx).coerceAtLeast(0f)
+                        ((barWidthPx / 2f) - bubbleHalfWidthPx - edgeMarginPx).coerceAtLeast(0f)
                     } else 0f
 
                     val rawSubTargetXOffsetPx = if (activeHoverSource == "SUB_$idx" && activeHoverDay != null && subBarWidthPx > 0f) {
-                        (subTouchFraction - 0.5f) * subBarWidthPx * 0.75f
+                        (subTouchFraction - 0.5f) * subBarWidthPx
                     } else 0f
 
                     val clampedSubTargetXOffsetPx = rawSubTargetXOffsetPx.coerceIn(-maxSubAllowedOffsetPx, maxSubAllowedOffsetPx).roundToInt()
