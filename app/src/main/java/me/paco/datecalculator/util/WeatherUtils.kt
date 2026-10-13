@@ -56,6 +56,15 @@ data class DailyWeather(
     val precipProb: Int = 0
 )
 
+data class SixHourForecast(
+    val timeRange: String,
+    val timeLabel: String,
+    val iconEmoji: String,
+    val condition: String,
+    val temp: Int,
+    val precipProb: Int
+)
+
 data class RealTimeWeatherData(
     val currentTemp: Int,
     val currentFeelsLikeTemp: Int,
@@ -513,6 +522,63 @@ object WeatherUtils {
             currentTemp = tempBase + 3,
             currentFeelsLikeTemp = tempBase + 4,
             dailyList = result
+        )
+    }
+
+    /**
+     * 生成单日以 6 个小时为单位的精细化天气预报 (包含降水概率、温阶与时段说明)
+     */
+    fun generateSixHourForecasts(weather: DailyWeather, dayIndex: Int, language: AppLanguage): List<SixHourForecast> {
+        val labelEarlyMorning = when (language.getEffectiveLanguage()) {
+            AppLanguage.ENGLISH -> "Dawn"
+            AppLanguage.JAPANESE -> "深夜/明方"
+            AppLanguage.KOREAN -> "새벽"
+            AppLanguage.TRADITIONAL_CHINESE -> "凌晨"
+            else -> "凌晨"
+        }
+        val labelMorning = when (language.getEffectiveLanguage()) {
+            AppLanguage.ENGLISH -> "Morning"
+            AppLanguage.JAPANESE -> "午前"
+            AppLanguage.KOREAN -> "오전"
+            AppLanguage.TRADITIONAL_CHINESE -> "上午"
+            else -> "上午"
+        }
+        val labelAfternoon = when (language.getEffectiveLanguage()) {
+            AppLanguage.ENGLISH -> "Afternoon"
+            AppLanguage.JAPANESE -> "午後"
+            AppLanguage.KOREAN -> "오후"
+            AppLanguage.TRADITIONAL_CHINESE -> "下午"
+            else -> "下午"
+        }
+        val labelEvening = when (language.getEffectiveLanguage()) {
+            AppLanguage.ENGLISH -> "Evening"
+            AppLanguage.JAPANESE -> "夜間"
+            AppLanguage.KOREAN -> "저녁"
+            AppLanguage.TRADITIONAL_CHINESE -> "夜間"
+            else -> "夜间"
+        }
+
+        val temp1 = weather.tempMin
+        val prob1 = (weather.precipProb * 0.35f).toInt().coerceIn(0, 100)
+        val (icon1, cond1) = parseWmoWeatherCode(if (weather.precipProb > 50) 61 else 1)
+
+        val temp2 = (weather.tempMin * 0.4f + weather.tempMax * 0.6f).toInt()
+        val prob2 = (weather.precipProb * 0.75f).toInt().coerceIn(0, 100)
+        val (icon2, cond2) = Pair(weather.iconEmoji, weather.condition)
+
+        val temp3 = weather.tempMax
+        val prob3 = weather.precipProb.coerceIn(0, 100)
+        val (icon3, cond3) = Pair(weather.iconEmoji, weather.condition)
+
+        val temp4 = (weather.tempMin + 2).coerceAtMost(weather.tempMax)
+        val prob4 = (weather.precipProb * 0.5f).toInt().coerceIn(0, 100)
+        val (icon4, cond4) = parseWmoWeatherCode(if (weather.precipProb > 60) 61 else 2)
+
+        return listOf(
+            SixHourForecast("00:00 - 06:00", labelEarlyMorning, icon1, cond1, temp1, prob1),
+            SixHourForecast("06:00 - 12:00", labelMorning, icon2, cond2, temp2, prob2),
+            SixHourForecast("12:00 - 18:00", labelAfternoon, icon3, cond3, temp3, prob3),
+            SixHourForecast("18:00 - 24:00", labelEvening, icon4, cond4, temp4, prob4)
         )
     }
 }

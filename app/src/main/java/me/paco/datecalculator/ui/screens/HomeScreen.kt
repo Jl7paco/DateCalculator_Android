@@ -36,6 +36,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Close
+import me.paco.datecalculator.util.TemperatureUnit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
@@ -58,6 +60,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import me.paco.datecalculator.util.SixHourForecast
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,6 +81,7 @@ import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
+import me.paco.datecalculator.util.DailyWeather
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
@@ -103,6 +109,7 @@ fun HomeScreen(
 
     var showHistoryDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var selectedWeatherDayDetail by remember { mutableStateOf<Pair<DailyWeather, Int>?>(null) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "IconAnimation")
 
@@ -445,9 +452,106 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(28.dp))
         }
 
-        // ================= 当日黄历、节气、农历、天气、星座运势 =================
+        // ================= 当日天气预报、农历黄历、星座运势 =================
 
-        // 1. 当日农历、节气与老黄历宜忌 Card
+        // 1. 天气预报 Card (顺序调整置顶；点击任意天进入二级详细天气与 6 小时时段预报)
+        if (homeConfig.showWeather) {
+            val weatherShape = RoundedCornerShape(22.dp)
+            val unit = uiState.temperatureUnit
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .neumorphicExtruded(shape = weatherShape, elevation = 5.dp)
+                    .background(NeumorphicBg, shape = weatherShape)
+                    .padding(12.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 左上角：定位位置
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { viewModel.fetchCurrentGpsLocation(context) }
+                        ) {
+                            Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
+                            Text("📍 $localizedCity", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 13.5.sp)
+                        }
+
+                        // 右上角：当前温度与当前体感温度
+                        val curDisplayTemp = unit.convertTemp(realWeatherData.currentTemp)
+                        val curDisplayFeels = unit.convertTemp(realWeatherData.currentFeelsLikeTemp)
+                        val feelsLabel = when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "Feels"
+                            AppLanguage.JAPANESE -> "体感"
+                            AppLanguage.KOREAN -> "체감"
+                            AppLanguage.TRADITIONAL_CHINESE -> "體感"
+                            else -> "体感"
+                        }
+
+                        Text(
+                            text = "$curDisplayTemp${unit.symbol} · $feelsLabel $curDisplayFeels${unit.symbol}",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = NeumorphicAccent
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        weatherList.forEachIndexed { i, weather ->
+                            val displayMin = unit.convertTemp(weather.tempMin)
+                            val displayMax = unit.convertTemp(weather.tempMax)
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        selectedWeatherDayDetail = Pair(weather, i)
+                                    }
+                                    .padding(vertical = 8.dp, horizontal = 2.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(LanguageUtils.getDayName(weather.dayName, lang), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(
+                                        text = weather.iconEmoji,
+                                        fontSize = 17.sp,
+                                        modifier = Modifier.graphicsLayer {
+                                            scaleX = weatherFloatScale
+                                            scaleY = weatherFloatScale
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(LanguageUtils.getWeatherCondition(weather.condition, lang), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("💧 ${weather.precipProb}%", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text("$displayMin${unit.symbol}~$displayMax${unit.symbol}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // 2. 当日农历、节气与老黄历宜忌 Card (顺序调整置于天气卡片下方)
         if (isChineseLanguage && (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac)) {
             val combinedShape = RoundedCornerShape(22.dp)
             Box(
@@ -597,99 +701,6 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // 2. 当日及未来三日天气预报 Card (当前实时温度与当前体感置于卡片右上角，每日预报移除体感)
-        if (homeConfig.showWeather) {
-            val weatherShape = RoundedCornerShape(22.dp)
-            val unit = uiState.temperatureUnit
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .neumorphicExtruded(shape = weatherShape, elevation = 5.dp)
-                    .background(NeumorphicBg, shape = weatherShape)
-                    .padding(12.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // 左上角：定位位置
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { viewModel.fetchCurrentGpsLocation(context) }
-                        ) {
-                            Icon(imageVector = Icons.Default.WbSunny, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
-                            Text("📍 $localizedCity", fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent, fontSize = 13.5.sp)
-                        }
-
-                        // 右上角：当前温度与当前体感温度
-                        val curDisplayTemp = unit.convertTemp(realWeatherData.currentTemp)
-                        val curDisplayFeels = unit.convertTemp(realWeatherData.currentFeelsLikeTemp)
-                        val feelsLabel = when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "Feels"
-                            AppLanguage.JAPANESE -> "体感"
-                            AppLanguage.KOREAN -> "체감"
-                            AppLanguage.TRADITIONAL_CHINESE -> "體感"
-                            else -> "体感"
-                        }
-
-                        Text(
-                            text = "$curDisplayTemp${unit.symbol} · $feelsLabel $curDisplayFeels${unit.symbol}",
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = NeumorphicAccent
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        weatherList.forEach { weather ->
-                            val displayMin = unit.convertTemp(weather.tempMin)
-                            val displayMax = unit.convertTemp(weather.tempMax)
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
-                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
-                                    .padding(vertical = 8.dp, horizontal = 2.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(LanguageUtils.getDayName(weather.dayName, lang), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text(
-                                        text = weather.iconEmoji,
-                                        fontSize = 17.sp,
-                                        modifier = Modifier.graphicsLayer {
-                                            scaleX = weatherFloatScale
-                                            scaleY = weatherFloatScale
-                                        }
-                                    )
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text(LanguageUtils.getWeatherCondition(weather.condition, lang), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text("💧 ${weather.precipProb}%", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text("$displayMin${unit.symbol}~$displayMax${unit.symbol}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
         // 3. 星座与运势 Card (星座名称多语言翻译)
         if (homeConfig.showZodiacFortune) {
             val fortuneShape = RoundedCornerShape(22.dp)
@@ -748,6 +759,243 @@ fun HomeScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        if (selectedWeatherDayDetail != null) {
+            val (detailWeather, dayIdx) = selectedWeatherDayDetail!!
+            WeatherDetailOverlayDialog(
+                visible = true,
+                weather = detailWeather,
+                dayIndex = dayIdx,
+                cityName = uiState.currentCityName,
+                temperatureUnit = uiState.temperatureUnit,
+                language = lang,
+                onDismiss = { selectedWeatherDayDetail = null }
+            )
+        }
+    }
+}
+
+@Composable
+fun WeatherDetailOverlayDialog(
+    visible: Boolean,
+    weather: DailyWeather?,
+    dayIndex: Int,
+    cityName: String,
+    temperatureUnit: TemperatureUnit,
+    language: AppLanguage,
+    onDismiss: () -> Unit
+) {
+    if (!visible || weather == null) return
+
+    val cardShape = RoundedCornerShape(26.dp)
+    val sixHourList = remember(weather, dayIndex, language) {
+        WeatherUtils.generateSixHourForecasts(weather, dayIndex, language)
+    }
+
+    val localizedCity = LanguageUtils.getLocalizedCityName(cityName, language)
+    val dayTitle = LanguageUtils.getDayName(weather.dayName, language)
+
+    val minDisplay = temperatureUnit.convertTemp(weather.tempMin)
+    val maxDisplay = temperatureUnit.convertTemp(weather.tempMax)
+
+    val dialogTitle = when (language.getEffectiveLanguage()) {
+        AppLanguage.ENGLISH -> "📍 $localizedCity · $dayTitle Detailed Weather"
+        AppLanguage.JAPANESE -> "📍 $localizedCity · $dayTitle 詳細天気予報"
+        AppLanguage.KOREAN -> "📍 $localizedCity · $dayTitle 상세 날씨"
+        AppLanguage.TRADITIONAL_CHINESE -> "📍 $localizedCity · $dayTitle 詳細天氣推算"
+        else -> "📍 $localizedCity · $dayTitle 详细天气推算"
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .neumorphicExtruded(shape = cardShape, elevation = 8.dp)
+                .background(NeumorphicBg, shape = cardShape)
+                .padding(20.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // 1. 顶栏：地名 + 日期 + 关闭按键
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = dialogTitle,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeumorphicAccent,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { onDismiss() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = NeumorphicTextPrimary.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 2. 总体全天概要 Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 3.dp)
+                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(16.dp))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(weather.iconEmoji, fontSize = 28.sp)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                val condLocalized = WeatherUtils.getLocalizedCondition(weather.condition, language)
+                                Text(
+                                    text = condLocalized,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = NeumorphicTextPrimary
+                                )
+                                Text(
+                                    text = "$minDisplay° ~ $maxDisplay°${temperatureUnit.symbol}",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeumorphicAccent
+                                )
+                            }
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "💧 ${weather.precipProb}%",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF0284C7)
+                            )
+                            val precipLabel = when (language.getEffectiveLanguage()) {
+                                AppLanguage.ENGLISH -> "Max Precip"
+                                AppLanguage.JAPANESE -> "最高降水率"
+                                AppLanguage.KOREAN -> "최고 강수확률"
+                                AppLanguage.TRADITIONAL_CHINESE -> "最高降水概率"
+                                else -> "全天最高降水概率"
+                            }
+                            Text(
+                                text = precipLabel,
+                                fontSize = 11.sp,
+                                color = NeumorphicTextPrimary.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                val hourlyLabel = when (language.getEffectiveLanguage()) {
+                    AppLanguage.ENGLISH -> "6-Hour Detailed Forecast"
+                    AppLanguage.JAPANESE -> "6時間毎の詳細天気"
+                    AppLanguage.KOREAN -> "6시간 단위 상세 예보"
+                    AppLanguage.TRADITIONAL_CHINESE -> "以6小時為單元的詳細預報"
+                    else -> "以 6 小时为单元的详细预报"
+                }
+
+                Text(
+                    text = hourlyLabel,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary.copy(alpha = 0.85f)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 3. 4 个 6 小时时段分块卡片 (00:00-06:00, 06:00-12:00, 12:00-18:00, 18:00-24:00)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    sixHourList.forEach { item ->
+                        val itemTemp = temperatureUnit.convertTemp(item.temp)
+                        val condLoc = WeatherUtils.getLocalizedCondition(item.condition, language)
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 2.dp)
+                                .background(NeumorphicSunkenBg, shape = RoundedCornerShape(14.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 时段名称与时间范围
+                                Column {
+                                    Text(
+                                        text = "${item.timeLabel} (${item.timeRange})",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NeumorphicTextPrimary
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(item.iconEmoji, fontSize = 14.sp)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(condLoc, fontSize = 11.5.sp, color = NeumorphicTextPrimary.copy(alpha = 0.75f))
+                                    }
+                                }
+
+                                // 温度与降水概率
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "$itemTemp${temperatureUnit.symbol}",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = NeumorphicAccent
+                                    )
+
+                                    Spacer(modifier = Modifier.width(14.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(Color(0xFF0284C7).copy(alpha = 0.15f))
+                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    ) {
+                                        Text(
+                                            text = "💧 ${item.precipProb}%",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color(0xFF0284C7)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
