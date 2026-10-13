@@ -36,6 +36,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
@@ -443,6 +446,11 @@ fun DateCalculationScreen(
             // 3. 模式 C: 高级多段计算模式
             val cardShape22 = RoundedCornerShape(22.dp)
 
+            val focusManager = LocalFocusManager.current
+            val stageDaysFocusRequesters = remember(uiState.stages.size) {
+                List(uiState.stages.size) { FocusRequester() }
+            }
+
             if (uiState.isMultiStageExtensionEnabled) {
                 Box(
                     modifier = Modifier
@@ -586,7 +594,31 @@ fun DateCalculationScreen(
                                         singleLine = true,
                                         textStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
                                         cursorBrush = SolidColor(NeumorphicAccent),
-                                        modifier = Modifier.fillMaxWidth()
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Number,
+                                            imeAction = if (index < uiState.stages.lastIndex) ImeAction.Next else ImeAction.Done
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onNext = {
+                                                if (stage.daysInput.isBlank()) {
+                                                    viewModel.updateStageDaysInput(stage.id, "0")
+                                                }
+                                                if (index + 1 in stageDaysFocusRequesters.indices) {
+                                                    stageDaysFocusRequesters[index + 1].requestFocus()
+                                                }
+                                            },
+                                            onDone = {
+                                                if (stage.daysInput.isBlank()) {
+                                                    viewModel.updateStageDaysInput(stage.id, "0")
+                                                }
+                                                keyboardController?.hide()
+                                                focusManager.clearFocus()
+                                                viewModel.performCalculation()
+                                            }
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .focusRequester(stageDaysFocusRequesters.getOrElse(index) { FocusRequester() })
                                     )
                                 }
 
