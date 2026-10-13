@@ -645,8 +645,6 @@ fun TimelineDiagram(
 
                     var subBarWidthPx by remember { mutableFloatStateOf(1f) }
                     var subTouchFraction by remember { mutableFloatStateOf(0.5f) }
-                    var subInitialTouchX by remember { mutableFloatStateOf(-1f) }
-                    var isSubDraggingThresholdMet by remember { mutableStateOf(false) }
 
                     val maxSubAllowedOffsetPx = if (subBarWidthPx > 0f) {
                         val bubbleHalfWidthPx = with(density) { (bubbleWidthDp / 2).toPx() }
@@ -662,20 +660,10 @@ fun TimelineDiagram(
 
                     val subAnimOffsetXPx = remember { Animatable(0f) }
 
-                    LaunchedEffect(clampedSubTargetXOffsetPx, activeHoverSource, isSubDraggingThresholdMet) {
+                    LaunchedEffect(clampedSubTargetXOffsetPx, activeHoverSource) {
                         val target = clampedSubTargetXOffsetPx.toFloat()
                         if (activeHoverSource == "SUB_$idx" && activeHoverDay != null) {
-                            if (!isSubDraggingThresholdMet) {
-                                subAnimOffsetXPx.snapTo(target)
-                            } else {
-                                subAnimOffsetXPx.animateTo(
-                                    targetValue = target,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    )
-                                )
-                            }
+                            subAnimOffsetXPx.snapTo(target)
                         }
                     }
 
@@ -743,19 +731,7 @@ fun TimelineDiagram(
                                                         change.consume()
                                                         val touchX = change.position.x
                                                         if (segDayList.isNotEmpty() && subBarWidthPx > 0f) {
-                                                            if (subInitialTouchX < 0f) {
-                                                                subInitialTouchX = touchX
-                                                                isSubDraggingThresholdMet = false
-                                                                subTouchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
-                                                            } else {
-                                                                val dragDistancePx = abs(touchX - subInitialTouchX)
-                                                                if (dragDistancePx > with(density) { 14.dp.toPx() }) {
-                                                                    isSubDraggingThresholdMet = true
-                                                                }
-                                                                if (isSubDraggingThresholdMet) {
-                                                                    subTouchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
-                                                                }
-                                                            }
+                                                            subTouchFraction = (touchX / subBarWidthPx).coerceIn(0f, 1f)
 
                                                             val subIdx = (subTouchFraction * (segDayList.size - 1)).roundToInt().coerceIn(segDayList.indices)
                                                             if (subIdx != lastHoverIndex || activeHoverSource != "SUB_$idx") {
@@ -769,8 +745,6 @@ fun TimelineDiagram(
                                                         activeHoverSource = null
                                                         activeHoverDay = null
                                                         lastHoverIndex = -1
-                                                        subInitialTouchX = -1f
-                                                        isSubDraggingThresholdMet = false
                                                     }
                                                 }
                                             }
