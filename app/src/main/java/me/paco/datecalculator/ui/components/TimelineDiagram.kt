@@ -646,17 +646,21 @@ fun TimelineDiagram(
                     var subBarWidthPx by remember { mutableFloatStateOf(1f) }
                     var subTouchFraction by remember { mutableFloatStateOf(0.5f) }
 
-                    val maxSubAllowedOffsetPx = if (barWidthPx > 0f) {
-                        val bubbleHalfWidthPx = with(density) { (bubbleWidthDp / 2).toPx() }
-                        val edgeMarginPx = with(density) { edgeMarginDp.toPx() }
-                        ((barWidthPx / 2f) - bubbleHalfWidthPx - edgeMarginPx).coerceAtLeast(0f)
-                    } else 0f
+                    // 精确计算子轴气泡与高亮选区的 1:1 坐标对齐 (计算子轴在卡片内的绝对坐标，确保气泡与高亮框 100% 精确吸附在按压手指正上方)
+                    val subBarLeftOffsetDp = 30.dp
+                    val bubbleHalfWidthDp = 135.dp
+                    val edgeMarginDpSub = 12.dp
 
-                    val rawSubTargetXOffsetPx = if (activeHoverSource == "SUB_$idx" && activeHoverDay != null && subBarWidthPx > 0f) {
-                        (subTouchFraction - 0.5f) * subBarWidthPx
-                    } else 0f
+                    val subBarCenterXDp = subBarLeftOffsetDp + with(density) { (subBarWidthPx / 2f).toDp() }
+                    val fingerXDp = subBarLeftOffsetDp + with(density) { (subTouchFraction * subBarWidthPx).toDp() }
 
-                    val clampedSubTargetXOffsetPx = rawSubTargetXOffsetPx.coerceIn(-maxSubAllowedOffsetPx, maxSubAllowedOffsetPx).roundToInt()
+                    val outerCardWidthDp = with(density) { barWidthPx.toDp() } + 32.dp
+                    val minBubbleCenterX = edgeMarginDpSub + bubbleHalfWidthDp
+                    val maxBubbleCenterX = (outerCardWidthDp - edgeMarginDpSub - bubbleHalfWidthDp).coerceAtLeast(minBubbleCenterX)
+
+                    val clampedBubbleCenterX = fingerXDp.coerceIn(minBubbleCenterX, maxBubbleCenterX)
+                    val subTargetXOffsetDp = clampedBubbleCenterX - subBarCenterXDp
+                    val clampedSubTargetXOffsetPx = with(density) { subTargetXOffsetDp.toPx() }.roundToInt()
 
                     val subAnimOffsetXPx = remember { Animatable(0f) }
 
