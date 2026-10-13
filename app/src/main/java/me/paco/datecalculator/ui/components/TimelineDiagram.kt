@@ -265,7 +265,19 @@ fun TimelineDiagram(
                         .clip(CircleShape)
                         .clickable {
                             val exportTitle = planTitle.ifBlank { LanguageUtils.getString("timeline_title", language) }
-                            CsvExportUtils.exportMultiStageCsv(context, exportTitle, baseDate, finalDate, validSegments)
+                            CsvExportUtils.exportMultiStageCsv(
+                                context = context,
+                                planTitle = exportTitle,
+                                baseDate = baseDate,
+                                finalDate = finalDate,
+                                segments = validSegments,
+                                weekendRule = weekendRule,
+                                enableHolidays = enableHolidays,
+                                holidayRegion = holidayRegion,
+                                isCurrentWeekBigWeek = isCurrentWeekBigWeek,
+                                disableChinaShiftWorkdays = disableChinaShiftWorkdays,
+                                language = language
+                            )
                         }
                         .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center
