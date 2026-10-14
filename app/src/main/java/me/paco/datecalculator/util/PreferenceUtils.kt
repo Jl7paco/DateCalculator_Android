@@ -28,7 +28,8 @@ object PreferenceUtils {
     private const val KEY_CUSTOM_PRIMARY_COLOR = "key_custom_primary_color"
     private const val KEY_TEMP_UNIT = "key_temp_unit"
     private const val KEY_PINNED_PRESETS = "key_pinned_presets"
-    private const val KEY_ANNIVERSARIES = "key_anniversaries"
+    private const val KEY_ANNIVERSARIES = "key_anniversaries_v2"
+    private const val KEY_ANNIVERSARIES_INIT = "key_anniversaries_initialized_v2"
     private const val KEY_LAST_CITY_NAME = "key_last_city_name"
     private const val KEY_HOME_CONFIG_SHOW_SCREEN = "key_home_config_show_screen"
     private const val KEY_HOME_CONFIG_CALENDAR = "key_home_config_calendar"
@@ -221,14 +222,19 @@ object PreferenceUtils {
             if (idx > 0) sb.append(";;;")
             sb.append("${item.id}:::${item.title}:::${item.date}:::${item.iconEmoji}:::${item.isCheckIn}:::${item.locationName}:::${item.latitude}:::${item.longitude}:::${item.checkInTimeStr}:::${item.remark}:::${item.isPinned}")
         }
-        prefs.edit().putString(KEY_ANNIVERSARIES, sb.toString()).apply()
+        prefs.edit()
+            .putString(KEY_ANNIVERSARIES, sb.toString())
+            .putBoolean(KEY_ANNIVERSARIES_INIT, true)
+            .apply()
     }
 
     fun getAnniversaries(context: Context): List<AnniversaryItem> {
         val prefs = getPrefs(context)
-        val raw = prefs.getString(KEY_ANNIVERSARIES, "") ?: ""
-        if (raw.isBlank()) {
-            return listOf(
+        val isInit = prefs.getBoolean(KEY_ANNIVERSARIES_INIT, false)
+        val raw = prefs.getString(KEY_ANNIVERSARIES, null)
+
+        if (!isInit && raw == null) {
+            val defaultList = listOf(
                 AnniversaryItem(
                     id = 101L,
                     title = "结婚纪念日",
@@ -246,6 +252,12 @@ object PreferenceUtils {
                     isPinned = true
                 )
             )
+            saveAnniversaries(context, defaultList)
+            return defaultList
+        }
+
+        if (raw.isNullOrBlank()) {
+            return emptyList()
         }
 
         return try {
