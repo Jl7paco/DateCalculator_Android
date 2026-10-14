@@ -222,41 +222,14 @@ object PreferenceUtils {
             if (idx > 0) sb.append(";;;")
             sb.append("${item.id}:::${item.title}:::${item.date}:::${item.iconEmoji}:::${item.isCheckIn}:::${item.locationName}:::${item.latitude}:::${item.longitude}:::${item.checkInTimeStr}:::${item.remark}:::${item.isPinned}")
         }
-        prefs.edit()
-            .putString(KEY_ANNIVERSARIES, sb.toString())
-            .putBoolean(KEY_ANNIVERSARIES_INIT, true)
-            .apply()
+        prefs.edit().putString(KEY_ANNIVERSARIES, sb.toString()).apply()
     }
 
     fun getAnniversaries(context: Context): List<AnniversaryItem> {
         val prefs = getPrefs(context)
-        val isInit = prefs.getBoolean(KEY_ANNIVERSARIES_INIT, false)
-        val raw = prefs.getString(KEY_ANNIVERSARIES, null)
+        val raw = prefs.getString(KEY_ANNIVERSARIES, "") ?: ""
 
-        if (!isInit && raw == null) {
-            val defaultList = listOf(
-                AnniversaryItem(
-                    id = 101L,
-                    title = "结婚纪念日",
-                    date = LocalDate.now().minusYears(3).minusDays(120),
-                    iconEmoji = "💍",
-                    remark = "相濡以沫，长生相守",
-                    isPinned = true
-                ),
-                AnniversaryItem(
-                    id = 102L,
-                    title = "恋爱纪念日",
-                    date = LocalDate.now().minusYears(5).minusDays(200),
-                    iconEmoji = "❤️",
-                    remark = "初见如故",
-                    isPinned = true
-                )
-            )
-            saveAnniversaries(context, defaultList)
-            return defaultList
-        }
-
-        if (raw.isNullOrBlank()) {
+        if (raw.isBlank()) {
             return emptyList()
         }
 
