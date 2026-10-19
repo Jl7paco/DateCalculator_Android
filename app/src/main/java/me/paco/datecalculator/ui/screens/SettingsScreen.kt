@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.GpsFixed
@@ -746,6 +747,7 @@ fun SettingsScreen(
                     0xFFEA580C to "暖阳橙"
                 )
 
+                val isDark = LocalDarkTheme.current
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -753,13 +755,16 @@ fun SettingsScreen(
                 ) {
                     customPaletteColors.forEach { (colorHex, colorName) ->
                         val isCurrentColor = (uiState.themePreset == ThemeColorPreset.CUSTOM && uiState.customPrimaryColorHex == colorHex)
+                        val ringBorderColor = if (isDark) Color.White else Color(0xFF1E293B)
+
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(36.dp)
                                 .then(
                                     if (isCurrentColor) {
                                         Modifier
-                                            .border(2.dp, Color.White, shape = CircleShape)
+                                            .border(2.5.dp, ringBorderColor, shape = CircleShape)
+                                            .padding(2.dp)
                                             .neumorphicInset(shape = CircleShape, elevation = 3.dp)
                                     } else {
                                         Modifier.neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
@@ -771,8 +776,18 @@ fun SettingsScreen(
                                     viewModel.updateCustomPrimaryColor(colorHex, context)
                                     viewModel.updateThemePreset(ThemeColorPreset.CUSTOM, context)
                                     Toast.makeText(context, "Color: $colorName", Toast.LENGTH_SHORT).show()
-                                }
-                        )
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isCurrentColor) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected Color",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
                     }
                 }
 

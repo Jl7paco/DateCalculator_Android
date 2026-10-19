@@ -931,54 +931,87 @@ object LanguageUtils {
     }
 
     private fun translateSingleDistrict(districtName: String, language: AppLanguage): String {
+        val clean = districtName.replace("区", "").replace("區", "").replace("縣", "").replace("县", "").trim()
         return when (language) {
             AppLanguage.TRADITIONAL_CHINESE -> when {
-                districtName.contains("南山") -> "南山區"
-                districtName.contains("福田") -> "福田區"
-                districtName.contains("宝安") -> "寶安區"
-                districtName.contains("龙岗") -> "龍崗區"
-                districtName.contains("罗湖") -> "羅湖區"
-                districtName.contains("天河") -> "天河區"
-                districtName.contains("朝阳") -> "朝陽區"
-                districtName.contains("浦东") -> "浦東新區"
-                else -> districtName
+                clean.contains("南山") -> "南山區"
+                clean.contains("福田") -> "福田區"
+                clean.contains("宝安") -> "寶安區"
+                clean.contains("龙岗") -> "龍崗區"
+                clean.contains("罗湖") -> "羅湖區"
+                clean.contains("天河") -> "天河區"
+                clean.contains("朝阳") -> "朝陽區"
+                clean.contains("浦东") -> "浦東新區"
+                clean.contains("海淀") -> "海澱區"
+                clean.contains("黄浦") -> "黃浦區"
+                clean.contains("静安") -> "靜安區"
+                else -> "${clean}區"
             }
             AppLanguage.ENGLISH -> when {
-                districtName.contains("南山") -> "Nanshan"
-                districtName.contains("福田") -> "Futian"
-                districtName.contains("宝安") -> "Bao'an"
-                districtName.contains("龙岗") -> "Longgang"
-                districtName.contains("罗湖") -> "Luohu"
-                districtName.contains("龙华") -> "Longhua"
-                districtName.contains("坪山") -> "Pingshan"
-                districtName.contains("光明") -> "Guangming"
-                districtName.contains("盐田") -> "Yantian"
-                districtName.contains("天河") -> "Tianhe"
-                districtName.contains("越秀") -> "Yuexiu"
-                districtName.contains("海珠") -> "Haizhu"
-                districtName.contains("朝阳") -> "Chaoyang"
-                districtName.contains("海淀") -> "Haidian"
-                districtName.contains("浦东") -> "Pudong"
-                districtName.contains("黄浦") -> "Huangpu"
-                districtName.contains("静安") -> "Jing'an"
-                else -> districtName
+                clean.contains("南山") -> "Nanshan"
+                clean.contains("福田") -> "Futian"
+                clean.contains("宝安") -> "Bao'an"
+                clean.contains("龙岗") -> "Longgang"
+                clean.contains("罗湖") -> "Luohu"
+                clean.contains("龙华") -> "Longhua"
+                clean.contains("坪山") -> "Pingshan"
+                clean.contains("光明") -> "Guangming"
+                clean.contains("盐田") -> "Yantian"
+                clean.contains("天河") -> "Tianhe"
+                clean.contains("越秀") -> "Yuexiu"
+                clean.contains("海珠") -> "Haizhu"
+                clean.contains("荔湾") -> "Liwan"
+                clean.contains("番禺") -> "Panyu"
+                clean.contains("白云") -> "Baiyun"
+                clean.contains("黄埔") -> "Huangpu"
+                clean.contains("朝阳") -> "Chaoyang"
+                clean.contains("海淀") -> "Haidian"
+                clean.contains("西城") -> "Xicheng"
+                clean.contains("东城") -> "Dongcheng"
+                clean.contains("丰台") -> "Fengtai"
+                clean.contains("石景山") -> "Shijingshan"
+                clean.contains("顺义") -> "Shunyi"
+                clean.contains("昌平") -> "Changping"
+                clean.contains("浦东") -> "Pudong"
+                clean.contains("静安") -> "Jing'an"
+                clean.contains("徐汇") -> "Xuhui"
+                clean.contains("黄浦") -> "Huangpu"
+                clean.contains("长宁") -> "Changning"
+                clean.contains("普陀") -> "Putuo"
+                clean.contains("虹口") -> "Hongkou"
+                clean.contains("杨浦") -> "Yangpu"
+                clean.contains("闵行") -> "Minhang"
+                clean.contains("武侯") -> "Wuhou"
+                clean.contains("锦江") -> "Jinjiang"
+                clean.contains("青羊") -> "Qingyang"
+                clean.contains("金牛") -> "Jinniu"
+                clean.contains("成华") -> "Chenghua"
+                clean.contains("渝中") -> "Yuzhong"
+                clean.contains("江北") -> "Jiangbei"
+                clean.contains("南岸") -> "Nan'an"
+                else -> clean
             }
             AppLanguage.JAPANESE -> when {
-                districtName.contains("南山") -> "南山区"
-                districtName.contains("福田") -> "福田区"
-                districtName.contains("宝安") -> "宝安区"
-                districtName.contains("天河") -> "天河区"
-                districtName.contains("浦东") -> "浦東新区"
-                else -> districtName
+                clean.contains("南山") -> "南山"
+                clean.contains("福田") -> "福田"
+                clean.contains("宝安") -> "宝安"
+                clean.contains("天河") -> "天河"
+                clean.contains("浦东") -> "浦東"
+                clean.contains("朝阳") -> "朝陽"
+                clean.contains("海淀") -> "海淀"
+                else -> clean
             }
             AppLanguage.KOREAN -> when {
-                districtName.contains("南山") -> "남산구"
-                districtName.contains("福田") -> "푸톈구"
-                districtName.contains("宝安") -> "바오안구"
-                districtName.contains("天河") -> "톈허구"
-                else -> districtName
+                clean.contains("南山") -> "난산"
+                clean.contains("福田") -> "푸톈"
+                clean.contains("宝安") -> "바오안"
+                clean.contains("天河") -> "톈허"
+                clean.contains("朝阳") -> "차오양"
+                clean.contains("海淀") -> "하이뎬"
+                clean.contains("浦东") -> "푸둥"
+                else -> clean
             }
-            else -> districtName
+            else -> clean
         }
     }
 
