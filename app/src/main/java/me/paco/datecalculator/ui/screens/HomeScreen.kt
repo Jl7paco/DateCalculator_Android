@@ -1039,16 +1039,25 @@ fun WeatherDetailOverlayDialog(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    // 2. 恢复的全天天气详情 Card (包含大型气象 Emoji、天气状况、全天温阶、全天最高降水概率)
+                    // 2. 紧凑型全天概要指示栏 (100% 3D 凹槽拟物样式，与主页风格像素级统一)
+                    val condLocalized = WeatherUtils.getLocalizedCondition(weather.condition, language)
+                    val hourlyLabel = when (language.getEffectiveLanguage()) {
+                        AppLanguage.ENGLISH -> "6-Hour Forecast"
+                        AppLanguage.JAPANESE -> "6時間毎の天気"
+                        AppLanguage.KOREAN -> "6시간 단위 예보"
+                        AppLanguage.TRADITIONAL_CHINESE -> "6小時精細預報"
+                        else -> "6 小时精细预报"
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(16.dp))
-                            .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 3.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .padding(12.dp)
+                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1056,64 +1065,24 @@ fun WeatherDetailOverlayDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(weather.iconEmoji, fontSize = 28.sp)
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    val condLocalized = WeatherUtils.getLocalizedCondition(weather.condition, language)
-                                    Text(
-                                        text = condLocalized,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = NeumorphicTextPrimary
-                                    )
-                                    Text(
-                                        text = "$minDisplay° ~ $maxDisplay°${temperatureUnit.symbol}",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = NeumorphicAccent
-                                    )
-                                }
+                                Text(weather.iconEmoji, fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = condLocalized,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeumorphicTextPrimary
+                                )
                             }
 
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "💧 ${weather.precipProb}%",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF0284C7)
-                                )
-                                val precipLabel = when (language.getEffectiveLanguage()) {
-                                    AppLanguage.ENGLISH -> "Max Precip"
-                                    AppLanguage.JAPANESE -> "最高降水率"
-                                    AppLanguage.KOREAN -> "최고 강수확률"
-                                    AppLanguage.TRADITIONAL_CHINESE -> "最高降水概率"
-                                    else -> "全天最高降水概率"
-                                }
-                                Text(
-                                    text = precipLabel,
-                                    fontSize = 11.sp,
-                                    color = NeumorphicTextPrimary.copy(alpha = 0.6f)
-                                )
-                            }
+                            Text(
+                                text = hourlyLabel,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = NeumorphicTextPrimary.copy(alpha = 0.65f)
+                            )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    val hourlyLabel = when (language.getEffectiveLanguage()) {
-                        AppLanguage.ENGLISH -> "6-Hour Detailed Forecast"
-                        AppLanguage.JAPANESE -> "6時間毎の詳細天気"
-                        AppLanguage.KOREAN -> "6시간 단위 상세 예보"
-                        AppLanguage.TRADITIONAL_CHINESE -> "以6小時為單元的詳細預報"
-                        else -> "以 6 小时为单元的详细预报"
-                    }
-
-                    Text(
-                        text = hourlyLabel,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NeumorphicTextPrimary.copy(alpha = 0.85f)
-                    )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
