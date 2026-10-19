@@ -627,22 +627,57 @@ private fun HomeWeatherSection(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(LanguageUtils.getDayName(weather.dayName, lang), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                            Text(
+                                text = LanguageUtils.getDayName(weather.dayName, lang),
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeumorphicTextPrimary,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
                                 text = weather.iconEmoji,
                                 fontSize = 17.sp,
-                                modifier = Modifier.graphicsLayer {
-                                    scaleX = weatherFloatScale
-                                    scaleY = weatherFloatScale
-                                }
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer {
+                                        scaleX = weatherFloatScale
+                                        scaleY = weatherFloatScale
+                                    }
                             )
                             Spacer(modifier = Modifier.height(3.dp))
-                            Text(LanguageUtils.getWeatherCondition(weather.condition, lang), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = NeumorphicTextPrimary)
+                            Text(
+                                text = LanguageUtils.getWeatherCondition(weather.condition, lang),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = NeumorphicTextPrimary,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text("💧 ${weather.precipProb}%", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                            Text(
+                                text = "💧 ${weather.precipProb}%",
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0284C7),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                             Spacer(modifier = Modifier.height(3.dp))
-                            Text("$displayMin${unit.symbol}~$displayMax${unit.symbol}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicAccent)
+                            Text(
+                                text = "$displayMin${unit.symbol}~$displayMax${unit.symbol}",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeumorphicAccent,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -1025,29 +1060,40 @@ fun WeatherDetailOverlayDialog(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    // Line 1: 今天/明天 + 时段名 (例如: 今天下午)
+                                    // Line 1: 今天/明天 + 时段名 (例如: 今天下午 / Tomorrow) 居中对齐
                                     Text(
-                                        text = "${item.dayPrefix}${item.timeLabel}",
-                                        fontSize = 10.5.sp,
+                                        text = "${item.dayPrefix}${item.timeLabel}".trim(),
+                                        fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = NeumorphicTextPrimary,
-                                        maxLines = 1
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
 
                                     Spacer(modifier = Modifier.height(3.dp))
 
                                     // Line 2: 气象图标
-                                    Text(text = item.iconEmoji, fontSize = 17.sp)
+                                    Text(
+                                        text = item.iconEmoji,
+                                        fontSize = 17.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
 
                                     Spacer(modifier = Modifier.height(3.dp))
 
                                     // Line 3: 状况说明
                                     Text(
                                         text = condLoc,
-                                        fontSize = 10.sp,
+                                        fontSize = 9.5.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = NeumorphicTextPrimary,
-                                        maxLines = 1
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
 
                                     Spacer(modifier = Modifier.height(2.dp))
@@ -1057,7 +1103,9 @@ fun WeatherDetailOverlayDialog(
                                         text = "💧 ${item.precipProb}%",
                                         fontSize = 9.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0284C7)
+                                        color = Color(0xFF0284C7),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
 
                                     Spacer(modifier = Modifier.height(3.dp))
@@ -1067,7 +1115,9 @@ fun WeatherDetailOverlayDialog(
                                         text = "$itemTemp${temperatureUnit.symbol}",
                                         fontSize = 10.5.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = NeumorphicAccent
+                                        color = NeumorphicAccent,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
