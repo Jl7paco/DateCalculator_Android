@@ -890,7 +890,7 @@ private fun HomeFortuneSection(
 }
 
 /**
- * 二级天气 6 小时精细预报弹窗卡片 (优化边框渲染，完全消减顶部与左侧白色发光溢出)
+ * 二级天气 6 小时精细预报弹窗卡片 (100% 深度复刻主页 Weather Card 外观、尺寸、间距与字体风格)
  */
 @Composable
 fun WeatherDetailOverlayDialog(
@@ -906,7 +906,7 @@ fun WeatherDetailOverlayDialog(
     if (!visible || weather == null) return
 
     val isDark = LocalDarkTheme.current
-    val cardShape = RoundedCornerShape(26.dp)
+    val cardShape = RoundedCornerShape(22.dp)
 
     val scrimColor = if (isDark) {
         Color.Black.copy(alpha = 0.55f)
@@ -923,14 +923,6 @@ fun WeatherDetailOverlayDialog(
 
     val minDisplay = temperatureUnit.convertTemp(weather.tempMin)
     val maxDisplay = temperatureUnit.convertTemp(weather.tempMax)
-
-    val dialogTitle = when (language.getEffectiveLanguage()) {
-        AppLanguage.ENGLISH -> "📍 $localizedCity · $dayTitle Weather Details"
-        AppLanguage.JAPANESE -> "📍 $localizedCity · $dayTitle 天気詳細"
-        AppLanguage.KOREAN -> "📍 $localizedCity · $dayTitle 날씨 상세"
-        AppLanguage.TRADITIONAL_CHINESE -> "📍 $localizedCity · $dayTitle 天氣詳情"
-        else -> "📍 $localizedCity · $dayTitle 天气详情"
-    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -958,121 +950,63 @@ fun WeatherDetailOverlayDialog(
                         shape = cardShape
                     )
                     .clip(cardShape)
-                    .padding(18.dp)
+                    .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
+                    // 1. 顶栏：100% 深度复刻主页天气卡片标头风格
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = dialogTitle,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = NeumorphicAccent,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                                .background(NeumorphicBg, shape = CircleShape)
-                                .clip(CircleShape)
-                                .clickable { onDismiss() },
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = NeumorphicTextPrimary.copy(alpha = 0.7f),
+                                imageVector = Icons.Default.WbSunny,
+                                contentDescription = null,
+                                tint = NeumorphicAccent,
                                 modifier = Modifier.size(16.dp)
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "📍 $localizedCity · $dayTitle",
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeumorphicAccent,
+                                fontSize = 13.5.sp
+                            )
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "$minDisplay°~$maxDisplay°${temperatureUnit.symbol}",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeumorphicAccent
+                            )
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(16.dp))
-                            .neumorphicInset(shape = RoundedCornerShape(16.dp), elevation = 3.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .padding(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(weather.iconEmoji, fontSize = 28.sp)
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    val condLocalized = WeatherUtils.getLocalizedCondition(weather.condition, language)
-                                    Text(
-                                        text = condLocalized,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = NeumorphicTextPrimary
-                                    )
-                                    Text(
-                                        text = "$minDisplay° ~ $maxDisplay°${temperatureUnit.symbol}",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = NeumorphicAccent
-                                    )
-                                }
-                            }
+                            Spacer(modifier = Modifier.width(8.dp))
 
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "💧 ${weather.precipProb}%",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF0284C7)
-                                )
-                                val precipLabel = when (language.getEffectiveLanguage()) {
-                                    AppLanguage.ENGLISH -> "Max Precip"
-                                    AppLanguage.JAPANESE -> "最高降水率"
-                                    AppLanguage.KOREAN -> "최고 강수확률"
-                                    AppLanguage.TRADITIONAL_CHINESE -> "最高降水概率"
-                                    else -> "全天最高降水概率"
-                                }
-                                Text(
-                                    text = precipLabel,
-                                    fontSize = 11.sp,
-                                    color = NeumorphicTextPrimary.copy(alpha = 0.6f)
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                                    .background(NeumorphicBg, shape = CircleShape)
+                                    .clip(CircleShape)
+                                    .clickable { onDismiss() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = NeumorphicAccent,
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    val hourlyLabel = when (language.getEffectiveLanguage()) {
-                        AppLanguage.ENGLISH -> "6-Hour Detailed Forecast"
-                        AppLanguage.JAPANESE -> "6時間毎の詳細天気"
-                        AppLanguage.KOREAN -> "6시간 단위 상세 예보"
-                        AppLanguage.TRADITIONAL_CHINESE -> "以6小時為單元的詳細預報"
-                        else -> "以 6 小时为单元的详细预报"
-                    }
-
-                    Text(
-                        text = hourlyLabel,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NeumorphicTextPrimary.copy(alpha = 0.85f)
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
+                    // 2. 4 个 6 小时时段卡片：100% 像素级复刻主页天气卡片的 4 栏并发排版与尺寸
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1084,37 +1018,33 @@ fun WeatherDetailOverlayDialog(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
                                     .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
+                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
                                     .clip(RoundedCornerShape(12.dp))
                                     .padding(vertical = 8.dp, horizontal = 2.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    // Line 1: 今天/明天 + 时段名 (例如: 今天下午)
                                     Text(
                                         text = "${item.dayPrefix}${item.timeLabel}",
-                                        fontSize = 10.sp,
+                                        fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = NeumorphicTextPrimary,
                                         maxLines = 1
                                     )
-                                    Text(
-                                        text = item.timeRange,
-                                        fontSize = 8.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = NeumorphicTextPrimary.copy(alpha = 0.6f),
-                                        maxLines = 1
-                                    )
 
                                     Spacer(modifier = Modifier.height(3.dp))
 
+                                    // Line 2: 气象图标
                                     Text(text = item.iconEmoji, fontSize = 17.sp)
 
                                     Spacer(modifier = Modifier.height(3.dp))
 
+                                    // Line 3: 状况说明
                                     Text(
                                         text = condLoc,
-                                        fontSize = 9.5.sp,
+                                        fontSize = 10.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = NeumorphicTextPrimary,
                                         maxLines = 1
@@ -1122,6 +1052,7 @@ fun WeatherDetailOverlayDialog(
 
                                     Spacer(modifier = Modifier.height(2.dp))
 
+                                    // Line 4: 降水概率
                                     Text(
                                         text = "💧 ${item.precipProb}%",
                                         fontSize = 9.5.sp,
@@ -1131,6 +1062,7 @@ fun WeatherDetailOverlayDialog(
 
                                     Spacer(modifier = Modifier.height(3.dp))
 
+                                    // Line 5: 温度
                                     Text(
                                         text = "$itemTemp${temperatureUnit.symbol}",
                                         fontSize = 10.5.sp,
