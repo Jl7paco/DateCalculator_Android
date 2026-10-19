@@ -1012,7 +1012,7 @@ fun WeatherDetailOverlayDialog(
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "$minDisplay°~$maxDisplay°${temperatureUnit.symbol}",
+                                text = "$minDisplay${temperatureUnit.symbol}~$maxDisplay${temperatureUnit.symbol}",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = NeumorphicAccent
@@ -1041,14 +1041,14 @@ fun WeatherDetailOverlayDialog(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // 2. 紧凑型全天概要指示栏 (100% 3D 凹槽拟物样式，与主页风格像素级统一)
+                    // 2. 全天概要指示栏 (样式与下方 4 栏卡片 100% 统一，右侧显示当前全天降水概率)
                     val condLocalized = WeatherUtils.getLocalizedCondition(weather.condition, language)
-                    val hourlyLabel = when (language.getEffectiveLanguage()) {
-                        AppLanguage.ENGLISH -> "6-Hour Forecast"
-                        AppLanguage.JAPANESE -> "6時間毎の天気"
-                        AppLanguage.KOREAN -> "6시간 단위 예보"
-                        AppLanguage.TRADITIONAL_CHINESE -> "6小時精細預報"
-                        else -> "6 小时精细预报"
+                    val precipText = when (language.getEffectiveLanguage()) {
+                        AppLanguage.ENGLISH -> "💧 Precip: ${weather.precipProb}%"
+                        AppLanguage.JAPANESE -> "💧 降水確率: ${weather.precipProb}%"
+                        AppLanguage.KOREAN -> "💧 강수확률: ${weather.precipProb}%"
+                        AppLanguage.TRADITIONAL_CHINESE -> "💧 降水概率: ${weather.precipProb}%"
+                        else -> "💧 降水概率: ${weather.precipProb}%"
                     }
 
                     Box(
@@ -1057,7 +1057,7 @@ fun WeatherDetailOverlayDialog(
                             .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
                             .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1065,21 +1065,21 @@ fun WeatherDetailOverlayDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(weather.iconEmoji, fontSize = 16.sp)
+                                Text(weather.iconEmoji, fontSize = 18.sp)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = condLocalized,
-                                    fontSize = 12.5.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = NeumorphicTextPrimary
                                 )
                             }
 
                             Text(
-                                text = hourlyLabel,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = NeumorphicTextPrimary.copy(alpha = 0.65f)
+                                text = precipText,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0284C7)
                             )
                         }
                     }
