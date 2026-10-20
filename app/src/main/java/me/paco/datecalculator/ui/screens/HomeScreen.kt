@@ -4,12 +4,16 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -120,12 +124,13 @@ fun HomeScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var selectedWeatherDayDetail by remember { mutableStateOf<Pair<DailyWeather, Int>?>(null) }
 
+    val AppleSpringEase = remember { CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f) }
     val infiniteTransition = rememberInfiniteTransition(label = "IconAnimation")
     val weatherFloatScale by infiniteTransition.animateFloat(
-        initialValue = 0.94f,
-        targetValue = 1.08f,
+        initialValue = 0.95f,
+        targetValue = 1.06f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
+            animation = tween(1600, easing = AppleSpringEase),
             repeatMode = RepeatMode.Reverse
         ),
         label = "WeatherFloatScale"
@@ -959,6 +964,21 @@ fun WeatherDetailOverlayDialog(
     val minDisplay = temperatureUnit.convertTemp(weather.tempMin)
     val maxDisplay = temperatureUnit.convertTemp(weather.tempMax)
 
+    val dialogAnimProgress = remember { Animatable(0f) }
+    LaunchedEffect(visible) {
+        if (visible) {
+            dialogAnimProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
+        } else {
+            dialogAnimProgress.snapTo(0f)
+        }
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -969,6 +989,7 @@ fun WeatherDetailOverlayDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .graphicsLayer { alpha = dialogAnimProgress.value }
                 .background(scrimColor)
                 .clickable { onDismiss() },
             contentAlignment = Alignment.Center
@@ -976,6 +997,12 @@ fun WeatherDetailOverlayDialog(
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
+                    .graphicsLayer {
+                        val progress = dialogAnimProgress.value
+                        scaleX = 0.88f + 0.12f * progress
+                        scaleY = 0.88f + 0.12f * progress
+                        alpha = progress
+                    }
                     .clickable(enabled = false) {}
                     .dialogDropShadow3D(shape = cardShape)
                     .background(NeumorphicBg, shape = cardShape)

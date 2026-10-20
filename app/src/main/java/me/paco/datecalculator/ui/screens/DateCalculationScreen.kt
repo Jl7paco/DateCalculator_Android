@@ -121,18 +121,29 @@ fun DateCalculationScreen(
 
     val targetDate = viewModel.calculateTargetDate()
 
-    val cardScale = remember { Animatable(1.0f) }
+    val cardScale = remember { Animatable(0.96f) }
     val cardAlpha = remember { Animatable(1.0f) }
 
     LaunchedEffect(uiState.showResult) {
         if (uiState.showResult) {
             launch {
-                cardScale.animateTo(1.03f, animationSpec = tween(120))
-                cardScale.animateTo(1.00f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+                cardScale.snapTo(0.96f)
+                cardScale.animateTo(
+                    1.00f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                )
             }
             launch {
-                cardAlpha.snapTo(0.6f)
-                cardAlpha.animateTo(1.0f, animationSpec = tween(180))
+                cardAlpha.snapTo(0.7f)
+                cardAlpha.animateTo(
+                    1.0f,
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                )
             }
         }
     }
