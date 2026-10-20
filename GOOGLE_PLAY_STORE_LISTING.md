@@ -30,13 +30,12 @@ v3.0.6 封閉測試版更新說明：
 </zh-TW>
 
 <en-US>
-v3.0.6 Closed Testing Release Notes:
-1. [Date Calculation & Deadline Picker] Select target deadline dates to automatically reverse-calculate required days. Default button prompt updated to "Select Date".
-2. [.xls Gantt Chart Spreadsheet Export] Export converted to native .xls spreadsheet format with 1:1 cell background fill colors (Blue for Workdays, Yellow for Weekends, Red for Holidays) in Excel/WPS.
-3. [6-Hour Detailed Weather Forecast] Weather card pinned to top. Tap any day to view 4 6-hour interval temperature and precipitation probability forecasts.
-4. [Simplified Result Card] Streamlined single calculation result card with result date and workday chip displayed on the same row.
-5. [Performance & Navigation Insets] Refactored screen composables for smooth 120Hz performance; resolved system virtual navigation bar overlaps.
-Thank you for participating in closed testing!
+v3.0.6 Release Notes:
+1. Select target deadline dates to auto-calculate days; prompt updated to "Select Date".
+2. Export native .xls Gantt spreadsheets with blue/yellow/red cell fill colors for Excel/WPS.
+3. Pinned weather card to top; tap any day for 4 6-hour interval forecasts & precipitation %.
+4. Streamlined single calculation result card with inline workday badges.
+5. Resolved virtual navigation bar overlaps & performance UI stalls.
 </en-US>
 ```
 
