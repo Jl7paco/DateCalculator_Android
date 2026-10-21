@@ -11,10 +11,15 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.platform.LocalView
+import me.paco.datecalculator.util.HapticUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -109,6 +114,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
     val scrollState = rememberScrollState()
     val homeConfig = uiState.homeConfig
     val lang = uiState.appLanguage
@@ -567,6 +573,8 @@ private fun HomeWeatherSection(
     onLocationClick: () -> Unit,
     onDayClick: (DailyWeather, Int) -> Unit
 ) {
+    val context = LocalContext.current
+    val view = LocalView.current
     val weatherShape = RoundedCornerShape(22.dp)
     val unit = uiState.temperatureUnit
 
@@ -621,13 +629,38 @@ private fun HomeWeatherSection(
                     val displayMin = unit.convertTemp(weather.tempMin)
                     val displayMax = unit.convertTemp(weather.tempMax)
 
+                    val interactionSource = remember { MutableInteractionSource() }
+                    val isPressed by interactionSource.collectIsPressedAsState()
+
+                    LaunchedEffect(isPressed) {
+                        if (isPressed) {
+                            HapticUtils.performCrispClick(context, view)
+                        }
+                    }
+
+                    val cardPressScale by animateFloatAsState(
+                        targetValue = if (isPressed) 0.94f else 1.0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        ),
+                        label = "WeatherCardPressScale"
+                    )
+
                     Box(
                         modifier = Modifier
                             .weight(1f)
+                            .graphicsLayer {
+                                scaleX = cardPressScale
+                                scaleY = cardPressScale
+                            }
                             .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 2.dp)
                             .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { onDayClick(weather, i) }
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null
+                            ) { onDayClick(weather, i) }
                             .padding(vertical = 8.dp, horizontal = 2.dp),
                         contentAlignment = Alignment.Center
                     ) {
