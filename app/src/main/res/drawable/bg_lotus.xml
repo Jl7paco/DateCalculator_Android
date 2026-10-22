@@ -3,7 +3,7 @@
     android:height="60dp"
     android:viewportWidth="1200"
     android:viewportHeight="600">
-    <path android:fillColor="#E2F0EA" android:pathData="M0,0 h1200 v600 h-1200 z" />
-    <path android:fillColor="#E98A9B" android:pathData="M940 410c-95-45-105-135-30-172 30 55 40 105 30 172zm0 0c95-45 105-135 30-172-30 55-40 105-30 172zm0-20c-40-90 0-155 0-155s40 65 0 155z" />
-    <path android:fillColor="#F3C55D" android:pathData="M930 382h20v25h-20z" />
+    <path android:fillColor="#E2F0EA" android:pathData="M 0 0 h 1200 v 600 h -1200 z" />
+    <path android:fillColor="#E98A9B" android:pathData="M 940 410 c -95-45-105-135-30-172 30 55 40 105 30 172 z m 0 0 c 95-45 105-135 30-172-30 55-40 105-30 172 z m 0-20 c -40-90 0-155 0-155 s 40 65 0 155 z" />
+    <path android:fillColor="#F3C55D" android:pathData="M 930 382 h 20 v 25 h -20 z" />
 </vector>
