@@ -144,50 +144,103 @@ data class HolidayThemePattern(
 )
 
 @Composable
-private fun getHolidayThemePattern(label: String, isDark: Boolean): HolidayThemePattern {
+private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark: Boolean): HolidayThemePattern {
     val clean = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
     val maskAlpha = if (isDark) 0.35f else 0.18f
 
-    // 100% 严格遵循路径 C:\Users\ThxiL\Documents\Codex\2026-10-22\w\outputs\android_holiday_backgrounds 下的 holiday_background_manifest.json 映射规则！
+    // 100% 严格遵循路径 C:\Users\ThxiL\Documents\Codex\2026-10-22\w\outputs\android_holiday_backgrounds 下的 holiday_background_manifest.json 映射规约！
     val resId = when {
-        // 1. 本地特定节日 VectorDrawable 图案覆盖 (Local Overrides in Manifest)
-        clean.contains("香港特别行政区成立纪念日") || clean.contains("香港") -> R.drawable.bg_harbour
-        clean.contains("澳门特别行政区成立纪念日") || clean.contains("澳門") -> R.drawable.bg_macau_city
-        clean.contains("端午") -> R.drawable.bg_dragon_boat
-        clean.contains("高考") || clean.contains("수능") -> R.drawable.bg_books
-        clean.contains("中考") -> R.drawable.bg_exam
-        clean.contains("儿童") || clean.contains("兒童") || clean.contains("어린이") -> R.drawable.bg_children
-        clean.contains("复活") -> R.drawable.bg_easter
-        clean.contains("佛诞") || clean.contains("佛誕") || clean.contains("卫塞") || clean.contains("衛塞") || clean.contains("水灯") -> R.drawable.bg_lotus
-        clean.contains("狂欢") -> R.drawable.bg_carnival
-        clean.contains("洒红") -> R.drawable.bg_holi
-        clean.contains("静居") || clean.contains("万佛") -> R.drawable.bg_temple
-        clean.contains("anzac") || clean.contains("军团") -> R.drawable.bg_poppy
-        clean.contains("matariki") || clean.contains("毛利新年") -> R.drawable.bg_matariki
+        // 1. 本地 Manifest 规约特定节日与地区优先覆盖 (local_drawable_overrides)
+        region == HolidayRegion.CHINA && (clean.contains("春") || clean.contains("lunar") || clean.contains("springfestival")) -> R.drawable.bg_lion_dance
+        region == HolidayRegion.CHINA && (clean.contains("端午") || clean.contains("dragonboat") || clean.contains("zongzi")) -> R.drawable.bg_zongzi
+        region == HolidayRegion.CHINA && (clean.contains("中秋") || clean.contains("midautumn") || clean.contains("mooncake")) -> R.drawable.bg_mooncake
+        region == HolidayRegion.CHINA && (clean.contains("国庆") || clean.contains("國慶") || clean.contains("nationalday")) -> R.drawable.bg_lantern_string
+        region == HolidayRegion.CHINA && (clean.contains("劳动") || clean.contains("五一") || clean.contains("laborday") || clean.contains("labourday")) -> R.drawable.bg_paper_fan
+        region == HolidayRegion.CHINA && (clean.contains("高考") || clean.contains("collegeentrance")) -> R.drawable.bg_books
+        region == HolidayRegion.CHINA && (clean.contains("中考") || clean.contains("highschoolentrance")) -> R.drawable.bg_exam
+        region == HolidayRegion.CHINA && (clean.contains("儿童") || clean.contains("兒童") || clean.contains("childrensday")) -> R.drawable.bg_children
+
+        (region == HolidayRegion.TAIWAN || region == HolidayRegion.MACAO) && (clean.contains("农历新年") || clean.contains("農曆新年")) -> R.drawable.bg_red_envelope
+        region == HolidayRegion.HONG_KONG && (clean.contains("农历新年") || clean.contains("農曆新年") || clean.contains("lunar")) -> R.drawable.bg_lion_dance
+        region == HolidayRegion.HONG_KONG && (clean.contains("香港") || clean.contains("特区成立") || clean.contains("特區成立") || clean.contains("hkreunification") || clean.contains("tram")) -> R.drawable.bg_hk_tram
+        region == HolidayRegion.MACAO && (clean.contains("澳门") || clean.contains("澳門") || clean.contains("特区成立") || clean.contains("特區成立") || clean.contains("macaureunification") || clean.contains("macautiles")) -> R.drawable.bg_macau_tiles
+        (region == HolidayRegion.HONG_KONG || region == HolidayRegion.MACAO) && (clean.contains("重阳") || clean.contains("重陽") || clean.contains("chungyeung")) -> R.drawable.bg_ancestral
+        (region == HolidayRegion.HONG_KONG || region == HolidayRegion.MACAO) && (clean.contains("冬至") || clean.contains("wintersolstice")) -> R.drawable.bg_winter_solstice
+        region == HolidayRegion.MACAO && (clean.contains("平安夜") || clean.contains("圣诞节前日") || clean.contains("christmaseve")) -> R.drawable.bg_christmas_eve
+
+        region == HolidayRegion.JAPAN && (clean.contains("春分") || clean.contains("sakura") || clean.contains("cherry")) -> R.drawable.bg_sakura
+        region == HolidayRegion.JAPAN && (clean.contains("绿之日") || clean.contains("綠之日") || clean.contains("greenery") || clean.contains("bamboo")) -> R.drawable.bg_bamboo
+        region == HolidayRegion.JAPAN && (clean.contains("文化") || clean.contains("kimono")) -> R.drawable.bg_kimono_fan
+        region == HolidayRegion.JAPAN && (clean.contains("成人") || clean.contains("seijin") || clean.contains("comingofage")) -> R.drawable.bg_seijin
+        region == HolidayRegion.JAPAN && (clean.contains("儿童之日") || clean.contains("こどもの日") || clean.contains("koinobori")) -> R.drawable.bg_koinobori
+        region == HolidayRegion.JAPAN && (clean.contains("体育") || clean.contains("sports")) -> R.drawable.bg_sports
+
+        region == HolidayRegion.SOUTH_KOREA && (clean.contains("설날") || clean.contains("seollal") || clean.contains("hanbok")) -> R.drawable.bg_hanbok
+        region == HolidayRegion.SOUTH_KOREA && (clean.contains("开天节") || clean.contains("개천절") || clean.contains("foundation")) -> R.drawable.bg_korea_hanok
+        region == HolidayRegion.SOUTH_KOREA && (clean.contains("显忠日") || clean.contains("현충일") || clean.contains("memorial")) -> R.drawable.bg_memorial
+
+        (region == HolidayRegion.SINGAPORE || region == HolidayRegion.INDONESIA) && (clean.contains("开斋") || clean.contains("eid") || clean.contains("ramadan")) -> R.drawable.bg_ramadan_dates
+        region == HolidayRegion.SINGAPORE && (clean.contains("国庆") || clean.contains("nationalday") || clean.contains("singaporegarden")) -> R.drawable.bg_singapore_garden
+        region == HolidayRegion.MALAYSIA && (clean.contains("哈芝") || clean.contains("hajj")) -> R.drawable.bg_hajj
+        region == HolidayRegion.MALAYSIA && (clean.contains("马来西亚日") || clean.contains("malaysiaday") || clean.contains("batik")) -> R.drawable.bg_malaysia_batik
+        (region == HolidayRegion.MALAYSIA || region == HolidayRegion.AUSTRALIA || region == HolidayRegion.NEW_ZEALAND) && (clean.contains("元首诞辰") || clean.contains("国王生日") || clean.contains("kingsbirthday") || clean.contains("crown")) -> R.drawable.bg_crown
+
+        region == HolidayRegion.VIETNAM && (clean.contains("国庆") || clean.contains("nationalday") || clean.contains("vietnamhat")) -> R.drawable.bg_vietnam_hat
+
+        region == HolidayRegion.UNITED_KINGDOM && (clean.contains("银行假日") || clean.contains("bankholiday") || clean.contains("uktea")) -> R.drawable.bg_uk_tea
+        region == HolidayRegion.GERMANY && (clean.contains("统一") || clean.contains("unity") || clean.contains("pretzel")) -> R.drawable.bg_germany_pretzel
+        region == HolidayRegion.FRANCE && (clean.contains("国庆") || clean.contains("bastille") || clean.contains("croissant")) -> R.drawable.bg_france_croissant
+        region == HolidayRegion.FRANCE && (clean.contains("劳动") || clean.contains("labour") || clean.contains("olive")) -> R.drawable.bg_olive
+        region == HolidayRegion.FRANCE && (clean.contains("万圣") || clean.contains("toussaint") || clean.contains("halloween")) -> R.drawable.bg_halloween
+        region == HolidayRegion.ITALY && (clean.contains("共和国") || clean.contains("republic") || clean.contains("gondola")) -> R.drawable.bg_italy_gondola
+        region == HolidayRegion.ITALY && (clean.contains("狂欢") || clean.contains("carnival")) -> R.drawable.bg_carnival
+        region == HolidayRegion.INDIA && (clean.contains("共和") || clean.contains("republic") || clean.contains("rangoli")) -> R.drawable.bg_india_rangoli
+        region == HolidayRegion.INDIA && (clean.contains("洒红") || clean.contains("holi")) -> R.drawable.bg_holi
+        region == HolidayRegion.INDIA && (clean.contains("圣诞") || clean.contains("christmas") || clean.contains("bells")) -> R.drawable.bg_bells
+        (region == HolidayRegion.INDONESIA || region == HolidayRegion.THAILAND) && (clean.contains("静居") || clean.contains("万佛") || clean.contains("nyepi") || clean.contains("temple")) -> R.drawable.bg_temple
+        region == HolidayRegion.INDONESIA && (clean.contains("独立") || clean.contains("independence") || clean.contains("batik")) -> R.drawable.bg_indonesia_batik
+        region == HolidayRegion.AUSTRALIA && (clean.contains("圣诞") || clean.contains("christmas") || clean.contains("gift")) -> R.drawable.bg_gift
+        region == HolidayRegion.NEW_ZEALAND && (clean.contains("圣诞") || clean.contains("christmas") || clean.contains("sunflower")) -> R.drawable.bg_sunflower
+        (region == HolidayRegion.AUSTRALIA || region == HolidayRegion.NEW_ZEALAND) && (clean.contains("anzac") || clean.contains("poppy")) -> R.drawable.bg_poppy
+        region == HolidayRegion.NEW_ZEALAND && (clean.contains("matariki") || clean.contains("毛利新年")) -> R.drawable.bg_matariki
+        region == HolidayRegion.THAILAND && (clean.contains("宋干") || clean.contains("songkran") || clean.contains("tuktuk")) -> R.drawable.bg_tuktuk
+        region == HolidayRegion.THAILAND && (clean.contains("水灯") || clean.contains("thailandlantern") || clean.contains("loykrathong")) -> R.drawable.bg_thai_lantern
+        region == HolidayRegion.UNITED_STATES && (clean.contains("阵亡") || clean.contains("退伍") || clean.contains("memorial") || clean.contains("veterans")) -> R.drawable.bg_memorial
+        region == HolidayRegion.UNITED_STATES && (clean.contains("感恩") || clean.contains("thanksgiving")) -> R.drawable.bg_thanksgiving
+
+        // 2. 通用跨语言多语种降级逻辑 (All Regions Fallbacks in Manifest)
+        clean.contains("春") || clean.contains("年") || clean.contains("설날") || clean.contains("tết") || clean.contains("lunar") || clean.contains("springfestival") -> R.drawable.bg_lunar_festival
+        clean.contains("清明") || clean.contains("春分") || clean.contains("绿之日") || clean.contains("守夏") || clean.contains("tombsweeping") || clean.contains("springrain") -> R.drawable.bg_spring_rain
+        clean.contains("端午") || clean.contains("dragonboat") || clean.contains("zongzi") -> R.drawable.bg_dragon_boat
+        clean.contains("中秋") || clean.contains("秋分") || clean.contains("추석") || clean.contains("midautumn") || clean.contains("mooncake") -> R.drawable.bg_autumn_moon
+        clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") || clean.contains("labour") || clean.contains("勤労") -> R.drawable.bg_spring_festival
+        clean.contains("高考") || clean.contains("수능") || clean.contains("collegeentrance") || clean.contains("books") -> R.drawable.bg_books
+        clean.contains("中考") || clean.contains("highschoolentrance") || clean.contains("exam") -> R.drawable.bg_exam
+        clean.contains("受难") || clean.contains("节礼") || clean.contains("主显") || clean.contains("boxingday") || clean.contains("goodfriday") -> R.drawable.bg_winter
+        clean.contains("开斋") || clean.contains("哈芝") || clean.contains("伊斯兰新年") || clean.contains("先知") || clean.contains("eid") || clean.contains("ramadan") -> R.drawable.bg_eid
+        clean.contains("屠妖") || clean.contains("diwali") || clean.contains("deepavali") -> R.drawable.bg_diwali
+        clean.contains("songkran") || clean.contains("泼水") || clean.contains("水灯") || clean.contains("怀唐伊") || clean.contains("water") -> R.drawable.bg_water_festival
+        clean.contains("山之日") || clean.contains("山の日") || clean.contains("mountain") -> R.drawable.bg_mountain_day
+        clean.contains("海之日") || clean.contains("夏") || clean.contains("summer") -> R.drawable.bg_summer
+        clean.contains("重阳") || clean.contains("重陽") || clean.contains("敬老") || clean.contains("显忠") || clean.contains("停战") || clean.contains("阵亡") || clean.contains("退伍") || clean.contains("丰收") || clean.contains("harvest") -> R.drawable.bg_harvest
+        clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("noel") -> R.drawable.bg_christmas
+        clean.contains("复活") || clean.contains("easter") -> R.drawable.bg_easter
+        clean.contains("佛诞") || clean.contains("佛誕") || clean.contains("卫塞") || clean.contains("衛塞") || clean.contains("vesak") || clean.contains("buddha") -> R.drawable.bg_lotus
+        clean.contains("狂欢") || clean.contains("carnival") -> R.drawable.bg_carnival
+        clean.contains("洒红") || clean.contains("holi") -> R.drawable.bg_holi
         clean.contains("感恩") || clean.contains("thanksgiving") -> R.drawable.bg_thanksgiving
         clean.contains("万圣") || clean.contains("萬聖") || clean.contains("halloween") -> R.drawable.bg_halloween
-
-        // 2. 地区分流与 28 款 VectorDrawable SVG 矢量素材映射 (Regional Fallbacks in Manifest)
-        clean.contains("春") || clean.contains("年") || clean.contains("설날") || clean.contains("tết") -> R.drawable.bg_lunar_festival
-        clean.contains("清明") || clean.contains("春分") || clean.contains("绿之日") || clean.contains("守夏") -> R.drawable.bg_spring_rain
-        clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") || clean.contains("labour") || clean.contains("勤労") -> R.drawable.bg_spring_festival
-        clean.contains("中秋") || clean.contains("秋分") || clean.contains("추석") -> R.drawable.bg_autumn_moon
-        clean.contains("受难") || clean.contains("节礼") || clean.contains("主显") -> R.drawable.bg_winter
-        clean.contains("开斋") || clean.contains("哈芝") || clean.contains("伊斯兰新年") || clean.contains("先知") -> R.drawable.bg_eid
-        clean.contains("屠妖") || clean.contains("diwali") || clean.contains("deepavali") -> R.drawable.bg_diwali
-        clean.contains("songkran") || clean.contains("泼水") || clean.contains("怀唐伊") -> R.drawable.bg_water_festival
-        clean.contains("山之日") || clean.contains("山の日") -> R.drawable.bg_mountain_day
-        clean.contains("海之日") || clean.contains("夏") || clean.contains("summer") -> R.drawable.bg_summer
-        clean.contains("重阳") || clean.contains("重陽") || clean.contains("敬老") || clean.contains("显忠") || clean.contains("停战") || clean.contains("阵亡") || clean.contains("退伍") || clean.contains("丰收") -> R.drawable.bg_harvest
-        clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") -> R.drawable.bg_christmas
+        clean.contains("儿童") || clean.contains("兒童") || clean.contains("children") -> R.drawable.bg_children
+        clean.contains("港湾") || clean.contains("维港") || clean.contains("harbour") || clean.contains("harbor") -> R.drawable.bg_harbour
+        clean.contains("澳门") || clean.contains("macau") -> R.drawable.bg_macau_city
         else -> R.drawable.bg_fireworks
     }
 
     val accent = when {
-        clean.contains("春") || clean.contains("国庆") || clean.contains("圣诞") -> Color(0xFFEF4444)
-        clean.contains("清明") || clean.contains("高考") || clean.contains("劳动") -> Color(0xFF10B981)
-        clean.contains("特区") || clean.contains("元旦") -> Color(0xFF3B82F6)
-        clean.contains("中秋") || clean.contains("感恩") || clean.contains("万圣") -> Color(0xFFD97706)
+        clean.contains("春") || clean.contains("国庆") || clean.contains("圣诞") || clean.contains("lunar") || clean.contains("national") || clean.contains("christmas") -> Color(0xFFEF4444)
+        clean.contains("清明") || clean.contains("高考") || clean.contains("劳动") || clean.contains("labor") || clean.contains("tombsweeping") -> Color(0xFF10B981)
+        clean.contains("特区") || clean.contains("元旦") || clean.contains("newyear") -> Color(0xFF3B82F6)
+        clean.contains("中秋") || clean.contains("感恩") || clean.contains("万圣") || clean.contains("midautumn") || clean.contains("thanksgiving") || clean.contains("halloween") -> Color(0xFFD97706)
         else -> NeumorphicAccent
     }
 
@@ -885,7 +938,7 @@ fun DateDiffScreen(
                             val rawLocalized = LanguageUtils.getLocalizedHolidayName(label, lang)
                             val cleanName = rawLocalized.replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
 
-                            val pattern = getHolidayThemePattern(label, isDark)
+                            val pattern = getHolidayThemePattern(label, uiState.holidayRegion, isDark)
 
                             Box(
                                 modifier = Modifier
@@ -914,19 +967,19 @@ fun DateDiffScreen(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // 1. 无版权风险 Unsplash CC0 100% 真实照片局部贴图 (如秋分/中秋金黄秋叶、清明春绿、国庆红金)
+                                // 1. 矢量/插画素材背景 (通过 matchParentSize 与 FillBounds 100% 完美平铺填满按键)
                                 Image(
                                     painter = painterResource(pattern.photoResId),
                                     contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    alpha = if (isDark) 0.60f else 0.50f,
-                                    modifier = Modifier.fillMaxSize()
+                                    contentScale = ContentScale.FillBounds,
+                                    alpha = if (isDark) 0.65f else 0.55f,
+                                    modifier = Modifier.matchParentSize()
                                 )
 
-                                // 2. 柔和颜色遮罩，确保前景文字 100% 绝对清晰易读
+                                // 2. 柔和颜色遮罩，保证文字极佳对比度
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxSize()
+                                        .matchParentSize()
                                         .background(pattern.overlayMaskColor)
                                 )
 
@@ -997,7 +1050,7 @@ fun DateDiffScreen(
                         .replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
 
                     // 根据路径下 Manifest 映射规则获得 VectorDrawable 背景素材与色调
-                    val cardPattern = getHolidayThemePattern(cardData.eventName, isDark)
+                    val cardPattern = getHolidayThemePattern(cardData.eventName, uiState.holidayRegion, isDark)
 
                     val resultCardShape = RoundedCornerShape(22.dp)
                     Box(
@@ -1009,19 +1062,19 @@ fun DateDiffScreen(
                             .border(1.2.dp, cardPattern.accentColor.copy(alpha = 0.35f), shape = resultCardShape)
                             .clip(resultCardShape)
                     ) {
-                        // 1. VectorDrawable 背景矢量素材层
+                        // 1. VectorDrawable 背景矢量素材层 (通过 matchParentSize 与 FillBounds 100% 完美平铺填满倒数日结果卡片)
                         Image(
                             painter = painterResource(cardPattern.photoResId),
                             contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            alpha = if (isDark) 0.55f else 0.45f,
-                            modifier = Modifier.fillMaxSize()
+                            contentScale = ContentScale.FillBounds,
+                            alpha = if (isDark) 0.60f else 0.50f,
+                            modifier = Modifier.matchParentSize()
                         )
 
                         // 2. 柔和主题配色遮罩
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .matchParentSize()
                                 .background(cardPattern.overlayMaskColor)
                         )
 
