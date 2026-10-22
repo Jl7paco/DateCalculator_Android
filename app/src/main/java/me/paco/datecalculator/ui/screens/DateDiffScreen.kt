@@ -134,43 +134,58 @@ data class CountdownCardData(
 )
 
 private fun getHolidayWatermarkSymbol(label: String): String {
-    val clean = label.replace(Regex("[^\\u4e00-\\u9fa5]"), "").trim()
+    val clean = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
     return when {
-        clean.contains("国庆") -> "⭐"
-        clean.contains("春") || clean.contains("年") -> "🏮"
-        clean.contains("元旦") || clean.contains("跨年") -> "✨"
-        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") -> "🎓"
-        clean.contains("劳动") || clean.contains("五一") -> "🌿"
-        clean.contains("中秋") -> "🌕"
-        clean.contains("端午") -> "🐉"
+        clean.contains("国庆") || clean.contains("國慶") || clean.contains("independence") || clean.contains("national") || clean.contains("建国") -> "⭐"
+        clean.contains("春") || clean.contains("年") || clean.contains("newyear") || clean.contains("元旦") || clean.contains("跨年") || clean.contains("元日") || clean.contains("설날") -> "🎆"
+        clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("xmas") -> "🎄"
+        clean.contains("感恩") || clean.contains("thanksgiving") -> "🦃"
+        clean.contains("复活") || clean.contains("復活") || clean.contains("easter") -> "🥚"
+        clean.contains("万圣") || clean.contains("萬聖") || clean.contains("halloween") -> "🎃"
+        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") || clean.contains("exam") || clean.contains("수능") -> "🎓"
+        clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") || clean.contains("labour") || clean.contains("勤労") -> "🌿"
+        clean.contains("中秋") || clean.contains("月") || clean.contains("moon") || clean.contains("추석") -> "🌕"
+        clean.contains("端午") || clean.contains("dragon") -> "🐉"
         clean.contains("清明") -> "🌿"
+        clean.contains("情人") || clean.contains("valentine") -> "❤️"
+        clean.contains("佛诞") || clean.contains("佛誕") || clean.contains("buddha") -> "☸️"
+        clean.contains("国王") || clean.contains("國王") || clean.contains("king") || clean.contains("queen") || clean.contains("天皇") -> "👑"
         else -> "⏳"
     }
 }
 
 @Composable
 private fun getHolidayBackgroundBrush(label: String, isDark: Boolean): Brush {
-    val clean = label.replace(Regex("[^\\u4e00-\\u9fa5]"), "").trim()
+    val clean = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
     val alpha1 = if (isDark) 0.35f else 0.28f
     val alpha2 = if (isDark) 0.20f else 0.15f
 
     return when {
-        clean.contains("国庆") -> Brush.linearGradient(
+        clean.contains("国庆") || clean.contains("國慶") || clean.contains("independence") || clean.contains("national") || clean.contains("建国") -> Brush.linearGradient(
             colors = listOf(Color(0xFFDC2626).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))
         )
-        clean.contains("春") || clean.contains("年") -> Brush.linearGradient(
-            colors = listOf(Color(0xFFB91C1C).copy(alpha = alpha1), Color(0xFFEF4444).copy(alpha = alpha2))
-        )
-        clean.contains("元旦") || clean.contains("跨年") -> Brush.linearGradient(
+        clean.contains("春") || clean.contains("年") || clean.contains("newyear") || clean.contains("元旦") || clean.contains("跨年") || clean.contains("元日") || clean.contains("설날") -> Brush.linearGradient(
             colors = listOf(Color(0xFF2563EB).copy(alpha = alpha1), Color(0xFF8B5CF6).copy(alpha = alpha2))
         )
-        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") -> Brush.linearGradient(
+        clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("xmas") -> Brush.linearGradient(
+            colors = listOf(Color(0xFF16A34A).copy(alpha = alpha1), Color(0xFFDC2626).copy(alpha = alpha2))
+        )
+        clean.contains("感恩") || clean.contains("thanksgiving") -> Brush.linearGradient(
+            colors = listOf(Color(0xFFD97706).copy(alpha = alpha1), Color(0xFFB45309).copy(alpha = alpha2))
+        )
+        clean.contains("复活") || clean.contains("復活") || clean.contains("easter") -> Brush.linearGradient(
+            colors = listOf(Color(0xFFEC4899).copy(alpha = alpha1), Color(0xFFA855F7).copy(alpha = alpha2))
+        )
+        clean.contains("万圣") || clean.contains("萬聖") || clean.contains("halloween") -> Brush.linearGradient(
+            colors = listOf(Color(0xFFEA580C).copy(alpha = alpha1), Color(0xFF7C3AED).copy(alpha = alpha2))
+        )
+        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") || clean.contains("exam") || clean.contains("수능") -> Brush.linearGradient(
             colors = listOf(Color(0xFF059669).copy(alpha = alpha1), Color(0xFF10B981).copy(alpha = alpha2))
         )
-        clean.contains("劳动") || clean.contains("五一") -> Brush.linearGradient(
+        clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") || clean.contains("labour") || clean.contains("勤労") -> Brush.linearGradient(
             colors = listOf(Color(0xFF0D9488).copy(alpha = alpha1), Color(0xFF14B8A6).copy(alpha = alpha2))
         )
-        clean.contains("中秋") || clean.contains("月") -> Brush.linearGradient(
+        clean.contains("中秋") || clean.contains("月") || clean.contains("moon") || clean.contains("추석") -> Brush.linearGradient(
             colors = listOf(Color(0xFF4338CA).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))
         )
         else -> Brush.linearGradient(
