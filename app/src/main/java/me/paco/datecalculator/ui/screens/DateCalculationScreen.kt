@@ -817,7 +817,7 @@ private fun DateCalcMultiStageSection(
 
                     Spacer(modifier = Modifier.width(4.dp))
 
-                    // 截止日期选择按钮与提示词 (当输入框文字是灰色/为空时不作联动，显示默认截至日期提示)
+                    // 截止日期选择按钮与提示词 (语言感知的宽度与自适应字号，确保英文下不贴边出框)
                     val stageCalculatedEndDate = if (stage.daysInput.isNotBlank()) calculatedMultiSegments.getOrNull(index)?.endDate else null
                     val deadlinePromptText = if (stageCalculatedEndDate != null) {
                         val monthDay = stageCalculatedEndDate.format(DateTimeFormatter.ofPattern("MM-dd"))
@@ -839,9 +839,13 @@ private fun DateCalcMultiStageSection(
                         }
                     }
 
+                    val deadlineButtonWidth = if (lang.isChineseLocale) 86.dp else 94.dp
+                    val deadlineFontSize = if (lang.isChineseLocale) 10.5.sp else 9.5.sp
+                    val deadlineFontWeight = if (lang.isChineseLocale) FontWeight.Bold else FontWeight.SemiBold
+
                     Box(
                         modifier = Modifier
-                            .width(88.dp)
+                            .width(deadlineButtonWidth)
                             .height(38.dp)
                             .neumorphicInset(shape = RoundedCornerShape(8.dp), elevation = 2.dp)
                             .background(NeumorphicSunkenBg, shape = RoundedCornerShape(8.dp))
@@ -849,7 +853,7 @@ private fun DateCalcMultiStageSection(
                             .clickable {
                                 stagePickerStageId = stage.id
                             }
-                            .padding(horizontal = 6.dp),
+                            .padding(horizontal = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
@@ -862,12 +866,12 @@ private fun DateCalcMultiStageSection(
                                 tint = NeumorphicAccent,
                                 modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(3.dp))
+                            Spacer(modifier = Modifier.width(2.dp))
                             Text(
                                 text = deadlinePromptText,
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (stageCalculatedEndDate != null) NeumorphicAccent else NeumorphicTextPrimary.copy(alpha = 0.5f),
+                                fontSize = deadlineFontSize,
+                                fontWeight = deadlineFontWeight,
+                                color = if (stageCalculatedEndDate != null) NeumorphicAccent else NeumorphicTextPrimary.copy(alpha = 0.55f),
                                 maxLines = 1,
                                 softWrap = false
                             )

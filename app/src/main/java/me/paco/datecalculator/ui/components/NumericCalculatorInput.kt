@@ -241,6 +241,9 @@ fun NumericCalculatorInput(
                         .background(NeumorphicBg, shape = chipShape)
                 }
 
+                val chipFontSize = if (language.isChineseLocale) 11.5.sp else 10.sp
+                val chipFontWeight = if (language.isChineseLocale) FontWeight.Bold else FontWeight.SemiBold
+
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -266,15 +269,15 @@ fun NumericCalculatorInput(
                     Text(
                         text = labelText,
                         color = if (isSelected) Color.White else NeumorphicTextPrimary,
-                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                        fontSize = 11.5.sp,
+                        fontWeight = if (isSelected) FontWeight.ExtraBold else chipFontWeight,
+                        fontSize = chipFontSize,
                         textAlign = TextAlign.Center,
                         maxLines = 1
                     )
                 }
             }
 
-            // 第 4 个最右侧截止日期选择按键 (保持同款 14.dp 3D 拟物圆角矩形方式)
+            // 第 4 个最右侧截止日期选择按键 (语言感知加宽 weight，确保英文下不贴边)
             if (onDeadlineDatePickerClick != null) {
                 val promptText = targetDeadlineDateText ?: when (language.getEffectiveLanguage()) {
                     AppLanguage.SIMPLIFIED_CHINESE -> "选择日期"
@@ -295,7 +298,7 @@ fun NumericCalculatorInput(
 
                 Box(
                     modifier = Modifier
-                        .weight(1.15f)
+                        .weight(if (language.isChineseLocale) 1.15f else 1.35f)
                         .height(42.dp)
                         .graphicsLayer {
                             scaleX = scale
