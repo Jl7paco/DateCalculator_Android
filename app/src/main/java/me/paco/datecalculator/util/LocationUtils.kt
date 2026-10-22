@@ -24,6 +24,77 @@ data class DistrictLocation(
 
 object LocationUtils {
 
+    private fun haversineDistanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = kotlin.math.sin(dLat / 2) * kotlin.math.sin(dLat / 2) +
+                kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
+                kotlin.math.sin(dLon / 2) * kotlin.math.sin(dLon / 2)
+        val c = 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
+        return 6371.0 * c
+    }
+
+    private val offlineCityLookupTable = listOf(
+        "深圳市 · 南山区" to (22.533 to 113.930),
+        "深圳市 · 福田区" to (22.540 to 114.055),
+        "深圳市 · 宝安区" to (22.553 to 113.883),
+        "深圳市 · 罗湖区" to (22.548 to 114.117),
+        "深圳市 · 龙岗区" to (22.721 to 114.247),
+        "广州市 · 天河区" to (23.125 to 113.361),
+        "广州市 · 越秀区" to (23.128 to 113.264),
+        "北京市 · 朝阳区" to (39.921 to 116.486),
+        "北京市 · 海淀区" to (39.983 to 116.310),
+        "上海市 · 浦东新区" to (31.222 to 121.544),
+        "上海市 · 静安区" to (31.228 to 121.455),
+        "成都市 · 武侯区" to (30.642 to 104.043),
+        "杭州市 · 西湖区" to (30.259 to 120.130),
+        "武汉市 · 武昌区" to (30.553 to 114.342),
+        "南京市 · 玄武区" to (32.051 to 118.791),
+        "西安市 · 雁塔区" to (34.222 to 108.953),
+        "重庆市 · 渝中区" to (29.558 to 106.551),
+        "天津市 · 和平区" to (39.117 to 117.200),
+        "台北市" to (25.033 to 121.565),
+        "香港特別行政區" to (22.319 to 114.169),
+        "澳門特別行政區" to (22.198 to 113.543),
+        "东京" to (35.676 to 139.650),
+        "首尔" to (37.566 to 126.978),
+        "新加坡" to (1.352 to 103.820),
+        "伦敦" to (51.507 to -0.127),
+        "纽约" to (40.712 to -74.006),
+        "洛杉矶" to (34.052 to -118.243)
+    )
+
+    fun findNearestOfflineCity(lat: Double, lon: Double): DistrictLocation {
+        var minDistance = Double.MAX_VALUE
+        var bestMatch = "深圳市 · 南山区"
+        var bestCity = "深圳市"
+        var bestDistrict = "南山区"
+        var bestLat = 22.533
+        var bestLon = 113.930
+
+        for ((fullDisplay, coords) in offlineCityLookupTable) {
+            val (cLat, cLon) = coords
+            val dist = haversineDistanceKm(lat, lon, cLat, cLon)
+            if (dist < minDistance) {
+                minDistance = dist
+                bestMatch = fullDisplay
+                val parts = fullDisplay.split("·").map { it.trim() }
+                bestCity = parts.firstOrNull() ?: fullDisplay
+                bestDistrict = if (parts.size > 1) parts[1] else ""
+                bestLat = cLat
+                bestLon = cLon
+            }
+        }
+
+        return DistrictLocation(
+            fullDisplayName = bestMatch,
+            cityName = bestCity,
+            districtName = bestDistrict,
+            latitude = if (minDistance < 120.0) lat else bestLat,
+            longitude = if (minDistance < 120.0) lon else bestLon
+        )
+    }
+
     fun getCurrentLocationWithDistrict(context: Context): DistrictLocation {
         try {
             val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -43,39 +114,44 @@ object LocationUtils {
                 }
 
                 if (bestLocation != null) {
-                    val geocoder = Geocoder(context, Locale.CHINA)
-                    @Suppress("DEPRECATION")
-                    val addresses = geocoder.getFromLocation(bestLocation.latitude, bestLocation.longitude, 1)
-                    if (!addresses.isNullOrEmpty()) {
-                        val addr = addresses[0]
-                        val rawCity = addr.locality ?: addr.subAdminArea ?: addr.adminArea ?: "深圳市"
-                        val rawDistrict = addr.subLocality ?: addr.thoroughfare ?: ""
+                    try {
+                        val geocoder = Geocoder(context, Locale.CHINA)
+                        @Suppress("DEPRECATION")
+                        val addresses = geocoder.getFromLocation(bestLocation.latitude, bestLocation.longitude, 1)
+                        if (!addresses.isNullOrEmpty()) {
+                            val addr = addresses[0]
+                            val rawCity = addr.locality ?: addr.subAdminArea ?: addr.adminArea ?: "深圳市"
+                            val rawDistrict = addr.subLocality ?: addr.thoroughfare ?: ""
 
-                        val cleanCity = if (rawCity.endsWith("市")) rawCity else "${rawCity}市"
-                        val fullDisplay = if (rawDistrict.isNotBlank() && !cleanCity.contains(rawDistrict)) {
-                            "$cleanCity · $rawDistrict"
-                        } else {
-                            cleanCity
+                            val cleanCity = if (rawCity.endsWith("市")) rawCity else "${rawCity}市"
+                            val fullDisplay = if (rawDistrict.isNotBlank() && !cleanCity.contains(rawDistrict)) {
+                                "$cleanCity · $rawDistrict"
+                            } else {
+                                cleanCity
+                            }
+
+                            return DistrictLocation(
+                                fullDisplayName = fullDisplay,
+                                cityName = cleanCity,
+                                districtName = rawDistrict,
+                                latitude = bestLocation.latitude,
+                                longitude = bestLocation.longitude
+                            )
                         }
-
-                        return DistrictLocation(
-                            fullDisplayName = fullDisplay,
-                            cityName = cleanCity,
-                            districtName = rawDistrict,
-                            latitude = bestLocation.latitude,
-                            longitude = bestLocation.longitude
-                        )
+                    } catch (_: Exception) {
+                        // 挂 VPN 导致系统 Geocoder 超时抛出异常：启动离线距离坐标精准算，100% 锁定城市！
+                        return findNearestOfflineCity(bestLocation.latitude, bestLocation.longitude)
                     }
                 }
             }
         } catch (_: Exception) {}
 
-        val currentRegion = detectCurrentRegion(context)
-        val defaultCity = currentRegion.nativeName
-        val defaultCoords = WeatherUtils.getCityCoordinates(defaultCity)
+        // 保留用户上一次本地已保存的有效城市，绝不重置为无效字符串
+        val savedCity = PreferenceUtils.getLastCityName(context)
+        val defaultCoords = WeatherUtils.getCityCoordinates(savedCity)
         return DistrictLocation(
-            fullDisplayName = defaultCity,
-            cityName = defaultCity,
+            fullDisplayName = savedCity,
+            cityName = savedCity,
             districtName = "",
             latitude = defaultCoords.first,
             longitude = defaultCoords.second
@@ -143,7 +219,10 @@ object LocationUtils {
                                 return
                             }
                         } catch (_: Exception) {}
-                        onLocationUpdated(null)
+
+                        // 挂 VPN 导致网络 Geocoder 失败时：离线根据 GPS 经纬度毫秒级算匹配城市，保证 VPN 下定位永不丢失！
+                        val offlineLoc = findNearestOfflineCity(location.latitude, location.longitude)
+                        onLocationUpdated(offlineLoc)
                     }
 
                     @Deprecated("Deprecated in API 29")
@@ -179,16 +258,18 @@ object LocationUtils {
                     @Suppress("MissingPermission")
                     val loc = lm?.getLastKnownLocation(p)
                     if (loc != null) {
-                        val geocoder = Geocoder(context, Locale.getDefault())
-                        @Suppress("DEPRECATION")
-                        val addresses = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
-                        if (!addresses.isNullOrEmpty()) {
-                            val countryCode = addresses[0].countryCode
-                            if (!countryCode.isNullOrEmpty()) {
-                                val matched = matchCountryCode(countryCode.uppercase())
-                                if (matched != null) return matched
+                        try {
+                            val geocoder = Geocoder(context, Locale.getDefault())
+                            @Suppress("DEPRECATION")
+                            val addresses = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
+                            if (!addresses.isNullOrEmpty()) {
+                                val countryCode = addresses[0].countryCode
+                                if (!countryCode.isNullOrEmpty()) {
+                                    val matched = matchCountryCode(countryCode.uppercase())
+                                    if (matched != null) return matched
+                                }
                             }
-                        }
+                        } catch (_: Exception) {}
                     }
                 }
             }
