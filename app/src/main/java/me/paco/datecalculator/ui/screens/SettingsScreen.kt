@@ -419,12 +419,12 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Slider(
-                        value = config.satelliteAltitudeKm.toFloat(),
+                        value = config.satelliteAltitudeKm.toFloat().coerceIn(10f, 25000f),
                         onValueChange = { newVal ->
                             viewModel.updateHomeConfig(config.copy(satelliteAltitudeKm = newVal.toInt()), context)
                         },
-                        valueRange = 1000f..25000f,
-                        steps = 23,
+                        valueRange = 10f..25000f,
+                        steps = 24,
                         colors = SliderDefaults.colors(
                             thumbColor = NeumorphicAccent,
                             activeTrackColor = NeumorphicAccent,

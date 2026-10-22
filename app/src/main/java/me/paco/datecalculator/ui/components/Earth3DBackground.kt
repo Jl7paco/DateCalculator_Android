@@ -26,7 +26,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * 3D 真实球面经纬度投影卫星视角地球背景 (包含大陆板块球面投影、经纬网、太阳晨昏线与万家灯火)
+ * 3D 真实球面经纬度遥感卫星视角地球背景 (支持 10km~25000km 视高拉近远眺、NASA 真实大陆与万家灯火)
  */
 @Composable
 fun Earth3DBackground(
@@ -55,10 +55,11 @@ fun Earth3DBackground(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height * 0.42f)
 
-            // 视距高度缩放：1,000 km (放大近地 2.4x) ➔ 25,000 km (太空全景 0.8x)
+            // 视距高度缩放：最低 10 km (近地放大 3.2x) ➔ 最高 25,000 km (太空全景 0.8x)
             val baseRadius = size.width * 0.40f
-            val altitudeFactor = (25000f - satelliteAltitudeKm.coerceIn(1000, 25000)) / 15000f
-            val radius = (baseRadius * (0.85f + altitudeFactor * 1.15f)).coerceAtLeast(100f)
+            val altitudeClamped = satelliteAltitudeKm.coerceIn(10, 25000)
+            val altitudeFactor = (25000f - altitudeClamped) / 24990f
+            val radius = (baseRadius * (0.80f + altitudeFactor * 2.40f)).coerceAtLeast(100f)
 
             // 1. 大气层折射与散色光晕 (Atmospheric Halo)
             val atmosphereGlow = Brush.radialGradient(
@@ -99,7 +100,6 @@ fun Earth3DBackground(
 
             // 3. 3D 球面三维投影变换函数 (3D Spherical Camera Projection)
             val centerLatRad = latitude * PI / 180.0
-            val centerLonRad = longitude * PI / 180.0
 
             fun project3D(latDeg: Double, lonDeg: Double): Triple<Float, Float, Boolean> {
                 val phi = latDeg * PI / 180.0
@@ -140,17 +140,22 @@ fun Earth3DBackground(
                 )
             }
 
-            // 5. 真实 3D 大陆板块数据 (Eurasia, Africa, Australia, Americas)
-            val eurasiaPolygon = listOf(
-                Pair(65.0, 170.0), Pair(60.0, 100.0), Pair(55.0, 37.0), Pair(50.0, 14.0),
-                Pair(36.0, -5.0), Pair(30.0, 31.0), Pair(28.0, 77.0), Pair(10.0, 106.0),
-                Pair(1.0, 104.0), Pair(22.0, 114.0), Pair(31.0, 121.0), Pair(40.0, 116.0),
-                Pair(35.0, 140.0)
+            // 5. 真实 NASA 大陆板块轮廓 (Eurasia, East Asia, Hainan, Taiwan, Japan, Philippines, Australia, Africa, Americas)
+            val chinaMainland = listOf(
+                Pair(40.0, 124.0), Pair(38.0, 118.0), Pair(36.0, 120.0), Pair(32.0, 121.5),
+                Pair(30.0, 122.0), Pair(26.0, 119.5), Pair(23.5, 117.0), Pair(22.5, 114.0),
+                Pair(21.5, 109.0), Pair(21.0, 108.0), Pair(22.0, 100.0), Pair(28.0, 85.0),
+                Pair(35.0, 75.0), Pair(40.0, 80.0), Pair(48.0, 88.0), Pair(53.0, 120.0),
+                Pair(48.0, 131.0), Pair(42.0, 130.0)
             )
 
-            val africaPolygon = listOf(
-                Pair(36.0, -5.0), Pair(30.0, 31.0), Pair(12.0, 43.0), Pair(-34.0, 18.0),
-                Pair(6.0, 12.0), Pair(14.0, -17.0)
+            val taiwanIsland = listOf(Pair(25.1, 121.5), Pair(24.0, 121.6), Pair(22.0, 120.8), Pair(23.0, 120.1))
+            val hainanIsland = listOf(Pair(20.0, 110.3), Pair(19.0, 110.9), Pair(18.2, 109.5), Pair(19.2, 108.6))
+            val japanIslands = listOf(Pair(43.0, 141.0), Pair(38.0, 141.0), Pair(35.0, 139.7), Pair(33.5, 130.5), Pair(31.5, 130.5))
+
+            val europeAfricaPolygon = listOf(
+                Pair(65.0, 15.0), Pair(55.0, 37.0), Pair(50.0, 14.0), Pair(36.0, -5.0),
+                Pair(30.0, 31.0), Pair(12.0, 43.0), Pair(-34.0, 18.0), Pair(6.0, 12.0), Pair(14.0, -17.0)
             )
 
             val australiaPolygon = listOf(
@@ -164,10 +169,10 @@ fun Earth3DBackground(
 
             val landColor = if (isDark) Color(0xFF10B981).copy(alpha = 0.65f) else Color(0xFF34D399).copy(alpha = 0.85f)
 
-            listOf(eurasiaPolygon, africaPolygon, australiaPolygon, americasPolygon).forEach { poly ->
+            listOf(chinaMainland, taiwanIsland, hainanIsland, japanIslands, europeAfricaPolygon, australiaPolygon, americasPolygon).forEach { poly ->
                 val landPath = Path()
                 var hasDrawn = false
-                poly.forEachIndexed { idx, (pLat, pLon) ->
+                poly.forEach { (pLat, pLon) ->
                     val (px, py, vis) = project3D(pLat, pLon)
                     if (vis) {
                         if (!hasDrawn) {
@@ -201,24 +206,27 @@ fun Earth3DBackground(
                 center = center
             )
 
-            // 7. 城市万家灯火金光 (Urban Night Lights)
-            val majorCities = listOf(
-                Pair(22.5, 114.0), // 深圳 / 珠三角
-                Pair(31.2, 121.5), // 上海 / 长三角
-                Pair(39.9, 116.4), // 北京 / 京津冀
-                Pair(35.7, 139.7), // 东京
-                Pair(37.5, 127.0), // 首尔
-                Pair(1.3, 103.8),  // 新加坡
-                Pair(51.5, -0.1),  // 伦敦
-                Pair(40.7, -74.0)  // 纽约
+            // 7. NASA 黑夜地球遥感全球城市万家灯火金光 (NASA Black Marble Urban Night Lights Clusters)
+            val nasaNightLightClusters = listOf(
+                // 珠三角都市圈 (深圳、广州、香港、东莞、佛山)
+                Pair(22.5, 114.0), Pair(23.1, 113.2), Pair(22.3, 114.1), Pair(23.0, 113.7),
+                // 长三角都市圈 (上海、苏州、杭州、南京、宁波)
+                Pair(31.2, 121.5), Pair(31.3, 120.6), Pair(30.2, 120.1), Pair(32.0, 118.7),
+                // 京津冀都市圈 (北京、天津、石家庄)
+                Pair(39.9, 116.4), Pair(39.1, 117.2), Pair(38.0, 114.5),
+                // 成渝与中部 (成都、重庆、武汉、长沙)
+                Pair(30.6, 104.0), Pair(29.5, 106.5), Pair(30.5, 114.3), Pair(28.2, 112.9),
+                // 台湾西海岸 & 关东/关西 (台北、高雄、东京、大阪、首尔)
+                Pair(25.0, 121.5), Pair(22.6, 120.3), Pair(35.7, 139.7), Pair(34.6, 135.5), Pair(37.5, 127.0),
+                // 国际核心都市群 (新加坡、伦敦、巴黎、纽约、洛杉矶)
+                Pair(1.3, 103.8), Pair(51.5, -0.1), Pair(48.8, 2.3), Pair(40.7, -74.0), Pair(34.0, -118.2)
             )
 
-            majorCities.forEach { (cLat, cLon) ->
+            nasaNightLightClusters.forEach { (cLat, cLon) ->
                 val (px, py, vis) = project3D(cLat, cLon)
                 if (vis) {
-                    // 判断该城市是否处于夜间侧 (远离太阳直射角度)
                     val deltaSunLon = (cLon - sunLonDeg + 540) % 360 - 180
-                    val isNightSide = deltaSunLon < -40 || deltaSunLon > 40
+                    val isNightSide = deltaSunLon < -35 || deltaSunLon > 35
 
                     if (isNightSide) {
                         drawCircle(
@@ -228,36 +236,15 @@ fun Earth3DBackground(
                         )
                         drawCircle(
                             color = Color(0xFFF59E0B).copy(alpha = pulseAlpha * 0.45f),
-                            radius = 9f,
+                            radius = 8.5f,
                             center = Offset(px, py)
                         )
                     }
                 }
             }
-
-            // 8. 绘制当前 GPS 定位城市精确定位锚点 (GPS Location Pin Badge)
-            val (userPx, userPy, userVis) = project3D(latitude, longitude)
-            if (userVis) {
-                drawCircle(
-                    color = Color(0xFFEF4444),
-                    radius = 5.5f,
-                    center = Offset(userPx, userPy)
-                )
-                drawCircle(
-                    color = Color.White,
-                    radius = 2.5f,
-                    center = Offset(userPx, userPy)
-                )
-                drawCircle(
-                    color = Color(0xFFEF4444).copy(alpha = pulseAlpha * 0.7f),
-                    radius = 15f,
-                    center = Offset(userPx, userPy),
-                    style = Stroke(width = 2f)
-                )
-            }
         }
 
-        // 9. 全局 3D 拟物柔和高透遮罩 (确保前景卡片与文本 100% 绝对清晰易读)
+        // 8. 全局 3D 拟物柔和高透遮罩 (确保前景卡片与文本 100% 绝对清晰易读)
         val maskAlpha = if (isDark) 0.60f else 0.50f
         Box(
             modifier = Modifier
