@@ -79,10 +79,10 @@ object RegionalHolidays {
             HolidayRegion.ITALY -> listOf("Capodanno", "Epifania", "Lundi de Pâques", "Festa della Liberazione", "Festa del Lavoro", "Festa della Repubblica", "Ferragosto", "Ognissanti", "Natale", "Santo Stefano")
             HolidayRegion.AUSTRALIA -> listOf("New Year's Day", "Australia Day", "Anzac Day", "King's Birthday", "Labor Day", "Christmas", "Boxing Day")
             HolidayRegion.NEW_ZEALAND -> listOf("New Year's Day", "Waitangi Day", "Anzac Day", "Labour Day", "Christmas")
-            HolidayRegion.VIETNAM -> listOf("Tết Dương lịch", "Tết Nguyên Đán", "Ngày Giỗ Tổ Hùng Vương", "Ngày Quốc tế Lao động", "Ngày Quốc Khánh")
-            HolidayRegion.THAILAND -> listOf("New Year's Day", "Songkran", "Labor Day", "National Day")
-            HolidayRegion.INDONESIA -> listOf("Tahun Baru", "Tahun Baru Imlek", "Labor Day", "Independence Day", "Christmas")
-            HolidayRegion.INDIA -> listOf("Republic Day", "Independence Day", "Gandhi Jayanti", "Diwali", "Christmas")
+            HolidayRegion.VIETNAM -> listOf("Tết Dương lịch", "Tết Nguyên Đán", "Ngày Giỗ Tổ Hùng Vương", "Ngày Giải phóng", "Ngày Quốc tế Lao động", "Ngày Quốc Khánh", "Tết Trung Thu")
+            HolidayRegion.THAILAND -> listOf("New Year's Day", "Chakri Day", "Songkran Festival", "Labor Day", "Coronation Day", "King's Birthday", "National Day", "Loy Krathong")
+            HolidayRegion.INDONESIA -> listOf("Tahun Baru Masehi", "Tahun Baru Imlek", "Hari Suci Nyepi", "Hari Buruh", "Hari Kemerdekaan RI", "Hari Raya Idul Fitri", "Hari Natal")
+            HolidayRegion.INDIA -> listOf("Republic Day", "Holi", "Good Friday", "Independence Day", "Gandhi Jayanti", "Diwali", "Christmas")
         }
     }
 
