@@ -870,7 +870,12 @@ object LanguageUtils {
 
     private fun translateSingleCity(cityName: String, language: AppLanguage): String {
         return when (language) {
+            AppLanguage.SIMPLIFIED_CHINESE -> cityName
             AppLanguage.TRADITIONAL_CHINESE -> when {
+                cityName.contains("中国大陆") || cityName.contains("中國大陸") -> "中國大陸"
+                cityName.contains("台湾") || cityName.contains("台灣") -> "中國台灣"
+                cityName.contains("香港") -> "香港特別行政區"
+                cityName.contains("澳门") || cityName.contains("澳門") -> "澳門特別行政區"
                 cityName.contains("北京") -> "北京市"
                 cityName.contains("上海") -> "上海市"
                 cityName.contains("广州") -> "廣州市"
@@ -878,11 +883,19 @@ object LanguageUtils {
                 cityName.contains("杭州") -> "杭州市"
                 cityName.contains("成都") -> "成都市"
                 cityName.contains("南京") -> "南京市"
-                cityName.contains("香港") -> "香港特別行政區"
-                cityName.contains("澳门") -> "澳門特別行政區"
                 else -> cityName
             }
             AppLanguage.ENGLISH -> when {
+                cityName.contains("中国大陆") || cityName.contains("中国") -> "China Mainland"
+                cityName.contains("台湾") || cityName.contains("台灣") -> "Taiwan"
+                cityName.contains("香港") -> "Hong Kong"
+                cityName.contains("澳门") || cityName.contains("澳門") -> "Macau"
+                cityName.contains("美国") -> "United States"
+                cityName.contains("英国") -> "United Kingdom"
+                cityName.contains("日本") -> "Japan"
+                cityName.contains("韩国") -> "South Korea"
+                cityName.contains("德国") -> "Germany"
+                cityName.contains("法国") -> "France"
                 cityName.contains("北京") -> "Beijing"
                 cityName.contains("上海") -> "Shanghai"
                 cityName.contains("广州") -> "Guangzhou"
@@ -895,8 +908,6 @@ object LanguageUtils {
                 cityName.contains("天津") -> "Tianjin"
                 cityName.contains("西安") -> "Xi'an"
                 cityName.contains("台北") -> "Taipei"
-                cityName.contains("香港") -> "Hong Kong"
-                cityName.contains("澳门") -> "Macau"
                 cityName.contains("新加坡") -> "Singapore"
                 cityName.contains("东京") -> "Tokyo"
                 cityName.contains("首尔") -> "Seoul"
@@ -905,6 +916,10 @@ object LanguageUtils {
                 else -> cityName
             }
             AppLanguage.JAPANESE -> when {
+                cityName.contains("中国大陆") || cityName.contains("中国") -> "中国本土"
+                cityName.contains("台湾") -> "台湾"
+                cityName.contains("香港") -> "香港"
+                cityName.contains("澳门") -> "マカオ"
                 cityName.contains("北京") -> "北京"
                 cityName.contains("上海") -> "上海"
                 cityName.contains("广州") -> "広州"
@@ -912,10 +927,13 @@ object LanguageUtils {
                 cityName.contains("杭州") -> "杭州"
                 cityName.contains("成都") -> "成都"
                 cityName.contains("台北") -> "台北"
-                cityName.contains("香港") -> "香港"
                 else -> cityName
             }
             AppLanguage.KOREAN -> when {
+                cityName.contains("中国大陆") || cityName.contains("中国") -> "중국 본토"
+                cityName.contains("台湾") -> "타이완"
+                cityName.contains("香港") -> "홍콩"
+                cityName.contains("澳门") -> "마카오"
                 cityName.contains("北京") -> "베이징"
                 cityName.contains("上海") -> "상하이"
                 cityName.contains("广州") -> "광저우"
@@ -923,7 +941,6 @@ object LanguageUtils {
                 cityName.contains("杭州") -> "항저우"
                 cityName.contains("成都") -> "청두"
                 cityName.contains("台北") -> "타이베이"
-                cityName.contains("香港") -> "홍콩"
                 else -> cityName
             }
             else -> cityName

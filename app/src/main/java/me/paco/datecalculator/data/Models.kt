@@ -196,23 +196,23 @@ enum class AppLanguage(
  */
 enum class BackgroundMode(val label: String) {
     BLANK("空白背景"),
-    CALENDAR("月历水印"),
+    CALENDAR("月历视图"),
     EARTH_3D("3D卫星地球");
 
     fun getLocalizedName(language: AppLanguage): String {
         return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> label
             AppLanguage.TRADITIONAL_CHINESE -> when (this) {
-                BLANK -> "空白背景"; CALENDAR -> "月曆水印"; EARTH_3D -> "3D衛星地球"
+                BLANK -> "空白背景"; CALENDAR -> "月曆視圖"; EARTH_3D -> "3D衛星地球"
             }
             AppLanguage.ENGLISH -> when (this) {
-                BLANK -> "Blank"; CALENDAR -> "Calendar Watermark"; EARTH_3D -> "3D Earth"
+                BLANK -> "Blank"; CALENDAR -> "Calendar"; EARTH_3D -> "3D Earth"
             }
             AppLanguage.JAPANESE -> when (this) {
-                BLANK -> "空白"; CALENDAR -> "カレンダー透かし"; EARTH_3D -> "3D地球"
+                BLANK -> "空白"; CALENDAR -> "カレンダー"; EARTH_3D -> "3D地球"
             }
             AppLanguage.KOREAN -> when (this) {
-                BLANK -> "빈 배경"; CALENDAR -> "달력 워터마크"; EARTH_3D -> "3D 지구"
+                BLANK -> "빈 배경"; CALENDAR -> "달력"; EARTH_3D -> "3D 지구"
             }
             else -> label
         }

@@ -498,9 +498,12 @@ fun NeumorphicSegmentedRow(
                 ) {
                     Text(
                         text = title,
-                        fontSize = 12.sp,
+                        fontSize = if (title.length > 8) 10.5.sp else 12.sp,
                         fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                        color = if (isSelected) Color.White else NeumorphicTextPrimary
+                        color = if (isSelected) Color.White else NeumorphicTextPrimary,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

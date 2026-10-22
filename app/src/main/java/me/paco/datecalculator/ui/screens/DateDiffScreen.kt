@@ -930,7 +930,7 @@ fun DateDiffScreen(
                                         .background(pattern.overlayMaskColor)
                                 )
 
-                                // 3. 前景层：纯正优雅文字 (100% 彻底清洗任何 Emoji，纯粹干练)
+                                // 3. 前景层：深色主题色/高对比度文字 (浅色模式下采用深色主题色/ Slate 800 保证 100% 极佳可读性)
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center,
@@ -938,7 +938,7 @@ fun DateDiffScreen(
                                 ) {
                                     Text(
                                         text = cleanName,
-                                        color = Color.White,
+                                        color = if (isDark) Color.White else (if (isSelected) pattern.accentColor else NeumorphicTextPrimary),
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = if (lang.isChineseLocale) 12.sp else 10.5.sp,
                                         textAlign = TextAlign.Center,
@@ -982,7 +982,7 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. 多卡片推栈倒计时结果展示层 (纯图标固定按钮，无文字，多语言全覆盖，36sp ExtraBold 巨幕数字)
+            // 4. 多卡片推栈倒计时结果展示层 (根据 Manifest 映射规则关联专属 28 款 VectorDrawable 矢量底纹背景)
             if (resultCardList.isNotEmpty()) {
                 resultCardList.forEachIndexed { cardIdx, cardData ->
                     val natDays = DateCalculatorUtils.naturalDaysBetween(cardData.baseDate, cardData.targetDate)
@@ -992,19 +992,44 @@ fun DateDiffScreen(
                     val isPast = cardData.targetDate.isBefore(cardData.baseDate)
                     val isCardPinned = uiState.pinnedPresetHolidays.contains(cardData.eventName) || uiState.customEvents.any { (it.name == cardData.eventName || it.name.contains(cardData.eventName)) && it.isPinned }
 
+                    // 动态多语言翻译节假日文本
+                    val localizedCardTitle = LanguageUtils.getLocalizedHolidayName(cardData.eventName, lang)
+                        .replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
+
+                    // 根据路径下 Manifest 映射规则获得 VectorDrawable 背景素材与色调
+                    val cardPattern = getHolidayThemePattern(cardData.eventName, isDark)
+
                     val resultCardShape = RoundedCornerShape(22.dp)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp)
                             .neumorphicExtruded(shape = resultCardShape, elevation = 6.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), shape = resultCardShape)
-                            .border(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f), shape = resultCardShape)
+                            .background(NeumorphicBg, shape = resultCardShape)
+                            .border(1.2.dp, cardPattern.accentColor.copy(alpha = 0.35f), shape = resultCardShape)
                             .clip(resultCardShape)
-                            .padding(18.dp)
                     ) {
+                        // 1. VectorDrawable 背景矢量素材层
+                        Image(
+                            painter = painterResource(cardPattern.photoResId),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            alpha = if (isDark) 0.55f else 0.45f,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        // 2. 柔和主题配色遮罩
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(cardPattern.overlayMaskColor)
+                        )
+
+                        // 3. 前景倒计时结果展示层
                         Column(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Row(
@@ -1013,13 +1038,17 @@ fun DateDiffScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.EventRepeat, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                                    Icon(
+                                        imageVector = Icons.Default.EventRepeat,
+                                        contentDescription = null,
+                                        tint = if (isDark) Color.White else cardPattern.accentColor
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = cardData.eventName,
+                                        text = localizedCardTitle,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        color = if (isDark) Color.White else NeumorphicTextPrimary
                                     )
                                 }
 

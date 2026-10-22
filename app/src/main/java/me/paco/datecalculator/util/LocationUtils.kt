@@ -237,16 +237,34 @@ object LocationUtils {
         }
     }
 
-    fun detectCurrentRegion(context: Context): HolidayRegion {
-        try {
-            val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
-            val rawCode = tm?.networkCountryIso ?: tm?.simCountryIso
-            if (!rawCode.isNullOrEmpty()) {
-                val matched = matchCountryCode(rawCode.uppercase())
-                if (matched != null) return matched
-            }
-        } catch (_: Exception) {}
+    fun matchCoordinatesToRegion(lat: Double, lon: Double): HolidayRegion? {
+        return when {
+            // 香港特别行政区 (lat 22.15..22.58, lon 113.8..114.4)
+            lat in 22.15..22.58 && lon in 113.8..114.4 -> HolidayRegion.HONG_KONG
+            // 澳门特别行政区 (lat 22.08..22.23, lon 113.50..113.62)
+            lat in 22.08..22.23 && lon in 113.50..113.62 -> HolidayRegion.MACAO
+            // 台湾省 (lat 21.8..25.4, lon 119.3..122.1)
+            lat in 21.8..25.4 && lon in 119.3..122.1 -> HolidayRegion.TAIWAN
+            // 中国大陆主体经纬度范围 (lat 18.0..53.6, lon 73.5..135.1)
+            lat in 18.0..53.6 && lon in 73.5..135.1 -> HolidayRegion.CHINA
+            // 日本 (lat 24.0..45.6, lon 122.9..153.0)
+            lat in 24.0..45.6 && lon in 122.9..153.0 -> HolidayRegion.JAPAN
+            // 韩国 (lat 33.0..38.6, lon 124.6..131.0)
+            lat in 33.0..38.6 && lon in 124.6..131.0 -> HolidayRegion.SOUTH_KOREA
+            // 新加坡 (lat 1.15..1.48, lon 103.6..104.1)
+            lat in 1.15..1.48 && lon in 103.6..104.1 -> HolidayRegion.SINGAPORE
+            // 英国 (lat 49.8..60.9, lon -8.6..1.8)
+            lat in 49.8..60.9 && lon in -8.6..1.8 -> HolidayRegion.UNITED_KINGDOM
+            // 美国本土 (lat 24.5..49.4, lon -124.8..-66.9)
+            lat in 24.5..49.4 && lon in -124.8..-66.9 -> HolidayRegion.UNITED_STATES
+            // 澳大利亚 (lat -43.7..-10.6, lon 112.9..153.6)
+            lat in -43.7..-10.6 && lon in 112.9..153.6 -> HolidayRegion.AUSTRALIA
+            else -> null
+        }
+    }
 
+    fun detectCurrentRegion(context: Context): HolidayRegion {
+        // 1. GPS 硬件真实坐标超优先判定 (不受全局 VPN / 代理节点干扰，保证连接 VPN 时依然 100% 绝对精准)
         try {
             val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
             val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -258,6 +276,9 @@ object LocationUtils {
                     @Suppress("MissingPermission")
                     val loc = lm?.getLastKnownLocation(p)
                     if (loc != null) {
+                        val gpsMatched = matchCoordinatesToRegion(loc.latitude, loc.longitude)
+                        if (gpsMatched != null) return gpsMatched
+
                         try {
                             val geocoder = Geocoder(context, Locale.getDefault())
                             @Suppress("DEPRECATION")
@@ -272,6 +293,16 @@ object LocationUtils {
                         } catch (_: Exception) {}
                     }
                 }
+            }
+        } catch (_: Exception) {}
+
+        // 2. SIM 卡网络运营商底码判定
+        try {
+            val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+            val rawCode = tm?.networkCountryIso ?: tm?.simCountryIso
+            if (!rawCode.isNullOrEmpty()) {
+                val matched = matchCountryCode(rawCode.uppercase())
+                if (matched != null) return matched
             }
         } catch (_: Exception) {}
 

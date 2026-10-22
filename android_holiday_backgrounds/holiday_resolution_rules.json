@@ -1,0 +1,16 @@
+{
+  "format": "android-holiday-resolution/v1",
+  "manual_selection": {
+    "input": "ISO 3166-1 alpha-2 country code",
+    "rule": "Read national holidays only. Do not add state, province, territory, city, school or observance-only holidays.",
+    "supported": {
+      "CN":"中国大陆","TW":"中国台湾","HK":"中国香港","MO":"中国澳门","SG":"新加坡","MY":"马来西亚","VN":"越南","JP":"日本","KR":"韩国","GB":"英国","DE":"德国","FR":"法国","IT":"意大利","IN":"印度","ID":"印度尼西亚","AU":"澳大利亚","NZ":"新西兰","US":"美国（不含独立日）","TH":"泰国"
+    }
+  },
+  "gps_selection": {
+    "input":"reverse-geocoded ISO country code and optional ISO 3166-2 subdivision code",
+    "rule":"Start with the same national holiday list. Add a subdivision rule only when an exact ISO 3166-2 code is returned. Never infer a subdivision from a city name."
+  },
+  "resource_resolution_order":["local_drawable_overrides","approved external_asset_overrides","national holiday row android_drawable","bg_fireworks"],
+  "notes":["Holiday calculation is date logic and is intentionally separated from drawable resolution.","External assets remain disabled unless their required licence has been approved.","US manual selection excludes Independence Day only because the project requested that policy; set include_us_independence_day=true to expose its supplied override."]
+}

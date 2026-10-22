@@ -1,6 +1,6 @@
 # Android holiday backgrounds
 
-Twenty-eight original, text-free flat SVG backgrounds and a holiday mapping manifest.
+Seventy original, text-free flat SVG backgrounds and a holiday mapping manifest.
 
 ## Import
 
@@ -11,6 +11,8 @@ Twenty-eight original, text-free flat SVG backgrounds and a holiday mapping mani
 All artwork is original for this project, contains no text/logos/flags, and is designed as a 2:1 button/card background. Keep the left 55% free for countdown text.
 
 `local_drawable_overrides` has higher visual specificity than the general region mapping. Resolve it first, then `external_asset_overrides` (only after licence approval), then the background named in the region's holiday row.
+
+For manual selection, use `holiday_resolution_rules.json` and an ISO 3166-1 alpha-2 country code. It deliberately returns national holidays only. GPS mode may add an ISO 3166-2 rule later, but must begin with the same national list.
 
 ## User-supplied external illustrations
 
