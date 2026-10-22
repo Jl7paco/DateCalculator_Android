@@ -239,10 +239,10 @@ object LocationUtils {
 
     fun matchCoordinatesToRegion(lat: Double, lon: Double): HolidayRegion? {
         return when {
-            // 香港特别行政区 (lat 22.15..22.58, lon 113.8..114.4)
-            lat in 22.15..22.58 && lon in 113.8..114.4 -> HolidayRegion.HONG_KONG
-            // 澳门特别行政区 (lat 22.08..22.23, lon 113.50..113.62)
-            lat in 22.08..22.23 && lon in 113.50..113.62 -> HolidayRegion.MACAO
+            // 香港特别行政区 (深圳河以南：lat 22.15..22.52, lon 113.83..114.40)
+            lat in 22.15..22.52 && lon in 113.83..114.40 -> HolidayRegion.HONG_KONG
+            // 澳门特别行政区 (lat 22.08..22.22, lon 113.50..113.60)
+            lat in 22.08..22.22 && lon in 113.50..113.60 -> HolidayRegion.MACAO
             // 台湾省 (lat 21.8..25.4, lon 119.3..122.1)
             lat in 21.8..25.4 && lon in 119.3..122.1 -> HolidayRegion.TAIWAN
             // 中国大陆主体经纬度范围 (lat 18.0..53.6, lon 73.5..135.1)
