@@ -150,10 +150,10 @@ private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark:
 
     // 100% 严格遵循路径 C:\Users\ThxiL\Documents\Codex\2026-10-22\w\outputs\android_holiday_backgrounds 下的 holiday_background_manifest.json 映射规约！
     val resId = when {
-        // 1. 本地 Manifest 规约特定节日与地区优先覆盖 (local_drawable_overrides)
-        region == HolidayRegion.CHINA && (clean.contains("春") || clean.contains("lunar") || clean.contains("springfestival")) -> R.drawable.bg_lion_dance
-        region == HolidayRegion.CHINA && (clean.contains("端午") || clean.contains("dragonboat") || clean.contains("zongzi")) -> R.drawable.bg_zongzi
-        region == HolidayRegion.CHINA && (clean.contains("中秋") || clean.contains("midautumn") || clean.contains("mooncake")) -> R.drawable.bg_mooncake
+        // 核心节日强制 1:1 指定资源匹配规约 (用户指定：中秋 -> bg_autumn_moon, 春节 -> bg_lunar_festival, 端午 -> bg_zongzi)
+        clean.contains("中秋") || clean.contains("midautumn") || clean.contains("추석") -> R.drawable.bg_autumn_moon
+        clean.contains("春节") || clean.contains("春節") || clean.contains("lunar") || clean.contains("springfestival") || clean.contains("农历新年") || clean.contains("農曆新年") || clean.contains("설날") -> R.drawable.bg_lunar_festival
+        clean.contains("端午") || clean.contains("dragonboat") || clean.contains("zongzi") -> R.drawable.bg_zongzi
         region == HolidayRegion.CHINA && (clean.contains("国庆") || clean.contains("國慶") || clean.contains("nationalday")) -> R.drawable.bg_lantern_string
         region == HolidayRegion.CHINA && (clean.contains("劳动") || clean.contains("五一") || clean.contains("laborday") || clean.contains("labourday")) -> R.drawable.bg_paper_fan
         region == HolidayRegion.CHINA && (clean.contains("高考") || clean.contains("collegeentrance")) -> R.drawable.bg_books
@@ -971,11 +971,11 @@ fun DateDiffScreen(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // 1. 矢量/插画素材背景 (通过 matchParentSize 与 FillBounds 100% 完美平铺填满按键)
+                                // 1. 矢量/插画素材背景 (采用 ContentScale.Crop 保持原比例，无失真切合按键)
                                 Image(
                                     painter = painterResource(pattern.photoResId),
                                     contentDescription = null,
-                                    contentScale = ContentScale.FillBounds,
+                                    contentScale = ContentScale.Crop,
                                     alpha = if (isDark) 0.65f else 0.55f,
                                     modifier = Modifier.matchParentSize()
                                 )
@@ -1066,11 +1066,11 @@ fun DateDiffScreen(
                             .border(1.2.dp, cardPattern.accentColor.copy(alpha = 0.35f), shape = resultCardShape)
                             .clip(resultCardShape)
                     ) {
-                        // 1. VectorDrawable 背景矢量素材层 (通过 matchParentSize 与 FillBounds 100% 完美平铺填满倒数日结果卡片)
+                        // 1. VectorDrawable 背景矢量素材层 (采用 ContentScale.Crop 保持原比例，无纵向拉伸失真贴满卡片)
                         Image(
                             painter = painterResource(cardPattern.photoResId),
                             contentDescription = null,
-                            contentScale = ContentScale.FillBounds,
+                            contentScale = ContentScale.Crop,
                             alpha = if (isDark) 0.60f else 0.50f,
                             modifier = Modifier.matchParentSize()
                         )
