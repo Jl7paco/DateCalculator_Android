@@ -63,8 +63,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import me.paco.datecalculator.data.BackgroundMode
 import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.ui.components.DynamicCalendarWatermarkBg
+import me.paco.datecalculator.ui.components.Earth3DBackground
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
@@ -79,6 +81,7 @@ import me.paco.datecalculator.ui.screens.LunarConverterScreen
 import me.paco.datecalculator.ui.theme.DateCalculatorTheme
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.LanguageUtils
+import me.paco.datecalculator.util.WeatherUtils
 import kotlin.math.abs
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -267,18 +270,39 @@ fun MainScreen(
                 1f
             }
 
+            val (cityLat, cityLon) = remember(uiState.currentCityName) {
+                WeatherUtils.getCityCoordinates(uiState.currentCityName)
+            }
+
             Box(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = watermarkAlpha }
-                ) {
-                    DynamicCalendarWatermarkBg(
-                        weekendRule = uiState.weekendRule,
-                        enableHolidays = uiState.enableChineseHolidays,
-                        holidayRegion = uiState.holidayRegion,
-                        isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek
-                    )
+                when (uiState.homeConfig.backgroundMode) {
+                    BackgroundMode.BLANK -> {
+                        // 空白背景模式：无水印、无 3D 地球，纯粹极简新拟物底色
+                    }
+                    BackgroundMode.CALENDAR -> {
+                        // 月历水印背景模式
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer { alpha = watermarkAlpha }
+                        ) {
+                            DynamicCalendarWatermarkBg(
+                                weekendRule = uiState.weekendRule,
+                                enableHolidays = uiState.enableChineseHolidays,
+                                holidayRegion = uiState.holidayRegion,
+                                isCurrentWeekBigWeek = uiState.isCurrentWeekBigWeek
+                            )
+                        }
+                    }
+                    BackgroundMode.EARTH_3D -> {
+                        // 3D 卫星视角地球背景模式 (视角对准当前 GPS 城市，视距高度可调)
+                        Earth3DBackground(
+                            latitude = cityLat,
+                            longitude = cityLon,
+                            satelliteAltitudeKm = uiState.homeConfig.satelliteAltitudeKm,
+                            isDark = isDark
+                        )
+                    }
                 }
 
                 HorizontalPager(

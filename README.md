@@ -1,10 +1,10 @@
-# 📅 DateCalculator (日期计算器) - Android v3.0.6
+# 📅 DateCalculator (日期计算器) - Android v3.0.7
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-blue.svg)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-2024.02-green.svg)](https://developer.android.com)
 [![Material 3](https://img.shields.io/badge/Material%203-Neumorphic-purple.svg)](https://m3.material.io)
 [![Android SDK](https://img.shields.io/badge/API-26%2B%20(Android%208.0%2B)-orange.svg)](https://developer.android.com)
-[![Version](https://img.shields.io/badge/Version-v3.0.6-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v3.0.7-brightgreen.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
 **日期计算器** 是一款基于 **Kotlin** 与 **Jetpack Compose** 打造的高颜值、全功能 Android 日期算法应用。界面采用新拟物 (Neumorphism) 3D 光影设计，内置工作日计算、多段推算、建除十二神正统老黄历、星体行运每日运势、倒数日推算、重要纪念日与 GPS 精准打卡、农历公历双向转换、年龄精准推算及 **5 款桌面小组件 (AppWidgets)**。
@@ -30,15 +30,15 @@
 - **农历与老黄历语言统一规则**：仅在 **【简体中文】** 或 **【繁體中文】** 界面设置下展示农历月日与老黄历（宜/忌）。非中文界面（English, 日本語, 한국어）下 **100% 彻底隐藏农历月日与老黄历卡片**。
 - **100% 多语言动态绑定**：阶段名 (`Stage 1 / Stage 2`)、单段计算、周数 (`Sep 27, 2026 (Wk 40)`)、12 星座 (`Virgo`, `Libra`)、生肖 (`Dragon`)、天气第 4 天 (`3 Days Later`) 实现全量多语言翻译。
 
-### 3. 🌟 “首页”全能看板
+### 3. 🌟 “首页”全能看板与 3D 卫星地球背景
 - **7×6 扩展月历视图**：显示公历、农历月日、二十四节气与法定节假日放假（**“休”**）与调休补班（**“班”**）角标。单元格 44dp 高度确保文字完整无压缩。非中文模式下自动隐藏农历文字。
 - **当日老黄历与节气 Card**：仅中文模式下展示正统老黄历“宜”与“忌”事项。
 - **📍 GPS 实时天气推算 Card**：动态读取 GPS 定位或城市数据库，推算城市当日及未来三日天气状况，支持点击天数进入二级 6 小时精细时段预报（包含今天/明天时段标注与降水概率）。
-- **⭐ 星座每日运势 Card**：结合天体行运相位推算每日综合星级评分、幸运数字、幸运颜色与开运指南。
+- **🌍 3D 卫星视角地球背景模式**：支持背景模式 3 选 1（空白 / 月历水印 / 3D卫星地球）。3D 地球视角精准对准当前 GPS 城市，支持 1,000km~25,000km 视距缩放，并根据当地实时昼夜自动切换浅色/深色主题。
 
 ### 4. ❤️ “重要纪念日”与 📍 GPS 精准打卡
 - **专属底栏导航**：底栏正式新增“纪念日”Tab 选项。单个设备最高支持存储 999 个纪念日卡片。
-- **📍 GPS 精准打卡**：点击“打卡”自动记录当前城市名称 + GPS 精准经纬度坐标 + 毫秒级打卡时刻，可自动同步联动至倒数日按键。
+- **📍 GPS 精准打卡**：点击“打卡”自动记录当前城市名称 + GPS 经纬度坐标 + 毫秒级打卡时刻，可自动同步联动至倒数日按键。
 
 ### 5. 📅 核心日期计算与多段拖拽模式
 - **工作日 / 自然日推算**：支持按加减天数推算目标日期，内置多国家/地区法定节假日与调休补班逻辑。
@@ -51,23 +51,23 @@
 
 ---
 
-## 🛠️ v3.0.5 ➔ v3.0.6 更新明细
+## 🛠️ v3.0.6 ➔ v3.0.7 更新明细
 
 更详细的变更历史与缺陷日志请参阅：变更日志 **[CHANGELOG.md](./CHANGELOG.md)** / 🐛 **[BUGLIST.md](./BUGLIST.md)**
 
-1. **“选择日期”截止日期双向联动**：单段与多段模式下均支持选择目标日期并反向倒推所需天数，空值状态时提示文案解耦保持“选择日期”。
-2. **原生 `.xls` 单元格颜色填充甘特图导出**：导出升维为 `.xls` 格式，在 Excel / WPS 中打开呈现蓝色工作日、黄色双休、红色节假日 1:1 真实单元格背景填充甘特图。
-3. **主页天气置顶与 6 小时精细预报**：天气卡片置顶显示，点击天数展开包含“今天/明天/后天”标注的 4 个 6 小时时段温度与降水概率预报。
-4. **单段结果卡片精简**：去除冗余的周数副标题与运势文案，将结果日期与工作日标签合并至同一行高亮展示。
-5. **架构模块化与 JIT 极速编译**：重构拆分主界面 `HomeScreen` 为 5 个独立子组件，消除 JIT 指令数超限引发的丢帧卡顿，加入 GPS 天气获取防抖锁。
-6. **子时间轴绝对坐标归一化吸附**：重构触控高亮框与气泡绝对坐标，消除定位偏离。
+1. **R8 Full Mode 极致全量代码优化**：开启 R8 Full Mode，消除了 Google Play Console “DEX 代码优化低”警告，优化比例提升至 85%+。
+2. **三向背景模式与 3D 卫星地球**：支持“空白 / 月历水印 / 3D卫星地球”模式，3D 地球视角对准 GPS 定位，支持 1,000km~25,000km 视距拉近与远眺。
+3. **昼夜实时重写主题色**：处于 3D 地球模式时，系统根据用户所在位置的太阳高度角自动强切主题（白昼浅色新拟物，黑夜深色夜景）。
+4. **二级天气卡片 UI 风格 1:1 像素级统一**：二角弹窗的标头、圆角（22dp）、3D 沉降槽以及 4 栏并发排版与主页 Weather Card 彻底统一。
+5. **修正温度重复符号与降水概率高亮**：格式化温度为 `23°C~34°C`，并在指示栏右侧增加 `💧 降水概率: 15%` 高亮。
+6. **底栏虚拟导航按键防遮挡**：导航栏增加 `navigationBarsPadding()` 避让，彻底解决系统三按键虚拟导航栏（`≡ ▢ <`）遮挡底部 Tab 的问题。
 
 ---
 
-## 📲 最新安装包下载 (v3.0.6)
+## 📲 最新安装包下载 (v3.0.7)
 
-- 📦 **[DateCalculator-v3.0.6-R8-Optimized.apk](./DateCalculator-v3.0.6-R8-Optimized.apk)** (6.6 MB R8 混淆极速测试包)
-- 🚀 **[DateCalculator-v3.0.6-R8-Optimized.aab](./DateCalculator-v3.0.6-R8-Optimized.aab)** (18.2 MB R8 混淆正式发布包)
+- 📦 **[DateCalculator-v3.0.7-R8-Optimized.apk](./DateCalculator-v3.0.7-R8-Optimized.apk)** (6.3 MB R8 混淆极速测试包)
+- 🚀 **[DateCalculator-v3.0.7-R8-Optimized.aab](./DateCalculator-v3.0.7-R8-Optimized.aab)** (18.2 MB R8 混淆正式发布包)
 
 ---
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import me.paco.datecalculator.data.AnniversaryItem
 import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.data.BackgroundMode
 import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.HomeConfig
@@ -38,6 +39,8 @@ object PreferenceUtils {
     private const val KEY_HOME_CONFIG_LUNAR = "key_home_config_lunar"
     private const val KEY_HOME_CONFIG_ZODIAC = "key_home_config_zodiac"
     private const val KEY_HOME_CONFIG_WEATHER = "key_home_config_weather"
+    private const val KEY_HOME_CONFIG_BACKGROUND_MODE = "key_home_config_background_mode"
+    private const val KEY_HOME_CONFIG_SATELLITE_ALTITUDE = "key_home_config_satellite_altitude"
     private const val KEY_LAST_WEATHER_FETCH_TIME = "key_last_weather_fetch_time"
     private const val KEY_CUSTOM_EVENTS_LIST = "key_custom_events_list"
 
@@ -199,11 +202,17 @@ object PreferenceUtils {
             .putBoolean(KEY_HOME_CONFIG_LUNAR, config.showLunar)
             .putBoolean(KEY_HOME_CONFIG_ZODIAC, config.showZodiacFortune)
             .putBoolean(KEY_HOME_CONFIG_WEATHER, config.showWeather)
+            .putString(KEY_HOME_CONFIG_BACKGROUND_MODE, config.backgroundMode.name)
+            .putInt(KEY_HOME_CONFIG_SATELLITE_ALTITUDE, config.satelliteAltitudeKm)
             .apply()
     }
 
     fun getHomeConfig(context: Context): HomeConfig {
         val prefs = getPrefs(context)
+        val modeStr = prefs.getString(KEY_HOME_CONFIG_BACKGROUND_MODE, BackgroundMode.CALENDAR.name) ?: BackgroundMode.CALENDAR.name
+        val bgMode = try { BackgroundMode.valueOf(modeStr) } catch (_: Exception) { BackgroundMode.CALENDAR }
+        val altitude = prefs.getInt(KEY_HOME_CONFIG_SATELLITE_ALTITUDE, 12000)
+
         return HomeConfig(
             showHomeScreen = prefs.getBoolean(KEY_HOME_CONFIG_SHOW_SCREEN, true),
             showCalendar = prefs.getBoolean(KEY_HOME_CONFIG_CALENDAR, true),
@@ -211,7 +220,9 @@ object PreferenceUtils {
             showSolarTerms = prefs.getBoolean(KEY_HOME_CONFIG_SOLAR_TERMS, true),
             showLunar = prefs.getBoolean(KEY_HOME_CONFIG_LUNAR, true),
             showZodiacFortune = prefs.getBoolean(KEY_HOME_CONFIG_ZODIAC, true),
-            showWeather = prefs.getBoolean(KEY_HOME_CONFIG_WEATHER, true)
+            showWeather = prefs.getBoolean(KEY_HOME_CONFIG_WEATHER, true),
+            backgroundMode = bgMode,
+            satelliteAltitudeKm = altitude
         )
     }
 

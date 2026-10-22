@@ -174,6 +174,18 @@ object DateCalculatorUtils {
         return count
     }
 
+    /**
+     * 判断当前 GPS/城市经纬度坐标下是否处于白昼 (用于 3D 卫星地球背景强制重写浅色/深色主题)
+     */
+    fun isDaylightAtLocation(latitude: Double, longitude: Double): Boolean {
+        val currentHour = try { java.time.LocalTime.now().hour } catch (_: Exception) { 12 }
+        if (latitude == 0.0 && longitude == 0.0) {
+            return currentHour in 6..17
+        }
+        val localSolarHour = ((currentHour + (longitude / 15.0)).toInt() % 24 + 24) % 24
+        return localSolarHour in 6..17
+    }
+
     fun computeMultiStageSequence(
         baseDate: LocalDate,
         stages: List<CalculationStage>,

@@ -10,32 +10,32 @@
 
 ```text
 <zh-CN>
-v3.0.6 封闭测试版更新说明：
-1. 【多段与单段日期推算】支持选择目标截止日期并自动反向倒推天数，输入框空状态下文案统一为“选择日期”。
-2. 【全新横向甘特图导出】导出升级为 .xls 电子表格，在 Excel / WPS 中支持蓝色工作日、黄色双休、红色节假日单元格背景颜色填充。
-3. 【精细天气预报】主页天气卡片置顶，点击天数展开包含“今天/明天/后天”标注的 4 个 6 小时时段温度与降水概率预报。
-4. 【结果卡片精简】优化单段结果卡片排版，结果日期与工作日标签同行高亮展示。
-5. 【流畅度与细节修复】优化主页与多段卡片重构，提升 120Hz 满帧流畅度；修复部分定位与系统虚拟按键避让问题。
+v3.0.7 封闭测试版更新说明：
+1. 【R8 Full Mode 极致代码优化】开启全量混淆与无用资源剔除，消除了 DEX 优化警告，运行效率大幅提升。
+2. 【3D 卫星地球背景】背景支持“空白 / 月历 / 3D卫星地球”模式，3D 视角对准 GPS 城市，支持 1,000km~25,000km 视距拉近与远眺。
+3. 【智能昼夜重写主题色】处于 3D 地球模式时，系统根据用户所在位置的实时太阳高度角自动强切主题（白昼浅色，黑夜深色）。
+4. 【二级天气卡片 UI 统一】二级天气弹窗的标头、圆角（22dp）、3D 沉降槽以及 4 栏并发排版与主页 Weather Card 1:1 彻底统一。
+5. 【系统虚拟按键避让】底栏增加 navigationBarsPadding 避让，彻底解决系统三按键虚拟导航栏（≡ ▢ <）遮挡底部 Tab 的问题。
 感谢参与封闭测试，欢迎反馈！
 </zh-CN>
 
 <zh-TW>
-v3.0.6 封閉測試版更新說明：
-1. 【多段與單段日期推算】支援選擇目標截止日期並自動反向倒推天數，輸入框空狀態下文案統一為「選擇日期」。
-2. 【全新橫向甘特圖匯出】匯出升級為 .xls 電子試算表，在 Excel / WPS 中支援藍色工作日、黃色雙休、紅色節假日儲存格背景顏色填充。
-3. 【精細天氣預報】主頁天氣卡片置頂展示，點擊天數展開包含「今天/明天/後天」標註的 4 個 6 小時時段溫度與降水量概率預報。
-4. 【結果卡片精簡】優化單段結果卡片排版，結果日期與工作日標籤同行高亮展示。
-5. 【流暢度與細節修復】優化主頁與多段卡片重組，提升 120Hz 滿幀流暢度；修復部分定位與系統虛擬按鍵避讓問題。
+v3.0.7 封閉測試版更新說明：
+1. 【R8 Full Mode 極致代碼優化】開啟全量混淆與無用資源剔除，消除了 DEX 優化警告，運行效率大幅提升。
+2. 【3D 衛星地球背景】背景支援「空白 / 月曆 / 3D衛星地球」模式，3D 視角對準 GPS 城市，支援 1,000km~25,000km 視距拉近與遠眺。
+3. 【智能晝夜重寫主題色】處於 3D 地球模式時，系統根據用戶所在位置的實時太陽高度角自動強切主題（白晝淺色，黑夜深色）。
+4. 【二級天氣卡片 UI 統一】二級天氣彈窗的標頭、圓角（22dp）、3D 沉降槽以及 4 欄並發排版與主頁 Weather Card 1:1 徹底統一。
+5. 【系統虛擬按鍵避讓】底欄增加 navigationBarsPadding 避讓，徹底解決系統三按鍵虛擬導航欄（≡ ▢ <）遮擋底部 Tab 的問題。
 感謝參與封閉測試，歡迎反饋！
 </zh-TW>
 
 <en-US>
-v3.0.6 Release Notes:
-1. Select target deadline dates to auto-calculate days; prompt updated to "Select Date".
-2. Export native .xls Gantt spreadsheets with blue/yellow/red cell fill colors for Excel/WPS.
-3. Pinned weather card to top; tap any day for 4 6-hour interval forecasts & precipitation %.
-4. Streamlined single calculation result card with inline workday badges.
-5. Resolved virtual navigation bar overlaps & performance UI stalls.
+v3.0.7 Release Notes:
+1. [R8 Full Mode] Enabled aggressive bytecode optimization to eliminate Google Play DEX warnings.
+2. [3D Satellite Earth] Added 3D Earth view focused on GPS city with 1,000-25,000km altitude zoom.
+3. [Auto Day/Night Theme] Automatically overrides Light/Dark theme based on real-time solar daylight at location.
+4. [Unified Weather UI] Weather detail dialog styled 1:1 with main page cards; fixed temp degree formatting.
+5. [Navigation Insets] Resolved 3-button virtual navigation bar overlaps.
 </en-US>
 ```
 

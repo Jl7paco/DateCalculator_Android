@@ -46,7 +46,10 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import me.paco.datecalculator.data.BackgroundMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +80,7 @@ import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicChip
 import me.paco.datecalculator.ui.components.NeumorphicCustomPopup
 import me.paco.datecalculator.ui.components.NeumorphicRadioButton
+import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicSwitch
 import me.paco.datecalculator.ui.components.neumorphicExtruded
@@ -99,7 +103,9 @@ fun SettingsScreen(
     val scrollState = rememberScrollState()
     val isDark = LocalDarkTheme.current
     val lang = uiState.appLanguage
+    val effectiveLang = lang.getEffectiveLanguage()
     val isChinese = lang.isChineseLocale
+    val config = uiState.homeConfig
 
     var regionMenuExpanded by remember { mutableStateOf(false) }
 
@@ -322,6 +328,127 @@ fun SettingsScreen(
                             onCheckedChange = onToggle
                         )
                     }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // 1.5 全局应用背景模式 Card (空白 / 月历水印 / 3D卫星地球)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .neumorphicExtruded(shape = cardShape, elevation = 5.dp)
+                .background(NeumorphicBg, shape = cardShape)
+                .border(1.dp, NeumorphicAccent.copy(alpha = 0.12f), shape = cardShape)
+                .clip(cardShape)
+                .padding(14.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Public,
+                        contentDescription = null,
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    val bgCardTitle = when (effectiveLang) {
+                        AppLanguage.ENGLISH -> "Global Background Options"
+                        AppLanguage.JAPANESE -> "背景デザイン設定"
+                        AppLanguage.KOREAN -> "배경 모드 설정"
+                        AppLanguage.TRADITIONAL_CHINESE -> "全局背景模式"
+                        else -> "全局背景模式"
+                    }
+                    Text(
+                        text = bgCardTitle,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = NeumorphicAccent
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                val bgModes = BackgroundMode.values().toList()
+                val bgModeLabels = bgModes.map { it.getLocalizedName(lang) }
+                val selectedBgIndex = bgModes.indexOf(config.backgroundMode).coerceAtLeast(0)
+
+                NeumorphicSegmentedRow(
+                    items = bgModeLabels,
+                    selectedIndex = selectedBgIndex,
+                    onIndexSelected = { idx ->
+                        val newMode = bgModes.getOrElse(idx) { BackgroundMode.CALENDAR }
+                        viewModel.updateHomeConfig(config.copy(backgroundMode = newMode), context)
+                    },
+                    height = 36.dp
+                )
+
+                if (config.backgroundMode == BackgroundMode.EARTH_3D) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    val altitudeTitle = when (effectiveLang) {
+                        AppLanguage.ENGLISH -> "Satellite Distance (Zoom Scale)"
+                        AppLanguage.JAPANESE -> "衛星高度 (ズームスケール)"
+                        AppLanguage.KOREAN -> "위성 고도 (줌 조절)"
+                        AppLanguage.TRADITIONAL_CHINESE -> "衛星高度 / 視距縮放"
+                        else -> "卫星高度 / 视距缩放"
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = altitudeTitle,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NeumorphicTextPrimary
+                        )
+                        Text(
+                            text = "离地 ${config.satelliteAltitudeKm} km",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = NeumorphicAccent
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Slider(
+                        value = config.satelliteAltitudeKm.toFloat(),
+                        onValueChange = { newVal ->
+                            viewModel.updateHomeConfig(config.copy(satelliteAltitudeKm = newVal.toInt()), context)
+                        },
+                        valueRange = 1000f..25000f,
+                        steps = 23,
+                        colors = SliderDefaults.colors(
+                            thumbColor = NeumorphicAccent,
+                            activeTrackColor = NeumorphicAccent,
+                            inactiveTrackColor = NeumorphicTextPrimary.copy(alpha = 0.2f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    val earthThemePrompt = when (effectiveLang) {
+                        AppLanguage.ENGLISH -> "💡 Theme auto-switches to Light/Dark based on real-time solar daylight at your location."
+                        AppLanguage.JAPANESE -> "💡 3D地球モードでは、現在地のリアルタイムの昼夜に応じてライト/ダークテーマが自動修正されます。"
+                        AppLanguage.KOREAN -> "💡 3D 지구 모드에서는 현재 위치의 실시간 낮/밤 상태에 따라 라이트/다크 테마가 자동 적용됩니다."
+                        AppLanguage.TRADITIONAL_CHINESE -> "💡 處於 3D 衛星地球模式下，系統將自動根據您所在位置的實時晝夜重寫主題色（白晝淺色，夜間深色）。"
+                        else -> "💡 处于 3D 卫星地球模式下，系统将自动根据您所在位置的实时昼夜重写主题色（白昼浅色，夜间深色）。"
+                    }
+
+                    Text(
+                        text = earthThemePrompt,
+                        fontSize = 10.5.sp,
+                        color = NeumorphicAccent.copy(alpha = 0.85f),
+                        lineHeight = 15.sp
+                    )
                 }
             }
         }
