@@ -385,62 +385,14 @@ fun SettingsScreen(
                 )
 
                 if (config.backgroundMode == BackgroundMode.EARTH_3D) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.1f))
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    val altitudeTitle = when (effectiveLang) {
-                        AppLanguage.ENGLISH -> "Satellite Distance (Zoom Scale)"
-                        AppLanguage.JAPANESE -> "衛星高度 (ズームスケール)"
-                        AppLanguage.KOREAN -> "위성 고도 (줌 조절)"
-                        AppLanguage.TRADITIONAL_CHINESE -> "衛星高度 / 視距縮放"
-                        else -> "卫星高度 / 视距缩放"
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = altitudeTitle,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = NeumorphicTextPrimary
-                        )
-                        Text(
-                            text = "离地 ${config.satelliteAltitudeKm} km",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = NeumorphicAccent
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Slider(
-                        value = config.satelliteAltitudeKm.toFloat().coerceIn(10f, 25000f),
-                        onValueChange = { newVal ->
-                            viewModel.updateHomeConfig(config.copy(satelliteAltitudeKm = newVal.toInt()), context)
-                        },
-                        valueRange = 10f..25000f,
-                        steps = 24,
-                        colors = SliderDefaults.colors(
-                            thumbColor = NeumorphicAccent,
-                            activeTrackColor = NeumorphicAccent,
-                            inactiveTrackColor = NeumorphicTextPrimary.copy(alpha = 0.2f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
                     val earthThemePrompt = when (effectiveLang) {
-                        AppLanguage.ENGLISH -> "💡 Theme auto-switches to Light/Dark based on real-time solar daylight at your location."
-                        AppLanguage.JAPANESE -> "💡 3D地球モードでは、現在地のリアルタイムの昼夜に応じてライト/ダークテーマが自動修正されます。"
-                        AppLanguage.KOREAN -> "💡 3D 지구 모드에서는 현재 위치의 실시간 낮/밤 상태에 따라 라이트/다크 테마가 자동 적용됩니다."
-                        AppLanguage.TRADITIONAL_CHINESE -> "💡 處於 3D 衛星地球模式下，系統將自動根據您所在位置的實時晝夜重寫主題色（白晝淺色，夜間深色）。"
-                        else -> "💡 处于 3D 卫星地球模式下，系统将自动根据您所在位置的实时昼夜重写主题色（白昼浅色，夜间深色）。"
+                        AppLanguage.ENGLISH -> "💡 Theme auto-switches to Light/Dark based on real-time solar daylight at your location (fixed 10,000 km altitude)."
+                        AppLanguage.JAPANESE -> "💡 3D地球モードでは、現在地のリアルタイムの昼夜に応じてライト/ダークテーマが自動修正されます (高度 10,000 km)。"
+                        AppLanguage.KOREAN -> "💡 3D 지구 모드에서는 현재 위치의 실시간 낮/밤 상태에 따라 라이트/다크 테마가 자동 적용됩니다 (고도 10,000 km)."
+                        AppLanguage.TRADITIONAL_CHINESE -> "💡 處於 3D 衛星地球模式下，系統將自動根據您所在位置的實時晝夜重寫主題色（固定 10,000 km 最佳航天視距）。"
+                        else -> "💡 处于 3D 卫星地球模式下，系统将自动根据您所在位置的实时昼夜重写主题色（固定 10,000 km 最佳航天视距）。"
                     }
 
                     Text(
