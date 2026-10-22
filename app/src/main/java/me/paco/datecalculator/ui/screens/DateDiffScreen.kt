@@ -138,88 +138,69 @@ data class CountdownCardData(
 )
 
 data class HolidayThemePattern(
-    val bgBrush: Brush,
-    val watermarkSymbol: String,
+    val photoResId: Int,
+    val overlayMaskColor: Color,
     val accentColor: Color
 )
 
 @Composable
 private fun getHolidayThemePattern(label: String, isDark: Boolean): HolidayThemePattern {
     val clean = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
-    val alpha1 = if (isDark) 0.38f else 0.28f
-    val alpha2 = if (isDark) 0.22f else 0.15f
+    val maskAlpha = if (isDark) 0.52f else 0.38f
 
     return when {
-        // 1. 春节 / 新年 (中国红 + 暖金 + 祥云灯笼)
+        // 1. 中秋节 / 秋分 / 霜降 (1:1 匹配用户参考图：Unsplash 100% 免费可商用金黄秋叶/枫叶实拍贴图)
+        clean.contains("中秋") || clean.contains("秋") || clean.contains("moon") || clean.contains("추석") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_photo_autumn,
+            overlayMaskColor = Color(0xFFB45309).copy(alpha = maskAlpha),
+            accentColor = Color(0xFFD97706)
+        )
+        // 2. 春节 / 新年 / 跨年 (Unsplash 盛大红火灯笼节日实拍贴图)
         clean.contains("春") || clean.contains("年") || clean.contains("설날") || clean.contains("tết") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFFB91C1C).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))),
-            watermarkSymbol = "🏮",
+            photoResId = R.drawable.bg_photo_festive_red,
+            overlayMaskColor = Color(0xFFB91C1C).copy(alpha = maskAlpha),
             accentColor = Color(0xFFEF4444)
         )
-        // 2. 清明节 (青绿 + 灰蓝 + 细雨山水)
+        // 3. 清明节 / 植树节 (Unsplash 葱郁春绿树叶实拍贴图)
         clean.contains("清明") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFF047857).copy(alpha = alpha1), Color(0xFF64748B).copy(alpha = alpha2))),
-            watermarkSymbol = "🌿",
+            photoResId = R.drawable.bg_photo_spring,
+            overlayMaskColor = Color(0xFF047857).copy(alpha = maskAlpha),
             accentColor = Color(0xFF10B981)
         )
-        // 3. 特区回归日 (海军蓝 + 海湾红 + 抽象天际线)
-        clean.contains("特区成立") || clean.contains("特區成立") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFF1E3A8A).copy(alpha = alpha1), Color(0xFFEF4444).copy(alpha = alpha2))),
-            watermarkSymbol = "🏙️",
+        // 4. 国庆节 / 独立日 (Unsplash 红金尊贵纪光实拍贴图)
+        clean.contains("国庆") || clean.contains("國慶") || clean.contains("independence") || clean.contains("national") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_photo_national_red,
+            overlayMaskColor = Color(0xFF991B1B).copy(alpha = maskAlpha),
+            accentColor = Color(0xFFEF4444)
+        )
+        // 5. 高考 / 中考 / 考试 (Unsplash 常青藤校园墙实拍贴图)
+        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") || clean.contains("exam") || clean.contains("수능") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_photo_exam_green,
+            overlayMaskColor = Color(0xFF065F46).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF10B981)
+        )
+        // 6. 五一劳动节 / 特区回归日 / 山之日 (Unsplash 蔚蓝海湾高山实拍贴图)
+        clean.contains("劳动") || clean.contains("五一") || clean.contains("特区成立") || clean.contains("特區成立") || clean.contains("山") || clean.contains("labor") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_photo_mountain_blue,
+            overlayMaskColor = Color(0xFF0369A1).copy(alpha = maskAlpha),
             accentColor = Color(0xFF3B82F6)
         )
-        // 4. 日本山之日 / 绿之日 (墨绿 + 岩灰 + 森林日出)
-        clean.contains("山之日") || clean.contains("山の日") || clean.contains("みどもの日") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFF065F46).copy(alpha = alpha1), Color(0xFFD97706).copy(alpha = alpha2))),
-            watermarkSymbol = "⛰️",
-            accentColor = Color(0xFF059669)
-        )
-        // 5. 圣诞节 (酒红 + 松绿 + 针叶雪花)
+        // 7. 圣诞节 / 冬至 (Unsplash 冰雪松针实拍贴图)
         clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("weihnachten") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFF15803D).copy(alpha = alpha1), Color(0xFF991B1B).copy(alpha = alpha2))),
-            watermarkSymbol = "🎄",
+            photoResId = R.drawable.bg_photo_snow_winter,
+            overlayMaskColor = Color(0xFF15803D).copy(alpha = maskAlpha),
             accentColor = Color(0xFF16A34A)
         )
-        // 6. 中秋节 (夜空蓝 + 月华金)
-        clean.contains("中秋") || clean.contains("月") || clean.contains("moon") || clean.contains("추석") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFF3730A3).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))),
-            watermarkSymbol = "🌕",
-            accentColor = Color(0xFF6366F1)
+        // 8. 元旦 / 跨年
+        clean.contains("元旦") || clean.contains("跨年") || clean.contains("newyear") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_photo_festive_red,
+            overlayMaskColor = Color(0xFF1D4ED8).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF3B82F6)
         )
-        // 7. 国庆节 / 独立日 (红金星徽)
-        clean.contains("国庆") || clean.contains("國慶") || clean.contains("independence") || clean.contains("national") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFFDC2626).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))),
-            watermarkSymbol = "⭐",
-            accentColor = Color(0xFFEF4444)
-        )
-        // 8. 高考 / 中考 (金榜青绿)
-        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") || clean.contains("exam") || clean.contains("수능") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFF047857).copy(alpha = alpha1), Color(0xFF10B981).copy(alpha = alpha2))),
-            watermarkSymbol = "🎓",
-            accentColor = Color(0xFF10B981)
-        )
-        // 9. 五一劳动节 (活力青绿)
-        clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFF0F766E).copy(alpha = alpha1), Color(0xFF14B8A6).copy(alpha = alpha2))),
-            watermarkSymbol = "🌿",
-            accentColor = Color(0xFF14B8A6)
-        )
-        // 10. 感恩节 (琥珀棕 + 暖阳橙)
-        clean.contains("感恩") || clean.contains("thanksgiving") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFFC2410C).copy(alpha = alpha1), Color(0xFF78350F).copy(alpha = alpha2))),
-            watermarkSymbol = "🍁",
-            accentColor = Color(0xFFEA580C)
-        )
-        // 11. 万圣节 (暖橙 + 魅惑紫)
-        clean.contains("万圣") || clean.contains("萬聖") || clean.contains("halloween") -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(Color(0xFFEA580C).copy(alpha = alpha1), Color(0xFF6B21A8).copy(alpha = alpha2))),
-            watermarkSymbol = "🎃",
-            accentColor = Color(0xFFF97316)
-        )
-        // 通用备用底纹
+        // 通用春绿自然贴图
         else -> HolidayThemePattern(
-            bgBrush = Brush.linearGradient(listOf(NeumorphicAccent.copy(alpha = alpha1), NeumorphicAccent.copy(alpha = alpha2 * 0.5f))),
-            watermarkSymbol = "⏳",
+            photoResId = R.drawable.bg_photo_spring,
+            overlayMaskColor = NeumorphicAccent.copy(alpha = maskAlpha),
             accentColor = NeumorphicAccent
         )
     }
@@ -920,10 +901,9 @@ fun DateDiffScreen(
                                     .height(44.dp)
                                     .neumorphicExtruded(shape = chipShape14, elevation = 4.dp)
                                     .background(NeumorphicBg, shape = chipShape14)
-                                    .background(pattern.bgBrush, shape = chipShape14)
                                     .border(
                                         width = if (isSelected) 1.8.dp else 1.dp,
-                                        color = if (isSelected) pattern.accentColor else pattern.accentColor.copy(alpha = 0.25f),
+                                        color = if (isSelected) pattern.accentColor else pattern.accentColor.copy(alpha = 0.30f),
                                         shape = chipShape14
                                     )
                                     .clip(chipShape14)
@@ -942,18 +922,23 @@ fun DateDiffScreen(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // 1. 节日专属半透明水纹底纹 (右下角优雅水纹)
-                                Text(
-                                    text = pattern.watermarkSymbol,
-                                    fontSize = 22.sp,
-                                    color = NeumorphicTextPrimary.copy(alpha = if (isDark) 0.12f else 0.10f),
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .offset(x = 3.dp, y = 3.dp)
-                                        .graphicsLayer { alpha = 0.85f }
+                                // 1. 无版权风险 Unsplash CC0 100% 真实照片局部贴图 (如秋分/中秋金黄秋叶、清明春绿、国庆红金)
+                                Image(
+                                    painter = painterResource(pattern.photoResId),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    alpha = if (isDark) 0.60f else 0.50f,
+                                    modifier = Modifier.fillMaxSize()
                                 )
 
-                                // 2. 前景层：纯正优雅文字 (彻底清洗任何 Emoji，纯粹干练)
+                                // 2. 柔和颜色遮罩，确保前景文字 100% 绝对清晰易读
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(pattern.overlayMaskColor)
+                                )
+
+                                // 3. 前景层：纯正优雅文字 (100% 彻底清洗任何 Emoji，纯粹干练)
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center,
@@ -961,8 +946,8 @@ fun DateDiffScreen(
                                 ) {
                                     Text(
                                         text = cleanName,
-                                        color = if (isSelected) NeumorphicAccent else NeumorphicTextPrimary,
-                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.ExtraBold,
                                         fontSize = if (lang.isChineseLocale) 12.sp else 10.5.sp,
                                         textAlign = TextAlign.Center,
                                         maxLines = 1,
