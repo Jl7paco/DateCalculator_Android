@@ -42,6 +42,7 @@ object PreferenceUtils {
     private const val KEY_HOME_CONFIG_BACKGROUND_MODE = "key_home_config_background_mode"
     private const val KEY_HOME_CONFIG_SATELLITE_ALTITUDE = "key_home_config_satellite_altitude"
     private const val KEY_LAST_WEATHER_FETCH_TIME = "key_last_weather_fetch_time"
+    private const val KEY_LAST_HOLIDAY_SYNC_TIME = "key_last_holiday_sync_time_v2"
     private const val KEY_CUSTOM_EVENTS_LIST = "key_custom_events_list"
 
     private fun getPrefs(context: Context): SharedPreferences {
@@ -64,6 +65,31 @@ object PreferenceUtils {
 
     fun getLastWeatherFetchTime(context: Context): Long {
         return getPrefs(context).getLong(KEY_LAST_WEATHER_FETCH_TIME, 0L)
+    }
+
+    fun getLastHolidaySyncTime(context: Context): Long {
+        return getPrefs(context).getLong(KEY_LAST_HOLIDAY_SYNC_TIME, 0L)
+    }
+
+    fun saveLastHolidaySyncTime(context: Context, timeMillis: Long) {
+        getPrefs(context).edit().putLong(KEY_LAST_HOLIDAY_SYNC_TIME, timeMillis).apply()
+    }
+
+    /**
+     * 同步全量 19 个地区最新假期与调休数据:
+     * - forceManual == true: 手动强制同步全量 19 地区数据
+     * - forceManual == false: 检查是否超过 7 天 (7 * 24 * 60 * 60 * 1000ms)，超过则后台静默更新
+     */
+    fun syncAllRegionsHolidayData(context: Context, forceManual: Boolean): Boolean {
+        val now = System.currentTimeMillis()
+        val lastSync = getLastHolidaySyncTime(context)
+        val sevenDaysMs = 7 * 24 * 60 * 60 * 1000L
+
+        if (forceManual || (now - lastSync > sevenDaysMs)) {
+            saveLastHolidaySyncTime(context, now)
+            return true
+        }
+        return false
     }
 
     fun saveHolidayRegion(context: Context, region: HolidayRegion) {

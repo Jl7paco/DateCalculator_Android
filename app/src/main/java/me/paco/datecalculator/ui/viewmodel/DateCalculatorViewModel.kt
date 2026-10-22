@@ -183,6 +183,9 @@ class DateCalculatorViewModel : ViewModel() {
 
         val savedCityName = PreferenceUtils.getLastCityName(context)
 
+        // 每隔 7 天后台静默自动拉取同步全量 19 地区最新假期数据
+        PreferenceUtils.syncAllRegionsHolidayData(context, forceManual = false)
+
         _uiState.value = _uiState.value.copy(
             holidayRegion = region,
             weekendRule = weekendRule,
@@ -206,6 +209,10 @@ class DateCalculatorViewModel : ViewModel() {
     fun loadAnniversaries(context: Context) {
         val saved = PreferenceUtils.getAnniversaries(context)
         _uiState.value = _uiState.value.copy(anniversaryList = saved)
+    }
+
+    fun syncAllRegionsHolidays(context: Context, forceManual: Boolean = true): Boolean {
+        return PreferenceUtils.syncAllRegionsHolidayData(context, forceManual)
     }
 
     fun addAnniversary(item: AnniversaryItem, context: Context) {

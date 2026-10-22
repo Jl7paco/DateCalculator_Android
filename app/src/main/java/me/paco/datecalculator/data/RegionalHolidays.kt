@@ -1,5 +1,6 @@
 package me.paco.datecalculator.data
 
+import me.paco.datecalculator.util.LunarCalendarUtils
 import java.time.LocalDate
 
 /**
@@ -59,15 +60,84 @@ object RegionalHolidays {
     )
 
     /**
-     * 获取指定地区预设的常用倒计时节日列表
+     * 获取指定地区预设的常用倒计时节日名称列表 (覆盖 19 个地区全量预设节日)
      */
     fun getPresetHolidayNames(region: HolidayRegion): List<String> {
         return when (region) {
-            HolidayRegion.CHINA -> listOf("🇨🇳 国庆节", "🎆 元旦", "🧧 春节", "🌿 清明节", "🛠️ 五一劳动节", "🎏 端午节", "📚 高考", "📚 中考", "🥮 中秋节")
-            HolidayRegion.TAIWAN -> listOf("🇹🇼 国庆节", "🎆 元旦", "🧧 春节", "🌿 清明节", "🎏 端午节", "🥮 中秋节")
-            HolidayRegion.HONG_KONG -> listOf("🇭🇰 特区成立纪念日", "🎆 元旦", "🧧 春节", "🌿 清明节", "🎏 端午节", "🥮 中秋节")
-            HolidayRegion.MACAO -> listOf("🇲🇴 特区成立纪念日", "🎆 元旦", "🧧 春节", "🌿 清明节", "🎏 端午节", "🥮 中秋节")
-            else -> listOf("🎆 元旦", "🧧 春节", "🌿 清明节", "🛠️ 五一劳动节", "🎏 端午节", "🥮 中秋节")
+            HolidayRegion.CHINA -> listOf("国庆节", "元旦", "春节", "清明节", "五一劳动节", "端午节", "高考", "中考", "中秋节")
+            HolidayRegion.TAIWAN -> listOf("国庆节", "元旦", "春节", "清明节", "端午节", "中秋节")
+            HolidayRegion.HONG_KONG -> listOf("特区成立纪念日", "元旦", "春节", "清明节", "劳动节", "佛诞节", "端午节", "中秋节", "重阳节", "圣诞节")
+            HolidayRegion.MACAO -> listOf("特区成立纪念日", "元旦", "春节", "清明节", "劳动节", "佛诞节", "端午节", "中秋节", "重阳节", "圣诞节")
+            HolidayRegion.UNITED_STATES -> listOf("New Year's Day", "Independence Day", "Labor Day", "Halloween", "Thanksgiving", "Christmas")
+            HolidayRegion.UNITED_KINGDOM -> listOf("New Year's Day", "Early May Bank Holiday", "Summer Bank Holiday", "Christmas", "Boxing Day")
+            HolidayRegion.JAPAN -> listOf("元日", "成人の日", "建国記念の日", "天皇誕生日", "憲法記念日", "みどもの日", "こどもの日", "山の日", "敬老の日")
+            HolidayRegion.SOUTH_KOREA -> listOf("신정", "설날", "삼일절", "어린이날", "현충일", "광복절", "추석", "개천절", "한글날", "성탄절")
+            HolidayRegion.SINGAPORE -> listOf("New Year's Day", "Chinese New Year", "Labor Day", "Vesak Day", "National Day", "Deepavali", "Christmas")
+            HolidayRegion.MALAYSIA -> listOf("New Year's Day", "Chinese New Year", "Labor Day", "National Day", "Malaysia Day", "Christmas")
+            HolidayRegion.GERMANY -> listOf("Neujahr", "Tag der Arbeit", "Tag der Deutschen Einheit", "Weihnachten", "Zweiter Weihnachtsfeiertag")
+            HolidayRegion.FRANCE -> listOf("Jour de l'An", "Fête du Travail", "Fête Nationale", "Toussaint", "Noël")
+            HolidayRegion.ITALY -> listOf("Capodanno", "Festa del Lavoro", "Festa della Repubblica", "Natale")
+            HolidayRegion.AUSTRALIA -> listOf("New Year's Day", "Australia Day", "Anzac Day", "King's Birthday", "Christmas", "Boxing Day")
+            HolidayRegion.NEW_ZEALAND -> listOf("New Year's Day", "Waitangi Day", "Anzac Day", "Labour Day", "Christmas")
+            HolidayRegion.VIETNAM -> listOf("Tết", "Tết Dương lịch", "Ngày Quốc tế Lao động", "Ngày Quốc Khánh")
+            HolidayRegion.THAILAND -> listOf("New Year's Day", "Songkran", "Labor Day", "National Day")
+            HolidayRegion.INDONESIA -> listOf("New Year's Day", "Labor Day", "Independence Day", "Christmas")
+            HolidayRegion.INDIA -> listOf("Republic Day", "Independence Day", "Gandhi Jayanti", "Diwali", "Christmas")
+        }
+    }
+
+    private fun nextSolarDate(baseDate: LocalDate, month: Int, day: Int): LocalDate {
+        var candidate = LocalDate.of(baseDate.year, month, day)
+        if (candidate.isBefore(baseDate)) {
+            candidate = candidate.plusYears(1)
+        }
+        return candidate
+    }
+
+    private fun nextLunarDate(baseDate: LocalDate, lunarMonth: Int, lunarDay: Int): LocalDate {
+        var year = baseDate.year
+        var candidate = LunarCalendarUtils.lunarToSolar(year, lunarMonth, lunarDay, false) ?: baseDate
+        if (candidate.isBefore(baseDate)) {
+            candidate = LunarCalendarUtils.lunarToSolar(year + 1, lunarMonth, lunarDay, false) ?: baseDate.plusYears(1)
+        }
+        return candidate
+    }
+
+    /**
+     * 获取指定地区预设的常用倒计时节日与对应推算目标日期列表
+     */
+    fun getPresetCountdowns(region: HolidayRegion, baseDate: LocalDate): List<Pair<String, LocalDate>> {
+        val names = getPresetHolidayNames(region)
+        return names.map { label ->
+            val clean = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
+            val targetDate = when {
+                clean.contains("国庆") || clean.contains("國慶") -> if (region == HolidayRegion.TAIWAN) nextSolarDate(baseDate, 10, 10) else nextSolarDate(baseDate, 10, 1)
+                clean.contains("independence") || clean.contains("national") -> when (region) {
+                    HolidayRegion.UNITED_STATES -> nextSolarDate(baseDate, 7, 4)
+                    HolidayRegion.FRANCE -> nextSolarDate(baseDate, 7, 14)
+                    HolidayRegion.SINGAPORE -> nextSolarDate(baseDate, 8, 9)
+                    HolidayRegion.MALAYSIA -> nextSolarDate(baseDate, 8, 31)
+                    HolidayRegion.INDONESIA, HolidayRegion.INDIA -> nextSolarDate(baseDate, 8, 17)
+                    HolidayRegion.VIETNAM -> nextSolarDate(baseDate, 9, 2)
+                    HolidayRegion.GERMANY -> nextSolarDate(baseDate, 10, 3)
+                    else -> nextSolarDate(baseDate, 10, 1)
+                }
+                clean.contains("元旦") || clean.contains("newyear") || clean.contains("neujahr") || clean.contains("신정") || clean.contains("元日") -> nextSolarDate(baseDate, 1, 1)
+                clean.contains("春") || clean.contains("年") || clean.contains("설날") || clean.contains("tết") -> nextLunarDate(baseDate, 1, 1)
+                clean.contains("清明") -> nextSolarDate(baseDate, 4, 4)
+                clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") || clean.contains("labour") || clean.contains("arbeit") -> nextSolarDate(baseDate, 5, 1)
+                clean.contains("端午") -> nextLunarDate(baseDate, 5, 5)
+                clean.contains("高考") -> nextSolarDate(baseDate, 6, 7)
+                clean.contains("中考") -> nextSolarDate(baseDate, 6, 21)
+                clean.contains("中秋") || clean.contains("추석") -> nextLunarDate(baseDate, 8, 15)
+                clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("weihnachten") || clean.contains("natale") || clean.contains("성탄절") -> nextSolarDate(baseDate, 12, 25)
+                clean.contains("万圣") || clean.contains("萬聖") || clean.contains("halloween") || clean.contains("toussaint") -> nextSolarDate(baseDate, 10, 31)
+                clean.contains("特区成立") || clean.contains("特區成立") -> if (region == HolidayRegion.HONG_KONG) nextSolarDate(baseDate, 7, 1) else nextSolarDate(baseDate, 12, 20)
+                clean.contains("australia") -> nextSolarDate(baseDate, 1, 26)
+                clean.contains("anzac") -> nextSolarDate(baseDate, 4, 25)
+                else -> nextSolarDate(baseDate, 1, 1)
+            }
+            label to targetDate
         }
     }
 

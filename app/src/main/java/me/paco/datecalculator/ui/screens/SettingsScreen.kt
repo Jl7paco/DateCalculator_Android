@@ -560,6 +560,7 @@ fun SettingsScreen(
                         .background(NeumorphicAccent, shape = CircleShape)
                         .clip(CircleShape)
                         .clickable {
+                            viewModel.syncAllRegionsHolidays(context, forceManual = true)
                             Toast.makeText(context, syncedToastText, Toast.LENGTH_SHORT).show()
                         },
                     contentAlignment = Alignment.Center

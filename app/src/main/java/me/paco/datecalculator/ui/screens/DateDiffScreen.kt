@@ -100,6 +100,7 @@ import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.R
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.HolidayRegion
+import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.ui.components.DatePickerModal
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
@@ -580,25 +581,9 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 预计算常用节假日列表
+            // 预计算 19 个地区全量预设常用节假日列表
             val base = uiState.baseDate
-            val rawPresets = when (uiState.holidayRegion) {
-                HolidayRegion.CHINA -> listOf(
-                    stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1),
-                    stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
-                    stringResource(R.string.preset_spring_festival) to calculateNextLunarDate(base, 1, 1),
-                    "🌿 清明节" to calculateNextSolarDate(base, 4, 4),
-                    "🛠️ 五一劳动节" to calculateNextSolarDate(base, 5, 1),
-                    stringResource(R.string.preset_dragon_boat) to calculateNextLunarDate(base, 5, 5),
-                    stringResource(R.string.preset_gaokao) to calculateNextSolarDate(base, 6, 7),
-                    "📚 中考" to calculateNextSolarDate(base, 6, 21),
-                    stringResource(R.string.preset_mid_autumn) to calculateNextLunarDate(base, 8, 15)
-                )
-                else -> listOf(
-                    stringResource(R.string.preset_new_year) to calculateNextSolarDate(base, 1, 1),
-                    stringResource(R.string.preset_national_day) to calculateNextSolarDate(base, 10, 1)
-                )
-            }
+            val rawPresets = RegionalHolidays.getPresetCountdowns(uiState.holidayRegion, base)
 
             // 汇总全量置顶固定倒数日（包含联动同步的自定义事件与置顶的常用节假日）
             val allPinnedCards = mutableListOf<Pair<CustomEventItem?, Pair<String, LocalDate>>>()
