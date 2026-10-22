@@ -149,57 +149,123 @@ private fun getHolidayThemePattern(label: String, isDark: Boolean): HolidayTheme
     val maskAlpha = if (isDark) 0.52f else 0.38f
 
     return when {
-        // 1. 中秋节 / 秋分 / 霜降 (1:1 匹配用户参考图：Unsplash 100% 免费可商用金黄秋叶/枫叶实拍贴图)
+        // 1. 中秋节 / 秋分 / 霜降 (1:1 匹配用户参考图 1: Unsplash 扁平画 浮世绘赤松金秋与富士山)
         clean.contains("中秋") || clean.contains("秋") || clean.contains("moon") || clean.contains("추석") -> HolidayThemePattern(
-            photoResId = R.drawable.bg_photo_autumn,
+            photoResId = R.drawable.bg_flat_autumn_leaves,
             overlayMaskColor = Color(0xFFB45309).copy(alpha = maskAlpha),
             accentColor = Color(0xFFD97706)
         )
-        // 2. 春节 / 新年 / 跨年 (Unsplash 盛大红火灯笼节日实拍贴图)
-        clean.contains("春") || clean.contains("年") || clean.contains("설날") || clean.contains("tết") -> HolidayThemePattern(
-            photoResId = R.drawable.bg_photo_festive_red,
-            overlayMaskColor = Color(0xFFB91C1C).copy(alpha = maskAlpha),
-            accentColor = Color(0xFFEF4444)
-        )
-        // 3. 清明节 / 植树节 (Unsplash 葱郁春绿树叶实拍贴图)
-        clean.contains("清明") -> HolidayThemePattern(
-            photoResId = R.drawable.bg_photo_spring,
-            overlayMaskColor = Color(0xFF047857).copy(alpha = maskAlpha),
-            accentColor = Color(0xFF10B981)
-        )
-        // 4. 国庆节 / 独立日 (Unsplash 红金尊贵纪光实拍贴图)
-        clean.contains("国庆") || clean.contains("國慶") || clean.contains("independence") || clean.contains("national") -> HolidayThemePattern(
-            photoResId = R.drawable.bg_photo_national_red,
-            overlayMaskColor = Color(0xFF991B1B).copy(alpha = maskAlpha),
-            accentColor = Color(0xFFEF4444)
-        )
-        // 5. 高考 / 中考 / 考试 (Unsplash 常青藤校园墙实拍贴图)
-        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") || clean.contains("exam") || clean.contains("수능") -> HolidayThemePattern(
-            photoResId = R.drawable.bg_photo_exam_green,
-            overlayMaskColor = Color(0xFF065F46).copy(alpha = maskAlpha),
-            accentColor = Color(0xFF10B981)
-        )
-        // 6. 五一劳动节 / 特区回归日 / 山之日 (Unsplash 蔚蓝海湾高山实拍贴图)
-        clean.contains("劳动") || clean.contains("五一") || clean.contains("特区成立") || clean.contains("特區成立") || clean.contains("山") || clean.contains("labor") -> HolidayThemePattern(
-            photoResId = R.drawable.bg_photo_mountain_blue,
-            overlayMaskColor = Color(0xFF0369A1).copy(alpha = maskAlpha),
-            accentColor = Color(0xFF3B82F6)
-        )
-        // 7. 圣诞节 / 冬至 (Unsplash 冰雪松针实拍贴图)
-        clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("weihnachten") -> HolidayThemePattern(
-            photoResId = R.drawable.bg_photo_snow_winter,
-            overlayMaskColor = Color(0xFF15803D).copy(alpha = maskAlpha),
-            accentColor = Color(0xFF16A34A)
-        )
-        // 8. 元旦 / 跨年
-        clean.contains("元旦") || clean.contains("跨年") || clean.contains("newyear") -> HolidayThemePattern(
-            photoResId = R.drawable.bg_photo_festive_red,
+        // 2. 元旦 / 跨年 (1:1 匹配用户参考图 2: Unsplash 扁平画 冰雪赤狐与雪山)
+        clean.contains("元旦") || clean.contains("跨年") || clean.contains("newyear") || clean.contains("신정") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_new_year,
             overlayMaskColor = Color(0xFF1D4ED8).copy(alpha = maskAlpha),
             accentColor = Color(0xFF3B82F6)
         )
-        // 通用春绿自然贴图
+        // 3. 中考 / 寒冬 (1:1 匹配用户参考图 3: Unsplash 扁平画 蓝天寒冬枯木与雪山)
+        clean.contains("中考") || clean.contains("冬至") || clean.contains("寒") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_zhongkao,
+            overlayMaskColor = Color(0xFF0369A1).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF0284C7)
+        )
+        // 4. 春节 / 农历新年 (Unsplash 扁平画 盛大红火新春灯笼)
+        clean.contains("春") || clean.contains("年") || clean.contains("설날") || clean.contains("tết") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_spring_festival,
+            overlayMaskColor = Color(0xFFB91C1C).copy(alpha = maskAlpha),
+            accentColor = Color(0xFFEF4444)
+        )
+        // 5. 清明节 / 植树节 (Unsplash 扁平画 葱郁春绿树叶与春分)
+        clean.contains("清明") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_qingming,
+            overlayMaskColor = Color(0xFF047857).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF10B981)
+        )
+        // 6. 五一劳动节 (Unsplash 扁平画 活泼水绿与自然生机)
+        clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") || clean.contains("labour") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_labor_day,
+            overlayMaskColor = Color(0xFF0F766E).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF14B8A6)
+        )
+        // 7. 端午节 (Unsplash 扁平画 翠绿龙舟与端阳水波)
+        clean.contains("端午") || clean.contains("dragon") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_dragon_boat,
+            overlayMaskColor = Color(0xFF047857).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF059669)
+        )
+        // 8. 高考 / 考试 (Unsplash 扁平画 常青藤与校园墙)
+        clean.contains("高考") || clean.contains("考试") || clean.contains("exam") || clean.contains("수능") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_gaokao,
+            overlayMaskColor = Color(0xFF065F46).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF10B981)
+        )
+        // 9. 特区成立纪念日 (香港/澳门: Unsplash 扁平画 海军蓝港湾与城市天际线剪影 - 零国旗零区旗!)
+        clean.contains("特区成立") || clean.contains("特區成立") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_hk_skyline,
+            overlayMaskColor = Color(0xFF1E3A8A).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF3B82F6)
+        )
+        // 10. 国庆节 / 独立日 (中国/美国/国际国庆: Unsplash 扁平画 红金文化纪光 - 零国旗零区旗!)
+        clean.contains("国庆") || clean.contains("國慶") || clean.contains("independence") || clean.contains("national") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_national_china,
+            overlayMaskColor = Color(0xFF991B1B).copy(alpha = maskAlpha),
+            accentColor = Color(0xFFEF4444)
+        )
+        // 11. 重阳节 / 登高 (Unsplash 扁平画 秋山重阳)
+        clean.contains("重阳") || clean.contains("重陽") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_chongyang,
+            overlayMaskColor = Color(0xFFC2410C).copy(alpha = maskAlpha),
+            accentColor = Color(0xFFEA580C)
+        )
+        // 12. 佛诞节 (Unsplash 扁平画 莲花禅院)
+        clean.contains("佛诞") || clean.contains("佛誕") || clean.contains("buddha") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_buddha,
+            overlayMaskColor = Color(0xFFB45309).copy(alpha = maskAlpha),
+            accentColor = Color(0xFFD97706)
+        )
+        // 13. 日本山之日 / 富士山 (Unsplash 扁平画 日本富士山)
+        clean.contains("山之日") || clean.contains("山の日") || clean.contains("みどもの日") || clean.contains("建国記念") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_japan_fuji,
+            overlayMaskColor = Color(0xFF065F46).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF059669)
+        )
+        // 14. 日本庭园 / 宪法纪念日
+        clean.contains("憲法") || clean.contains("天皇") || clean.contains("成人の日") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_japan_garden,
+            overlayMaskColor = Color(0xFF3730A3).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF6366F1)
+        )
+        // 15. 韩国节庆 (Unsplash 扁平画 韩国光复/韩文)
+        clean.contains("한글날") || clean.contains("광복절") || clean.contains("삼일절") || clean.contains("현충일") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_korea_hangul,
+            overlayMaskColor = Color(0xFF0369A1).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF0284C7)
+        )
+        // 16. 泰国宋干节 / 泼水节
+        clean.contains("songkran") || clean.contains("泼水") || clean.contains("潑水") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_songkran,
+            overlayMaskColor = Color(0xFF0284C7).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF38BDF8)
+        )
+        // 17. 澳大利亚日
+        clean.contains("australia") || clean.contains("anzac") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_australia,
+            overlayMaskColor = Color(0xFF0369A1).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF0284C7)
+        )
+        // 18. 圣诞节
+        clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("weihnachten") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_christmas,
+            overlayMaskColor = Color(0xFF15803D).copy(alpha = maskAlpha),
+            accentColor = Color(0xFF16A34A)
+        )
+        // 19. 感恩节 / 万圣节
+        clean.contains("感恩") || clean.contains("thanksgiving") || clean.contains("万圣") || clean.contains("halloween") -> HolidayThemePattern(
+            photoResId = R.drawable.bg_flat_halloween,
+            overlayMaskColor = Color(0xFFC2410C).copy(alpha = maskAlpha),
+            accentColor = Color(0xFFEA580C)
+        )
+        // 通用自然扁平画
         else -> HolidayThemePattern(
-            photoResId = R.drawable.bg_photo_spring,
+            photoResId = R.drawable.bg_flat_general_mesh,
             overlayMaskColor = NeumorphicAccent.copy(alpha = maskAlpha),
             accentColor = NeumorphicAccent
         )
