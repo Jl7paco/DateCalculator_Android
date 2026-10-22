@@ -35,7 +35,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -130,6 +132,21 @@ data class CountdownCardData(
     val targetDate: LocalDate,
     val baseDate: LocalDate
 )
+
+private fun getHolidayWatermarkSymbol(label: String): String {
+    val clean = label.replace(Regex("[^\\u4e00-\\u9fa5]"), "").trim()
+    return when {
+        clean.contains("国庆") -> "⭐"
+        clean.contains("春") || clean.contains("年") -> "🏮"
+        clean.contains("元旦") || clean.contains("跨年") -> "✨"
+        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") -> "🎓"
+        clean.contains("劳动") || clean.contains("五一") -> "🌿"
+        clean.contains("中秋") -> "🌕"
+        clean.contains("端午") -> "🐉"
+        clean.contains("清明") -> "🌿"
+        else -> "⏳"
+    }
+}
 
 @Composable
 private fun getHolidayBackgroundBrush(label: String, isDark: Boolean): Brush {
@@ -861,11 +878,12 @@ fun DateDiffScreen(
                             val isPinned = uiState.pinnedPresetHolidays.contains(label)
                             val isSelected = resultCardList.firstOrNull()?.eventName == label
 
-                            // 取消 Emoji 前缀，仅保留纯正优雅文字
+                            // 100% 彻底清洗全量 Emoji，纯粹地道文字
                             val rawLocalized = LanguageUtils.getLocalizedHolidayName(label, lang)
-                            val cleanName = rawLocalized.replace(Regex("[\\x{1F600}-\\x{1F64F}\\x{1F300}-\\x{1F5FF}\\x{1F680}-\\x{1F6FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}]"), "").trim()
+                            val cleanName = rawLocalized.replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
 
                             val bgBrush = getHolidayBackgroundBrush(label, isDark)
+                            val watermarkSymbol = getHolidayWatermarkSymbol(label)
 
                             Box(
                                 modifier = Modifier
@@ -895,6 +913,18 @@ fun DateDiffScreen(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
+                                // 1. 半透明节日专属高质感水纹底纹 (右下角优雅漂浮水纹)
+                                Text(
+                                    text = watermarkSymbol,
+                                    fontSize = 22.sp,
+                                    color = NeumorphicTextPrimary.copy(alpha = if (isDark) 0.12f else 0.10f),
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .offset(x = 3.dp, y = 3.dp)
+                                        .graphicsLayer { alpha = 0.85f }
+                                )
+
+                                // 2. 前景层：纯正优雅文字 (彻底清洗任何 Emoji，纯粹干练)
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center,
