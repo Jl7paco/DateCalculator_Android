@@ -105,15 +105,16 @@ fun Modifier.neumorphicExtruded(
 }
 
 /**
- * 3D 沉降凹槽刻痕效果 (Inset)
+ * 3D 沉降凹槽刻痕效果 (Inset) - 100% 还原 3.0.6 深刻痕 3D 凹陷全貌
  */
 @Composable
 fun Modifier.neumorphicInset(
     shape: Shape = RoundedCornerShape(14.dp),
     elevation: Dp = 5.dp
 ): Modifier {
-    val lightShadowColor = neumorphicLightShadow
-    val darkShadowColor = neumorphicDarkShadow
+    val isDark = LocalDarkTheme.current
+    val insetLightShadow = if (isDark) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.95f)
+    val insetDarkShadow = if (isDark) Color.Black.copy(alpha = 0.70f) else Color(0xFF8C9BAE).copy(alpha = 0.75f)
 
     return this.drawBehind {
         val shadowRadius = elevation.toPx()
@@ -136,13 +137,13 @@ fun Modifier.neumorphicInset(
                         shadowRadius * 1.3f,
                         -shadowRadius * 0.75f,
                         -shadowRadius * 0.75f,
-                        darkShadowColor.toArgb()
+                        insetDarkShadow.toArgb()
                     )
                 }
             }
             canvas.drawPath(path, darkPaint)
 
-            // 2. 右下内侧透视反光高光 (正偏移：右下侧呈现自然透视反光高光)
+            // 2. 右下内侧透视反光高光 (正偏移：右下侧呈现 3.0.6 专属清晰透视反光高光)
             val lightPaint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
@@ -151,7 +152,7 @@ fun Modifier.neumorphicInset(
                         shadowRadius * 1.3f,
                         shadowRadius * 0.75f,
                         shadowRadius * 0.75f,
-                        lightShadowColor.toArgb()
+                        insetLightShadow.toArgb()
                     )
                 }
             }

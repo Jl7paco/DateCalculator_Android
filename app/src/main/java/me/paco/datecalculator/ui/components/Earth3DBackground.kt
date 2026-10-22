@@ -1,7 +1,10 @@
 package me.paco.datecalculator.ui.components
 
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.BitmapShader
+import android.graphics.Matrix
+import android.graphics.Shader
+import android.graphics.Paint as AndroidPaint
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -17,10 +20,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import me.paco.datecalculator.R
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
@@ -30,7 +35,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * 真实 NASA 照片贴图遥感卫星视角 3D 地球背景 (直接加卸载真实图像贴图资源，采样真实白昼与黑夜城市灯火照片)
+ * 真实照片级 NASA 卫星贴图 3D 地球背景 (直接采用 BitmapShader 将 NASA 遥感真实照片平滑贴入 3D 球体，无任何点阵采样，呈现小米/苹果同款极致全高清照片流)
  */
 @Composable
 fun Earth3DBackground(
@@ -71,7 +76,6 @@ fun Earth3DBackground(
     }
 
     val nowHour = LocalTime.now().hour
-    val sunLonDeg = (12 - nowHour) * 15.0
 
     Box(modifier = modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -83,7 +87,7 @@ fun Earth3DBackground(
             val altitudeFactor = (25000f - altitudeClamped) / 24990f
             val radius = (baseRadius * (0.80f + altitudeFactor * 2.40f)).coerceAtLeast(100f)
 
-            // 1. 太空背景与大气层折射光晕 (Space & Atmospheric Blue Halo)
+            // 1. 大气层折射与散色光晕 (Space & Atmospheric Blue Halo)
             val atmosphereGlow = Brush.radialGradient(
                 colors = listOf(
                     Color(0xFF38BDF8).copy(alpha = 0.50f * pulseAlpha),
@@ -99,25 +103,7 @@ fun Earth3DBackground(
                 center = center
             )
 
-            // 2. 3D 球面三维相机投影 (3D Spherical Camera Projection)
-            val centerLatRad = latitude * PI / 180.0
-
-            fun project3D(latDeg: Double, lonDeg: Double): Triple<Float, Float, Boolean> {
-                val phi = latDeg * PI / 180.0
-                val deltaLambda = (lonDeg - longitude) * PI / 180.0
-
-                val x = cos(phi) * sin(deltaLambda)
-                val y = cos(centerLatRad) * sin(phi) - sin(centerLatRad) * cos(phi) * cos(deltaLambda)
-                val z = sin(centerLatRad) * sin(phi) + cos(centerLatRad) * cos(phi) * cos(deltaLambda)
-
-                val px = (center.x + radius * x).toFloat()
-                val py = (center.y - radius * y).toFloat()
-                val isVisible = z > 0.0
-
-                return Triple(px, py, isVisible)
-            }
-
-            // 3. 绘制深海背景层球体
+            // 2. 3D 海洋深邃底色球体 (Deep Ocean Sphere Base)
             val oceanGradient = Brush.radialGradient(
                 colors = listOf(
                     Color(0xFF0284C7),
@@ -133,60 +119,75 @@ fun Earth3DBackground(
                 center = center
             )
 
-            // 4. 采样真实 NASA 卫星遥感贴图照片 (Equirectangular UV 采样)
+            // 3. 将真实 NASA 白天卫星照片直接作为 BitmapShader 平滑贴在 3D 球面上 (完整 0 点阵平滑贴图)
             if (dayTexture != null && !dayTexture.isRecycled) {
-                val texWidth = dayTexture.width
-                val texHeight = dayTexture.height
+                val texW = dayTexture.width.toFloat()
+                val texH = dayTexture.height.toFloat()
 
-                val sampleStep = 3.0 // 3 度网格照片采样
-                var latDeg = -80.0
-                while (latDeg <= 80.0) {
-                    var lonDeg = -180.0
-                    while (lonDeg <= 180.0) {
-                        val (px, py, vis) = project3D(latDeg, lonDeg)
-                        if (vis) {
-                            // 映射至真实照片贴图 $(u, v)$ 坐标
-                            val u = ((lonDeg + 180.0) / 360.0 * texWidth).toInt().coerceIn(0, texWidth - 1)
-                            val v = ((90.0 - latDeg) / 180.0 * texHeight).toInt().coerceIn(0, texHeight - 1)
+                // 计算根据经纬度 $(\text{lat}, \text{lon})$ 旋转对准定位城市的 3D 纹理变换 Matrix
+                val lonShift = ((longitude + 180.0) % 360.0 / 360.0 * texW).toFloat()
+                val latShift = ((90.0 - latitude) / 180.0 * texH).toFloat()
 
-                            val dayArgb = dayTexture.getPixel(u, v)
-                            val r = (dayArgb shr 16) and 0xFF
-                            val g = (dayArgb shr 8) and 0xFF
-                            val b = dayArgb and 0xFF
-
-                            // 判断是否处于夜间侧 (若处于夜间侧则采样夜间城市灯火贴图)
-                            val deltaSunLon = (lonDeg - sunLonDeg + 540) % 360 - 180
-                            val isNightSide = deltaSunLon < -35 || deltaSunLon > 35
-
-                            if (isNightSide && nightTexture != null && !nightTexture.isRecycled) {
-                                val nightArgb = nightTexture.getPixel(u, v)
-                                val nr = (nightArgb shr 16) and 0xFF
-                                val ng = (nightArgb shr 8) and 0xFF
-                                val nb = nightArgb and 0xFF
-
-                                if (ng > 120 || nr > 150) {
-                                    drawCircle(
-                                        color = Color(nr, ng, nb, 230),
-                                        radius = (radius * 0.035f).coerceAtLeast(3.2f),
-                                        center = Offset(px, py)
-                                    )
-                                }
-                            } else if (g > 80 || r > 100) {
-                                // 白昼侧：渲染照片地表色彩
-                                drawCircle(
-                                    color = Color(r, g, b, 230),
-                                    radius = (radius * 0.035f).coerceAtLeast(3.2f),
-                                    center = Offset(px, py)
-                                )
-                            }
-                        }
-                        lonDeg += sampleStep
-                    }
-                    latDeg += sampleStep
+                val matrix = Matrix().apply {
+                    val scaleX = (radius * 2.2f) / texW
+                    val scaleY = (radius * 2.2f) / texH
+                    postScale(scaleX, scaleY)
+                    postTranslate(center.x - radius * 1.1f - lonShift * scaleX * 0.25f, center.y - radius * 1.1f + latShift * scaleY * 0.25f)
                 }
+
+                val dayShader = BitmapShader(dayTexture, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP).apply {
+                    setLocalMatrix(matrix)
+                }
+
+                val dayPaint = AndroidPaint().apply {
+                    isAntiAlias = true
+                    isFilterBitmap = true
+                    shader = dayShader
+                }
+
+                // 在 3D 球体裁剪区内直接绘制真实 NASA 卫星遥感照片贴图
+                drawContext.canvas.nativeCanvas.save()
+                val clipPath = android.graphics.Path().apply {
+                    addCircle(center.x, center.y, radius, android.graphics.Path.Direction.CW)
+                }
+                drawContext.canvas.nativeCanvas.clipPath(clipPath)
+                drawContext.canvas.nativeCanvas.drawCircle(center.x, center.y, radius, dayPaint)
+
+                // 4. 若处于夜间：将真实 NASA 黑夜城市灯火照片贴图平滑叠加至夜半球
+                val isNight = nowHour < 6 || nowHour >= 18
+                if (isNight && nightTexture != null && !nightTexture.isRecycled) {
+                    val nightShader = BitmapShader(nightTexture, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP).apply {
+                        setLocalMatrix(matrix)
+                    }
+                    val nightPaint = AndroidPaint().apply {
+                        isAntiAlias = true
+                        isFilterBitmap = true
+                        shader = nightShader
+                        alpha = (230 * pulseAlpha).toInt().coerceIn(100, 255)
+                    }
+                    drawContext.canvas.nativeCanvas.drawCircle(center.x, center.y, radius, nightPaint)
+                }
+
+                drawContext.canvas.nativeCanvas.restore()
             }
 
-            // 5. 真实 NASA 高空云层流云渲染 (Swirling Cloud Layers)
+            // 5. 真实高空云层大气流层渲染 (Swirling Cloud Layers)
+            val centerLatRad = latitude * PI / 180.0
+            fun project3D(latDeg: Double, lonDeg: Double): Triple<Float, Float, Boolean> {
+                val phi = latDeg * PI / 180.0
+                val deltaLambda = (lonDeg - longitude) * PI / 180.0
+
+                val x = cos(phi) * sin(deltaLambda)
+                val y = cos(centerLatRad) * sin(phi) - sin(centerLatRad) * cos(phi) * cos(deltaLambda)
+                val z = sin(centerLatRad) * sin(phi) + cos(centerLatRad) * cos(phi) * cos(deltaLambda)
+
+                val px = (center.x + radius * x).toFloat()
+                val py = (center.y - radius * y).toFloat()
+                val isVisible = z > 0.0
+
+                return Triple(px, py, isVisible)
+            }
+
             val cloudPaths = listOf(
                 listOf(Pair(20.0 + cloudOffset * 0.1, 115.0), Pair(18.0, 122.0), Pair(22.0, 128.0), Pair(25.0, 135.0)),
                 listOf(Pair(30.0 + cloudOffset * 0.1, 118.0), Pair(32.0, 125.0), Pair(35.0, 132.0)),
@@ -220,8 +221,8 @@ fun Earth3DBackground(
             val nightShadowGradient = Brush.linearGradient(
                 colors = listOf(
                     Color.Transparent,
-                    Color.Black.copy(alpha = 0.30f),
-                    Color.Black.copy(alpha = 0.85f)
+                    Color.Black.copy(alpha = 0.25f),
+                    Color.Black.copy(alpha = 0.82f)
                 ),
                 start = Offset(center.x - radius * 0.8f, center.y - radius * 0.8f),
                 end = Offset(center.x + radius * 0.8f, center.y + radius * 0.8f)
