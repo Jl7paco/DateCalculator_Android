@@ -247,7 +247,7 @@ private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark:
 
     val accent = when {
         clean.contains("春") || clean.contains("国庆") || clean.contains("圣诞") || clean.contains("lunar") || clean.contains("national") || clean.contains("christmas") -> Color(0xFFEF4444)
-        clean.contains("清明") || clean.contains("高考") || clean.contains("劳动") || clean.contains("labor") || clean.contains("tombsweeping") -> Color(0xFF10B981)
+        clean.contains("清明") || clean.contains("tombsweeping") -> Color(0xFF10B981)
         clean.contains("特区") || clean.contains("元旦") || clean.contains("newyear") -> Color(0xFF3B82F6)
         clean.contains("中秋") || clean.contains("感恩") || clean.contains("万圣") || clean.contains("midautumn") || clean.contains("thanksgiving") || clean.contains("halloween") -> Color(0xFFD97706)
         else -> NeumorphicAccent

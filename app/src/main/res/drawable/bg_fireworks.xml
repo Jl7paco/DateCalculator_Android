@@ -3,7 +3,8 @@
     android:height="60dp"
     android:viewportWidth="1200"
     android:viewportHeight="600">
-    <path android:fillColor="#3B82F6" android:fillAlpha="0.35" android:pathData="m 1000 245 0-105 m 0 210 v -105 m 105 0 h -105 m -105 0 h -105 m 179-74 74-74 m -148 148 74-74 m 74 148-74-74 m -74 74 74-74" />
-    <path android:fillColor="#F59E0B" android:fillAlpha="0.45" android:pathData="m 790 155 0-68 m 0 136 v -68 m 68 0 h -68 m -68 0 h -68 m 116-48 48-48 m -96 96 48-48 m 48 96-48-48 m -48 48 48-48" />
-    <path android:fillColor="#EF4444" android:fillAlpha="0.30" android:pathData="M 700 520 h 430 v -70 l -50 25-45-45-52 38-54-70-70 65-55-33-54 40 z" />
+    <path android:fillColor="#28375C" android:pathData="M 0 0 h 1200 v 600 h -1200 z" />
+    <path android:strokeColor="#F2B857" android:strokeWidth="13" android:strokeLineCap="round" android:pathData="m 1000 245 0-105 m 0 210 v -105 m 105 0 h -105 m -105 0 h -105 m 179-74 74-74 m -148 148 74-74 m 74 148-74-74 m -74 74 74-74" />
+    <path android:strokeColor="#E9795A" android:strokeWidth="10" android:strokeLineCap="round" android:pathData="m 790 155 0-68 m 0 136 v -68 m 68 0 h -68 m -68 0 h -68 m 116-48 48-48 m -96 96 48-48 m 48 96-48-48 m -48 48 48-48" />
+    <path android:fillColor="#4C638D" android:pathData="M 700 520 h 430 v -70 l -50 25-45-45-52 38-54-70-70 65-55-33-54 40 z" />
 </vector>
