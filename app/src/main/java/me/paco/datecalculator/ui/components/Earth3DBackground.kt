@@ -1,6 +1,5 @@
 package me.paco.datecalculator.ui.components
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -12,26 +11,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 /**
- * 3D 卫星视角地球背景组件 (支持基于 GPS 视点旋转、真实太阳晨昏线昼夜演变、城市闪烁金光与卫星高度缩放)
+ * 3D 真实球面经纬度投影卫星视角地球背景 (包含大陆板块球面投影、经纬网、太阳晨昏线与万家灯火)
  */
 @Composable
 fun Earth3DBackground(
@@ -52,26 +47,24 @@ fun Earth3DBackground(
         label = "AtmosphereGlow"
     )
 
-    // 计算当前 UTC 时间下太阳直射点位置 (模拟真实 Day/Night 晨昏线)
+    // 当前时间推算太阳直射经度 (模拟真实太阳移动与晨昏线)
     val nowHour = LocalTime.now().hour
-    val dayOfYear = LocalDate.now().dayOfYear
-    val sunDeclination = -23.44 * cos(2.0 * PI * (dayOfYear + 10) / 365.0)
-    val sunLongitude = (12 - nowHour) * 15.0
+    val sunLonDeg = (12 - nowHour) * 15.0
 
     Box(modifier = modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height * 0.42f)
 
-            // 视距高度缩放逻辑：1,000 km (放大近地视角 2.4x) 到 25,000 km (全景视距 0.8x)
-            val baseRadius = size.width * 0.42f
+            // 视距高度缩放：1,000 km (放大近地 2.4x) ➔ 25,000 km (太空全景 0.8x)
+            val baseRadius = size.width * 0.40f
             val altitudeFactor = (25000f - satelliteAltitudeKm.coerceIn(1000, 25000)) / 15000f
             val radius = (baseRadius * (0.85f + altitudeFactor * 1.15f)).coerceAtLeast(100f)
 
-            // 1. 绘制外层大气层光晕 (Atmospheric Halo)
+            // 1. 大气层折射与散色光晕 (Atmospheric Halo)
             val atmosphereGlow = Brush.radialGradient(
                 colors = listOf(
-                    Color(0xFF38BDF8).copy(alpha = 0.40f * pulseAlpha),
-                    Color(0xFF0284C7).copy(alpha = 0.15f * pulseAlpha),
+                    Color(0xFF38BDF8).copy(alpha = 0.45f * pulseAlpha),
+                    Color(0xFF0284C7).copy(alpha = 0.18f * pulseAlpha),
                     Color.Transparent
                 ),
                 center = center,
@@ -83,10 +76,10 @@ fun Earth3DBackground(
                 center = center
             )
 
-            // 2. 绘制海洋球体底色 (Ocean Globe Base)
+            // 2. 3D 海洋深邃球体底色 (3D Ocean Globe Base)
             val oceanGradient = if (isDark) {
                 Brush.radialGradient(
-                    colors = listOf(Color(0xFF0F172A), Color(0xFF0284C7).copy(alpha = 0.85f), Color(0xFF030712)),
+                    colors = listOf(Color(0xFF1E293B), Color(0xFF0284C7).copy(alpha = 0.90f), Color(0xFF0F172A)),
                     center = center,
                     radius = radius
                 )
@@ -104,55 +97,102 @@ fun Earth3DBackground(
                 center = center
             )
 
-            // 3. 绘制拟真大陆板块与经纬格网线 (Simulated Continents & Grid Lines)
-            val latRad = latitude * PI / 180.0
-            val lonRad = longitude * PI / 180.0
+            // 3. 3D 球面三维投影变换函数 (3D Spherical Camera Projection)
+            val centerLatRad = latitude * PI / 180.0
+            val centerLonRad = longitude * PI / 180.0
 
-            // 经纬格网弧线绘制
+            fun project3D(latDeg: Double, lonDeg: Double): Triple<Float, Float, Boolean> {
+                val phi = latDeg * PI / 180.0
+                val deltaLambda = (lonDeg - longitude) * PI / 180.0
+
+                val x = cos(phi) * sin(deltaLambda)
+                val y = cos(centerLatRad) * sin(phi) - sin(centerLatRad) * cos(phi) * cos(deltaLambda)
+                val z = sin(centerLatRad) * sin(phi) + cos(centerLatRad) * cos(phi) * cos(deltaLambda)
+
+                val px = (center.x + radius * x).toFloat()
+                val py = (center.y - radius * y).toFloat()
+                val isVisible = z > 0.0 // z > 0 表示在球体正面朝向镜头区域
+
+                return Triple(px, py, isVisible)
+            }
+
+            // 4. 绘制 3D 经纬度线 (3D Meridian & Parallel Lines)
             for (latStep in -60..60 step 30) {
-                val rStep = radius * cos(latStep * PI / 180.0).toFloat()
-                val yStep = center.y - radius * sin(latStep * PI / 180.0).toFloat() * 0.4f
-                if (rStep > 0) {
-                    drawCircle(
-                        color = Color.White.copy(alpha = 0.12f),
-                        radius = rStep * 0.9f,
-                        center = Offset(center.x, yStep),
-                        style = Stroke(width = 1f)
-                    )
+                val path = Path()
+                var firstPoint = true
+                for (lonStep in -180..180 step 10) {
+                    val (px, py, vis) = project3D(latStep.toDouble(), lonStep.toDouble())
+                    if (vis) {
+                        if (firstPoint) {
+                            path.moveTo(px, py)
+                            firstPoint = false
+                        } else {
+                            path.lineTo(px, py)
+                        }
+                    } else {
+                        firstPoint = true
+                    }
+                }
+                drawPath(
+                    path = path,
+                    color = Color.White.copy(alpha = 0.12f),
+                    style = Stroke(width = 1f)
+                )
+            }
+
+            // 5. 真实 3D 大陆板块数据 (Eurasia, Africa, Australia, Americas)
+            val eurasiaPolygon = listOf(
+                Pair(65.0, 170.0), Pair(60.0, 100.0), Pair(55.0, 37.0), Pair(50.0, 14.0),
+                Pair(36.0, -5.0), Pair(30.0, 31.0), Pair(28.0, 77.0), Pair(10.0, 106.0),
+                Pair(1.0, 104.0), Pair(22.0, 114.0), Pair(31.0, 121.0), Pair(40.0, 116.0),
+                Pair(35.0, 140.0)
+            )
+
+            val africaPolygon = listOf(
+                Pair(36.0, -5.0), Pair(30.0, 31.0), Pair(12.0, 43.0), Pair(-34.0, 18.0),
+                Pair(6.0, 12.0), Pair(14.0, -17.0)
+            )
+
+            val australiaPolygon = listOf(
+                Pair(-12.0, 130.0), Pair(-25.0, 153.0), Pair(-38.0, 145.0), Pair(-32.0, 115.0), Pair(-20.0, 118.0)
+            )
+
+            val americasPolygon = listOf(
+                Pair(60.0, -140.0), Pair(45.0, -124.0), Pair(32.0, -117.0), Pair(25.0, -80.0),
+                Pair(45.0, -63.0), Pair(10.0, -75.0), Pair(-15.0, -40.0), Pair(-55.0, -68.0), Pair(-10.0, -78.0)
+            )
+
+            val landColor = if (isDark) Color(0xFF10B981).copy(alpha = 0.65f) else Color(0xFF34D399).copy(alpha = 0.85f)
+
+            listOf(eurasiaPolygon, africaPolygon, australiaPolygon, americasPolygon).forEach { poly ->
+                val landPath = Path()
+                var hasDrawn = false
+                poly.forEachIndexed { idx, (pLat, pLon) ->
+                    val (px, py, vis) = project3D(pLat, pLon)
+                    if (vis) {
+                        if (!hasDrawn) {
+                            landPath.moveTo(px, py)
+                            hasDrawn = true
+                        } else {
+                            landPath.lineTo(px, py)
+                        }
+                    }
+                }
+                if (hasDrawn) {
+                    landPath.close()
+                    drawPath(landPath, color = landColor)
                 }
             }
 
-            // 4. 大陆板块模拟多边形绘制 (按视点旋转定位)
-            val landColor = if (isDark) Color(0xFF10B981).copy(alpha = 0.65f) else Color(0xFF34D399).copy(alpha = 0.80f)
-
-            // 绘制亚洲大陆/中国区域板块
-            val chinaPath = Path().apply {
-                val cx = center.x
-                val cy = center.y
-                moveTo(cx - radius * 0.35f, cy - radius * 0.20f)
-                cubicTo(
-                    cx - radius * 0.10f, cy - radius * 0.45f,
-                    cx + radius * 0.40f, cy - radius * 0.30f,
-                    cx + radius * 0.30f, cy + radius * 0.10f
-                )
-                cubicTo(
-                    cx + radius * 0.15f, cy + radius * 0.35f,
-                    cx - radius * 0.20f, cy + radius * 0.25f,
-                    cx - radius * 0.35f, cy - radius * 0.20f
-                )
-            }
-            drawPath(chinaPath, color = landColor)
-
-            // 5. 昼夜晨昏线阴影层 (Day/Night Shadow & City Night Lights)
-            val isNight = nowHour < 6 || nowHour >= 18
+            // 6. 太阳晨昏线与夜间暗影 (Day/Night Solar Terminator)
             val nightShadowGradient = Brush.linearGradient(
                 colors = listOf(
                     Color.Transparent,
                     Color.Black.copy(alpha = 0.35f),
-                    Color.Black.copy(alpha = 0.78f)
+                    Color.Black.copy(alpha = 0.82f)
                 ),
-                start = Offset(center.x - radius, center.y - radius),
-                end = Offset(center.x + radius, center.y + radius)
+                start = Offset(center.x - radius * 0.8f, center.y - radius * 0.8f),
+                end = Offset(center.x + radius * 0.8f, center.y + radius * 0.8f)
             )
 
             drawCircle(
@@ -161,50 +201,64 @@ fun Earth3DBackground(
                 center = center
             )
 
-            // 6. 若处于夜间：绘制城市闪烁金光点 (Urban Night Lights Glow)
-            if (isNight) {
-                val cityLights = listOf(
-                    Offset(center.x + radius * 0.12f, center.y - radius * 0.05f), // 深圳/珠三角
-                    Offset(center.x + radius * 0.22f, center.y - radius * 0.18f), // 长三角/上海
-                    Offset(center.x + radius * 0.15f, center.y - radius * 0.32f), // 京津冀/北京
-                    Offset(center.x - radius * 0.05f, center.y - radius * 0.12f)  // 成渝
-                )
+            // 7. 城市万家灯火金光 (Urban Night Lights)
+            val majorCities = listOf(
+                Pair(22.5, 114.0), // 深圳 / 珠三角
+                Pair(31.2, 121.5), // 上海 / 长三角
+                Pair(39.9, 116.4), // 北京 / 京津冀
+                Pair(35.7, 139.7), // 东京
+                Pair(37.5, 127.0), // 首尔
+                Pair(1.3, 103.8),  // 新加坡
+                Pair(51.5, -0.1),  // 伦敦
+                Pair(40.7, -74.0)  // 纽约
+            )
 
-                cityLights.forEach { lightPos ->
-                    drawCircle(
-                        color = Color(0xFFFCD34D).copy(alpha = pulseAlpha * 0.9f),
-                        radius = 4.5f,
-                        center = lightPos
-                    )
-                    drawCircle(
-                        color = Color(0xFFF59E0B).copy(alpha = pulseAlpha * 0.4f),
-                        radius = 12f,
-                        center = lightPos
-                    )
+            majorCities.forEach { (cLat, cLon) ->
+                val (px, py, vis) = project3D(cLat, cLon)
+                if (vis) {
+                    // 判断该城市是否处于夜间侧 (远离太阳直射角度)
+                    val deltaSunLon = (cLon - sunLonDeg + 540) % 360 - 180
+                    val isNightSide = deltaSunLon < -40 || deltaSunLon > 40
+
+                    if (isNightSide) {
+                        drawCircle(
+                            color = Color(0xFFFCD34D).copy(alpha = pulseAlpha * 0.95f),
+                            radius = 3.5f,
+                            center = Offset(px, py)
+                        )
+                        drawCircle(
+                            color = Color(0xFFF59E0B).copy(alpha = pulseAlpha * 0.45f),
+                            radius = 9f,
+                            center = Offset(px, py)
+                        )
+                    }
                 }
             }
 
-            // 7. 绘制当前 GPS 定位城市锚点 (GPS Location Pin Badge)
-            drawCircle(
-                color = Color(0xFFEF4444),
-                radius = 6f,
-                center = center
-            )
-            drawCircle(
-                color = Color.White,
-                radius = 2.5f,
-                center = center
-            )
-            drawCircle(
-                color = Color(0xFFEF4444).copy(alpha = pulseAlpha * 0.6f),
-                radius = 16f,
-                center = center,
-                style = Stroke(width = 2f)
-            )
+            // 8. 绘制当前 GPS 定位城市精确定位锚点 (GPS Location Pin Badge)
+            val (userPx, userPy, userVis) = project3D(latitude, longitude)
+            if (userVis) {
+                drawCircle(
+                    color = Color(0xFFEF4444),
+                    radius = 5.5f,
+                    center = Offset(userPx, userPy)
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 2.5f,
+                    center = Offset(userPx, userPy)
+                )
+                drawCircle(
+                    color = Color(0xFFEF4444).copy(alpha = pulseAlpha * 0.7f),
+                    radius = 15f,
+                    center = Offset(userPx, userPy),
+                    style = Stroke(width = 2f)
+                )
+            }
         }
 
-        // 8. 全局 3D 拟物柔和高透遮罩 (确保前景卡片与文本 100% 绝对清晰易读)
-        val maskAlpha = if (isDark) 0.65f else 0.55f
+        // 9. 全局 3D 拟物柔和高透遮罩 (确保前景卡片与文本 100% 绝对清晰易读)
+        val maskAlpha = if (isDark) 0.60f else 0.50f
         Box(
             modifier = Modifier
                 .fillMaxSize()

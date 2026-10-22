@@ -39,26 +39,26 @@ val NeumorphicTextPrimary @Composable get() = if (LocalDarkTheme.current) {
     Color(0xFF1E293B)
 }
 
-// 统一全局的新拟物投影暗影色与高光色 (确保凹陷Inset与浮雕Extruded阴影色调100%统一无色差)
+// 统一全局的新拟物投影暗影色与高光色 (控制高光透明度与平滑度，彻底消除左边框与顶边框白色溢出)
 private val neumorphicLightShadow @Composable get() = if (LocalDarkTheme.current) {
-    Color.White.copy(alpha = 0.18f)
+    Color.White.copy(alpha = 0.15f)
 } else {
-    Color.White.copy(alpha = 0.95f)
+    Color.White.copy(alpha = 0.45f)
 }
 
 private val neumorphicDarkShadow @Composable get() = if (LocalDarkTheme.current) {
-    Color.Black.copy(alpha = 0.70f)
+    Color.Black.copy(alpha = 0.65f)
 } else {
-    Color(0xFF8C9BAE).copy(alpha = 0.75f)
+    Color(0xFF8C9BAE).copy(alpha = 0.55f)
 }
 
 /**
- * 3D 浮雕悬浮新拟物效果 (Extruded)
+ * 3D 浮雕悬浮新拟物效果 (Extruded) - 修复左/顶边框白色发光溢出问题
  */
 @Composable
 fun Modifier.neumorphicExtruded(
     shape: Shape = RoundedCornerShape(22.dp),
-    elevation: Dp = 6.dp
+    elevation: Dp = 5.dp
 ): Modifier {
     val isDark = LocalDarkTheme.current
     val lightShadowColor = neumorphicLightShadow
@@ -68,16 +68,16 @@ fun Modifier.neumorphicExtruded(
         val shadowRadius = elevation.toPx()
         val shapeOutline = shape.createOutline(size, layoutDirection, this)
 
-        // 1. 右下自然投影暗影
+        // 1. 右下自然 3D 沉降暗影
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius * if (isDark) 1.25f else 1.45f,
-                        shadowRadius * if (isDark) 0.35f else 0.75f,
-                        shadowRadius * if (isDark) 0.35f else 0.75f,
+                        shadowRadius * if (isDark) 1.20f else 1.30f,
+                        shadowRadius * if (isDark) 0.35f else 0.50f,
+                        shadowRadius * if (isDark) 0.35f else 0.50f,
                         darkShadowColor.toArgb()
                     )
                 }
@@ -85,16 +85,16 @@ fun Modifier.neumorphicExtruded(
             canvas.drawOutline(shapeOutline, paint)
         }
 
-        // 2. 左上透视定向高光
+        // 2. 左上透视柔和高光 (偏移收紧至边框内侧，彻底消减顶部与左侧白色发光溢出)
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
                 asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.TRANSPARENT
                     setShadowLayer(
-                        shadowRadius * if (isDark) 1.0f else 1.25f,
-                        -shadowRadius * if (isDark) 0.30f else 0.70f,
-                        -shadowRadius * if (isDark) 0.30f else 0.70f,
+                        shadowRadius * if (isDark) 0.8f else 1.0f,
+                        -shadowRadius * 0.35f,
+                        -shadowRadius * 0.35f,
                         lightShadowColor.toArgb()
                     )
                 }
