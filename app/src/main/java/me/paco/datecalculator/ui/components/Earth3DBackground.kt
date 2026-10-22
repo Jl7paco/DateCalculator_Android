@@ -29,13 +29,13 @@ import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import java.time.LocalTime
 
 /**
- * 真实 NASA 照片贴图 3D 卫星遥感地球背景 (直接将真实 1.39MB NASA 照片贴图作为 BitmapShader 映射至 3D 球形表面，固定 10,000 km 真实卫星视角)
+ * 真实 NASA 照片贴图 3D 卫星遥感地球背景 (应用 1:1 等比例各向同性变换，消除大洲拉伸变形，固定 8,000 km 真实近地卫星视角)
  */
 @Composable
 fun Earth3DBackground(
     latitude: Double,
     longitude: Double,
-    satelliteAltitudeKm: Int = 10000,
+    satelliteAltitudeKm: Int = 8000,
     isDark: Boolean = LocalDarkTheme.current,
     modifier: Modifier = Modifier
 ) {
@@ -63,8 +63,8 @@ fun Earth3DBackground(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height * 0.44f)
 
-            // 固定 10,000 km 最佳卫星航天视距 (呈现真实照片级球形视野)
-            val radius = size.width * 0.46f
+            // 固定 8,000 km 最佳近地卫星航天视距 (呈现拉近放大清晰轮廓)
+            val radius = size.width * 0.52f
 
             // 1. 大气层折射与散色光晕 (Space & Atmospheric Blue Halo)
             val atmosphereGlow = Brush.radialGradient(
@@ -74,11 +74,11 @@ fun Earth3DBackground(
                     Color.Transparent
                 ),
                 center = center,
-                radius = radius * 1.30f
+                radius = radius * 1.28f
             )
             drawCircle(
                 brush = atmosphereGlow,
-                radius = radius * 1.30f,
+                radius = radius * 1.28f,
                 center = center
             )
 
@@ -98,23 +98,23 @@ fun Earth3DBackground(
                 center = center
             )
 
-            // 3. 直接将真实 1.39MB NASA 白天卫星照片作为 BitmapShader 映射在 3D 球形表面 (真实照片呈现)
+            // 3. 将真实 1.39MB NASA 4K 卫星照片施加 1:1 各向同性缩放矩阵 (消除垂直拉伸变形，呈现真实自然大陆轮廓)
             if (dayTexture != null && !dayTexture.isRecycled) {
                 val texW = dayTexture.width.toFloat()
                 val texH = dayTexture.height.toFloat()
 
-                // 计算根据经纬度 $(\text{lat}, \text{lon})$ 旋转对准定位城市的 3D 纹理变换 Matrix
-                val lonShift = ((longitude + 180.0) % 360.0 / 360.0 * texW).toFloat()
-                val latShift = ((90.0 - latitude) / 180.0 * texH).toFloat()
+                // 核心修复：1:1 等比例各向同性 Matrix 变换，绝无纵向拉伸！
+                val scale = (radius * 2.05f) / texH
 
                 val matrix = Matrix().apply {
-                    val scaleX = (radius * 2.2f) / texW
-                    val scaleY = (radius * 2.2f) / texH
-                    postScale(scaleX, scaleY)
-                    postTranslate(center.x - radius * 1.1f - lonShift * scaleX * 0.25f, center.y - radius * 1.1f + latShift * scaleY * 0.25f)
+                    postScale(scale, scale) // X 与 Y 轴统一采用 1:1 相同比例，杜绝纵向拉伸变形
+                    postTranslate(
+                        center.x - (texW * scale / 2f),
+                        center.y - (texH * scale / 2f)
+                    )
                 }
 
-                val dayShader = BitmapShader(dayTexture, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP).apply {
+                val dayShader = BitmapShader(dayTexture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).apply {
                     setLocalMatrix(matrix)
                 }
 
@@ -124,7 +124,7 @@ fun Earth3DBackground(
                     shader = dayShader
                 }
 
-                // 在 3D 球体裁剪区内直接绘制真实 100% NASA 卫星照片
+                // 在 3D 球体裁剪区内直接绘制 1:1 自然无拉伸的真实 NASA 卫星遥感照片
                 drawContext.canvas.nativeCanvas.save()
                 val clipPath = android.graphics.Path().apply {
                     addCircle(center.x, center.y, radius, android.graphics.Path.Direction.CW)
