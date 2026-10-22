@@ -151,7 +151,11 @@ private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark:
 
     // 100% 严格遵循路径 C:\Users\ThxiL\Documents\Codex\2026-10-22\w\outputs\android_holiday_backgrounds 下的 holiday_background_manifest.json 映射规约！
     val resId = when {
-        // 核心节日强制 1:1 指定资源匹配规约 (用户指定：中秋 -> bg_autumn_moon, 春节 -> bg_lunar_festival, 端午 -> bg_zongzi)
+        // 核心节日强制 1:1 指定资源匹配规约 (用户指定：清明 -> bg_olive, 高考 -> bg_books, 中秋 -> bg_autumn_moon, 春节 -> bg_lunar_festival, 端午 -> bg_zongzi, 元旦 -> bg_fireworks)
+        clean.contains("清明") || clean.contains("tombsweeping") -> R.drawable.bg_olive
+        clean.contains("高考") || clean.contains("collegeentrance") || clean.contains("수능") -> R.drawable.bg_books
+        clean.contains("中考") || clean.contains("highschoolentrance") -> R.drawable.bg_exam
+        clean.contains("元旦") || clean.contains("元日") || clean.contains("newyear") || clean.contains("neujahr") || clean.contains("jourdelan") || clean.contains("capodanno") || clean.contains("신정") -> R.drawable.bg_fireworks
         clean.contains("中秋") || clean.contains("midautumn") || clean.contains("추석") -> R.drawable.bg_autumn_moon
         clean.contains("春节") || clean.contains("春節") || clean.contains("lunar") || clean.contains("springfestival") || clean.contains("农历新年") || clean.contains("農曆新年") || clean.contains("설날") -> R.drawable.bg_lunar_festival
         clean.contains("端午") || clean.contains("dragonboat") || clean.contains("zongzi") -> R.drawable.bg_zongzi
