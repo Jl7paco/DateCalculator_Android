@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="44dp"
+    android:viewportWidth="120"
+    android:viewportHeight="44">
+    <!-- Haikei & Hero Patterns Style Spring Festival Cloud & Lantern Pattern -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M15,10 C20,5 30,5 35,10 C40,15 35,22 25,22 C15,22 10,15 15,10 Z M85,12 C90,8 100,8 105,12 C110,16 105,22 95,22 C85,22 80,16 85,12 Z M50,28 C55,24 65,24 70,28 C75,32 70,38 60,38 C50,38 45,32 50,28 Z" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M25,22 L25,32 M95,22 L95,32 M60,38 L60,42" />
+</vector>

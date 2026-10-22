@@ -605,11 +605,31 @@ fun SettingsScreen(
                     allPresets.forEach { holidayName ->
                         val isEnabled = !uiState.disabledPresetHolidays.contains(holidayName)
                         val localizedName = LanguageUtils.getLocalizedHolidayName(holidayName, lang)
-                        NeumorphicChip(
-                            text = if (isEnabled) localizedName else "$localizedName (OFF)",
-                            selected = isEnabled,
-                            onClick = { viewModel.togglePresetHolidayEnabled(holidayName) }
-                        )
+                        val cleanName = localizedName.replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
+                        val displayText = if (isEnabled) cleanName else "$cleanName (OFF)"
+
+                        Box(
+                            modifier = Modifier
+                                .height(36.dp)
+                                .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = 3.dp)
+                                .background(NeumorphicBg, shape = RoundedCornerShape(10.dp))
+                                .border(
+                                    1.dp,
+                                    if (isEnabled) NeumorphicAccent.copy(alpha = 0.35f) else NeumorphicTextPrimary.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { viewModel.togglePresetHolidayEnabled(holidayName) }
+                                .padding(horizontal = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = displayText,
+                                color = if (isEnabled) NeumorphicAccent else NeumorphicTextPrimary.copy(alpha = 0.45f),
+                                fontWeight = if (isEnabled) FontWeight.ExtraBold else FontWeight.Medium,
+                                fontSize = if (lang.isChineseLocale) 12.sp else 10.5.sp
+                            )
+                        }
                     }
                 }
             }

@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="44dp"
+    android:viewportWidth="120"
+    android:viewportHeight="44">
+    <!-- Hero Patterns Laurel Wreath & Graduation Cap Pattern -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M90,12 L105,18 L90,24 L75,18 Z M90,24 L90,32 M80,21 L80,30 C80,32 100,32 100,30 L100,21" />
+</vector>

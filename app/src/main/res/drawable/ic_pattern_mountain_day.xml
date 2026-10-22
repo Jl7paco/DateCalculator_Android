@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="44dp"
+    android:viewportWidth="120"
+    android:viewportHeight="44">
+    <!-- Haikei Mountain Topographic Contour Lines Pattern -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M10,44 L35,15 L60,44 M45,44 L70,8 L95,44 M80,44 L100,22 L118,44" />
+</vector>

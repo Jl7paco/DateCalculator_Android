@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="44dp"
+    android:viewportWidth="120"
+    android:viewportHeight="44">
+    <!-- Haikei Full Moon & Cloud Curve Pattern -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M95,8 C103,8 110,15 110,23 C110,31 103,38 95,38 C87,38 80,31 80,23 C80,15 87,8 95,8 Z M65,28 C70,24 80,24 85,28 C90,32 85,38 75,38 C65,38 60,32 65,28 Z" />
+</vector>

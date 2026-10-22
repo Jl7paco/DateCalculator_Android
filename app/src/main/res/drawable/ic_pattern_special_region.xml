@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="44dp"
+    android:viewportWidth="120"
+    android:viewportHeight="44">
+    <!-- Haikei City Skyline & Harbor Wave Contour Pattern -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M15,44 L15,22 L25,22 L25,12 L35,12 L35,28 L45,28 L45,18 L55,18 L55,44 Z M75,44 L75,20 L85,20 L85,10 L95,10 L95,25 L105,25 L105,44 Z" />
+</vector>

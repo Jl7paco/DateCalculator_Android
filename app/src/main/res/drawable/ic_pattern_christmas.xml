@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="44dp"
+    android:viewportWidth="120"
+    android:viewportHeight="44">
+    <!-- Hero Patterns Pine Needle & Sparkle Star Pattern -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M20,10 L22,14 L26,14 L23,17 L24,21 L20,18 L16,21 L17,17 L14,14 L18,14 Z M80,12 L82,15 L85,15 L83,18 L84,21 L80,19 L76,21 L77,18 L75,15 L78,15 Z M50,22 L51,24 L53,24 L52,26 L52,28 L50,27 L48,28 L48,26 L47,24 L49,24 Z" />
+</vector>

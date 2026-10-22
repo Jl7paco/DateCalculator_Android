@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -86,6 +87,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.SolidColor
@@ -134,63 +137,90 @@ data class CountdownCardData(
     val baseDate: LocalDate
 )
 
-private fun getHolidayWatermarkSymbol(label: String): String {
-    val clean = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
-    return when {
-        clean.contains("国庆") || clean.contains("國慶") || clean.contains("independence") || clean.contains("national") || clean.contains("建国") -> "⭐"
-        clean.contains("春") || clean.contains("年") || clean.contains("newyear") || clean.contains("元旦") || clean.contains("跨年") || clean.contains("元日") || clean.contains("설날") -> "🎆"
-        clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("xmas") -> "🎄"
-        clean.contains("感恩") || clean.contains("thanksgiving") -> "🦃"
-        clean.contains("复活") || clean.contains("復活") || clean.contains("easter") -> "🥚"
-        clean.contains("万圣") || clean.contains("萬聖") || clean.contains("halloween") -> "🎃"
-        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") || clean.contains("exam") || clean.contains("수능") -> "🎓"
-        clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") || clean.contains("labour") || clean.contains("勤労") -> "🌿"
-        clean.contains("中秋") || clean.contains("月") || clean.contains("moon") || clean.contains("추석") -> "🌕"
-        clean.contains("端午") || clean.contains("dragon") -> "🐉"
-        clean.contains("清明") -> "🌿"
-        clean.contains("情人") || clean.contains("valentine") -> "❤️"
-        clean.contains("佛诞") || clean.contains("佛誕") || clean.contains("buddha") -> "☸️"
-        clean.contains("国王") || clean.contains("國王") || clean.contains("king") || clean.contains("queen") || clean.contains("天皇") -> "👑"
-        else -> "⏳"
-    }
-}
+data class HolidayThemePattern(
+    val bgBrush: Brush,
+    val watermarkSymbol: String,
+    val accentColor: Color
+)
 
 @Composable
-private fun getHolidayBackgroundBrush(label: String, isDark: Boolean): Brush {
+private fun getHolidayThemePattern(label: String, isDark: Boolean): HolidayThemePattern {
     val clean = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
-    val alpha1 = if (isDark) 0.35f else 0.28f
-    val alpha2 = if (isDark) 0.20f else 0.15f
+    val alpha1 = if (isDark) 0.38f else 0.28f
+    val alpha2 = if (isDark) 0.22f else 0.15f
 
     return when {
-        clean.contains("国庆") || clean.contains("國慶") || clean.contains("independence") || clean.contains("national") || clean.contains("建国") -> Brush.linearGradient(
-            colors = listOf(Color(0xFFDC2626).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))
+        // 1. 春节 / 新年 (中国红 + 暖金 + 祥云灯笼)
+        clean.contains("春") || clean.contains("年") || clean.contains("설날") || clean.contains("tết") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFFB91C1C).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))),
+            watermarkSymbol = "🏮",
+            accentColor = Color(0xFFEF4444)
         )
-        clean.contains("春") || clean.contains("年") || clean.contains("newyear") || clean.contains("元旦") || clean.contains("跨年") || clean.contains("元日") || clean.contains("설날") -> Brush.linearGradient(
-            colors = listOf(Color(0xFF2563EB).copy(alpha = alpha1), Color(0xFF8B5CF6).copy(alpha = alpha2))
+        // 2. 清明节 (青绿 + 灰蓝 + 细雨山水)
+        clean.contains("清明") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFF047857).copy(alpha = alpha1), Color(0xFF64748B).copy(alpha = alpha2))),
+            watermarkSymbol = "🌿",
+            accentColor = Color(0xFF10B981)
         )
-        clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("xmas") -> Brush.linearGradient(
-            colors = listOf(Color(0xFF16A34A).copy(alpha = alpha1), Color(0xFFDC2626).copy(alpha = alpha2))
+        // 3. 特区回归日 (海军蓝 + 海湾红 + 抽象天际线)
+        clean.contains("特区成立") || clean.contains("特區成立") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFF1E3A8A).copy(alpha = alpha1), Color(0xFFEF4444).copy(alpha = alpha2))),
+            watermarkSymbol = "🏙️",
+            accentColor = Color(0xFF3B82F6)
         )
-        clean.contains("感恩") || clean.contains("thanksgiving") -> Brush.linearGradient(
-            colors = listOf(Color(0xFFD97706).copy(alpha = alpha1), Color(0xFFB45309).copy(alpha = alpha2))
+        // 4. 日本山之日 / 绿之日 (墨绿 + 岩灰 + 森林日出)
+        clean.contains("山之日") || clean.contains("山の日") || clean.contains("みどもの日") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFF065F46).copy(alpha = alpha1), Color(0xFFD97706).copy(alpha = alpha2))),
+            watermarkSymbol = "⛰️",
+            accentColor = Color(0xFF059669)
         )
-        clean.contains("复活") || clean.contains("復活") || clean.contains("easter") -> Brush.linearGradient(
-            colors = listOf(Color(0xFFEC4899).copy(alpha = alpha1), Color(0xFFA855F7).copy(alpha = alpha2))
+        // 5. 圣诞节 (酒红 + 松绿 + 针叶雪花)
+        clean.contains("圣诞") || clean.contains("聖誕") || clean.contains("christmas") || clean.contains("weihnachten") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFF15803D).copy(alpha = alpha1), Color(0xFF991B1B).copy(alpha = alpha2))),
+            watermarkSymbol = "🎄",
+            accentColor = Color(0xFF16A34A)
         )
-        clean.contains("万圣") || clean.contains("萬聖") || clean.contains("halloween") -> Brush.linearGradient(
-            colors = listOf(Color(0xFFEA580C).copy(alpha = alpha1), Color(0xFF7C3AED).copy(alpha = alpha2))
+        // 6. 中秋节 (夜空蓝 + 月华金)
+        clean.contains("中秋") || clean.contains("月") || clean.contains("moon") || clean.contains("추석") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFF3730A3).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))),
+            watermarkSymbol = "🌕",
+            accentColor = Color(0xFF6366F1)
         )
-        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") || clean.contains("exam") || clean.contains("수능") -> Brush.linearGradient(
-            colors = listOf(Color(0xFF059669).copy(alpha = alpha1), Color(0xFF10B981).copy(alpha = alpha2))
+        // 7. 国庆节 / 独立日 (红金星徽)
+        clean.contains("国庆") || clean.contains("國慶") || clean.contains("independence") || clean.contains("national") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFFDC2626).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))),
+            watermarkSymbol = "⭐",
+            accentColor = Color(0xFFEF4444)
         )
-        clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") || clean.contains("labour") || clean.contains("勤労") -> Brush.linearGradient(
-            colors = listOf(Color(0xFF0D9488).copy(alpha = alpha1), Color(0xFF14B8A6).copy(alpha = alpha2))
+        // 8. 高考 / 中考 (金榜青绿)
+        clean.contains("高考") || clean.contains("中考") || clean.contains("考试") || clean.contains("exam") || clean.contains("수능") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFF047857).copy(alpha = alpha1), Color(0xFF10B981).copy(alpha = alpha2))),
+            watermarkSymbol = "🎓",
+            accentColor = Color(0xFF10B981)
         )
-        clean.contains("中秋") || clean.contains("月") || clean.contains("moon") || clean.contains("추석") -> Brush.linearGradient(
-            colors = listOf(Color(0xFF4338CA).copy(alpha = alpha1), Color(0xFFF59E0B).copy(alpha = alpha2))
+        // 9. 五一劳动节 (活力青绿)
+        clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") || clean.contains("labor") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFF0F766E).copy(alpha = alpha1), Color(0xFF14B8A6).copy(alpha = alpha2))),
+            watermarkSymbol = "🌿",
+            accentColor = Color(0xFF14B8A6)
         )
-        else -> Brush.linearGradient(
-            colors = listOf(NeumorphicAccent.copy(alpha = alpha1), NeumorphicAccent.copy(alpha = alpha2 * 0.5f))
+        // 10. 感恩节 (琥珀棕 + 暖阳橙)
+        clean.contains("感恩") || clean.contains("thanksgiving") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFFC2410C).copy(alpha = alpha1), Color(0xFF78350F).copy(alpha = alpha2))),
+            watermarkSymbol = "🍁",
+            accentColor = Color(0xFFEA580C)
+        )
+        // 11. 万圣节 (暖橙 + 魅惑紫)
+        clean.contains("万圣") || clean.contains("萬聖") || clean.contains("halloween") -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(Color(0xFFEA580C).copy(alpha = alpha1), Color(0xFF6B21A8).copy(alpha = alpha2))),
+            watermarkSymbol = "🎃",
+            accentColor = Color(0xFFF97316)
+        )
+        // 通用备用底纹
+        else -> HolidayThemePattern(
+            bgBrush = Brush.linearGradient(listOf(NeumorphicAccent.copy(alpha = alpha1), NeumorphicAccent.copy(alpha = alpha2 * 0.5f))),
+            watermarkSymbol = "⏳",
+            accentColor = NeumorphicAccent
         )
     }
 }
@@ -882,8 +912,7 @@ fun DateDiffScreen(
                             val rawLocalized = LanguageUtils.getLocalizedHolidayName(label, lang)
                             val cleanName = rawLocalized.replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
 
-                            val bgBrush = getHolidayBackgroundBrush(label, isDark)
-                            val watermarkSymbol = getHolidayWatermarkSymbol(label)
+                            val pattern = getHolidayThemePattern(label, isDark)
 
                             Box(
                                 modifier = Modifier
@@ -891,10 +920,10 @@ fun DateDiffScreen(
                                     .height(44.dp)
                                     .neumorphicExtruded(shape = chipShape14, elevation = 4.dp)
                                     .background(NeumorphicBg, shape = chipShape14)
-                                    .background(bgBrush, shape = chipShape14)
+                                    .background(pattern.bgBrush, shape = chipShape14)
                                     .border(
                                         width = if (isSelected) 1.8.dp else 1.dp,
-                                        color = if (isSelected) NeumorphicAccent else NeumorphicAccent.copy(alpha = 0.20f),
+                                        color = if (isSelected) pattern.accentColor else pattern.accentColor.copy(alpha = 0.25f),
                                         shape = chipShape14
                                     )
                                     .clip(chipShape14)
@@ -913,9 +942,9 @@ fun DateDiffScreen(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // 1. 半透明节日专属高质感水纹底纹 (右下角优雅漂浮水纹)
+                                // 1. 节日专属半透明水纹底纹 (右下角优雅水纹)
                                 Text(
-                                    text = watermarkSymbol,
+                                    text = pattern.watermarkSymbol,
                                     fontSize = 22.sp,
                                     color = NeumorphicTextPrimary.copy(alpha = if (isDark) 0.12f else 0.10f),
                                     modifier = Modifier

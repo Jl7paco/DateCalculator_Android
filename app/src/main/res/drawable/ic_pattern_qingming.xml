@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="44dp"
+    android:viewportWidth="120"
+    android:viewportHeight="44">
+    <!-- Haikei Rain & Mountain Wave Contour Pattern -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.2"
+        android:pathData="M0,35 Q30,20 60,30 T120,25 M0,25 Q30,12 60,20 T120,15 M15,5 L10,12 M45,2 L40,10 M85,4 L80,12 M105,8 L100,16" />
+</vector>

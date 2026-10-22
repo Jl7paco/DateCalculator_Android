@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="44dp"
+    android:viewportWidth="120"
+    android:viewportHeight="44">
+    <!-- Hero Patterns Clean Geometric Mesh Pattern -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.0"
+        android:pathData="M10,10 L30,34 M30,10 L10,34 M50,10 L70,34 M70,10 L50,34 M90,10 L110,34 M110,10 L90,34" />
+</vector>

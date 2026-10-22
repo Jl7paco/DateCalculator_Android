@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="44dp"
+    android:viewportWidth="120"
+    android:viewportHeight="44">
+    <!-- Hero Patterns Star & Emblem Pattern -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M95,10 L97,16 L103,16 L98,20 L100,26 L95,22 L90,26 L92,20 L87,16 L93,16 Z" />
+</vector>
