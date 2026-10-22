@@ -145,7 +145,8 @@ data class HolidayThemePattern(
 
 @Composable
 private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark: Boolean): HolidayThemePattern {
-    val clean = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
+    // 包含中文、日文平假名/片假名 (\u3040-\u30ff)、韩文 (\uac00-\ud7af) 与英文字母，避免日韩文字被误剔除
+    val clean = label.replace(Regex("[^\\u4e00-\\u9fa5\\u3040-\\u30ff\\uac00-\\ud7afa-zA-Z]"), "").lowercase()
     val maskAlpha = if (isDark) 0.35f else 0.18f
 
     // 100% 严格遵循路径 C:\Users\ThxiL\Documents\Codex\2026-10-22\w\outputs\android_holiday_backgrounds 下的 holiday_background_manifest.json 映射规约！
