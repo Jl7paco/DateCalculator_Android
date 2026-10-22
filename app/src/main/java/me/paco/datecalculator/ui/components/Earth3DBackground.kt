@@ -27,6 +27,9 @@ import androidx.compose.ui.platform.LocalContext
 import me.paco.datecalculator.R
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import java.time.LocalTime
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * 真实 NASA 照片贴图 3D 卫星遥感地球背景 (应用 1:1 等比例各向同性变换，消除大洲拉伸变形，固定 8,000 km 真实近地卫星视角)
@@ -98,23 +101,26 @@ fun Earth3DBackground(
                 center = center
             )
 
-            // 3. 将真实 1.39MB NASA 4K 卫星照片施加 1:1 各向同性缩放矩阵 (消除垂直拉伸变形，呈现真实自然大陆轮廓)
+            // 3. 将真实 1.39MB NASA 4K 卫星照片根据当前 GPS 经纬度 $(\text{lat}, \text{lon})$ 3D 转换居中渲染
             if (dayTexture != null && !dayTexture.isRecycled) {
                 val texW = dayTexture.width.toFloat()
                 val texH = dayTexture.height.toFloat()
 
-                // 核心修复：1:1 等比例各向同性 Matrix 变换，绝无纵向拉伸！
+                // 核心：基于当前 GPS 经纬度 (latitude, longitude) 精确换算平移量，使所在城市处于球心正中央
+                val uNorm = (((longitude + 180.0) % 360.0 + 360.0) % 360.0 / 360.0).toFloat()
+                val vNorm = (((90.0 - latitude.coerceIn(-85.0, 85.0)) / 180.0)).toFloat()
+
                 val scale = (radius * 2.05f) / texH
 
                 val matrix = Matrix().apply {
-                    postScale(scale, scale) // X 与 Y 轴统一采用 1:1 相同比例，杜绝纵向拉伸变形
+                    postScale(scale, scale) // 1:1 各向同性无拉伸
                     postTranslate(
-                        center.x - (texW * scale / 2f),
-                        center.y - (texH * scale / 2f)
+                        center.x - (uNorm * texW * scale),
+                        center.y - (vNorm * texH * scale)
                     )
                 }
 
-                val dayShader = BitmapShader(dayTexture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).apply {
+                val dayShader = BitmapShader(dayTexture, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP).apply {
                     setLocalMatrix(matrix)
                 }
 
@@ -124,7 +130,7 @@ fun Earth3DBackground(
                     shader = dayShader
                 }
 
-                // 在 3D 球体裁剪区内直接绘制 1:1 自然无拉伸的真实 NASA 卫星遥感照片
+                // 在 3D 球体裁剪区内直接绘制基于当前 GPS 城市居中的真实 NASA 卫星遥感照片
                 drawContext.canvas.nativeCanvas.save()
                 val clipPath = android.graphics.Path().apply {
                     addCircle(center.x, center.y, radius, android.graphics.Path.Direction.CW)
@@ -135,16 +141,24 @@ fun Earth3DBackground(
                 drawContext.canvas.nativeCanvas.restore()
             }
 
-            // 4. 太阳晨昏线与真实夜间过渡 shadow (Day/Night Solar Terminator Shadow)
-            val isNight = nowHour < 6 || nowHour >= 18
+            // 4. 动态太阳晨昏线与真实夜间过渡 shadow (基于真实 LocalTime 实时推算太阳角度)
+            val localTime = LocalTime.now()
+            val minuteOfDay = localTime.hour * 60 + localTime.minute
+            val sunAngleRad = (minuteOfDay - 720.0) / 1440.0 * 2.0 * PI
+
+            val sunX = (center.x + radius * sin(sunAngleRad)).toFloat()
+            val sunY = (center.y - radius * cos(sunAngleRad) * 0.5f).toFloat()
+            val nightX = (center.x - radius * sin(sunAngleRad)).toFloat()
+            val nightY = (center.y + radius * cos(sunAngleRad) * 0.5f).toFloat()
+
             val nightShadowGradient = Brush.linearGradient(
                 colors = listOf(
-                    Color.Transparent,
-                    Color.Black.copy(alpha = if (isNight) 0.55f else 0.20f),
-                    Color.Black.copy(alpha = if (isNight) 0.88f else 0.45f)
+                    Color.Transparent,                         // 太阳直射白天区域：高透清澈卫星图
+                    Color(0xFF78350F).copy(alpha = 0.35f),     // 晨昏线（暮色/曙光黄）
+                    Color(0xFF020617).copy(alpha = 0.88f)      // 黑夜侧：深邃夜影
                 ),
-                start = Offset(center.x - radius * 0.8f, center.y - radius * 0.8f),
-                end = Offset(center.x + radius * 0.8f, center.y + radius * 0.8f)
+                start = Offset(sunX, sunY),
+                end = Offset(nightX, nightY)
             )
 
             drawCircle(
