@@ -324,6 +324,38 @@ object DateCalculatorUtils {
         return DeviceLaunchInfo(deviceName = marketingName, launchDate = releaseDate)
     }
 
+    /**
+     * 保存防伪水印照片至系统公共相册 (DCIM/DateCalculator)
+     */
+    fun saveWatermarkedPhotoToGallery(context: Context, bitmap: Bitmap, fileName: String): android.net.Uri? {
+        val resolver = context.contentResolver
+        val contentValues = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, "$fileName.jpg")
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "DCIM/DateCalculator")
+                put(android.provider.MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+        }
+
+        val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+        if (uri != null) {
+            try {
+                resolver.openOutputStream(uri)?.use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    contentValues.clear()
+                    contentValues.put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0)
+                    resolver.update(uri, contentValues, null, null)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        return uri
+    }
+
     fun addCheckInWatermark(
         context: Context,
         srcBitmap: Bitmap,

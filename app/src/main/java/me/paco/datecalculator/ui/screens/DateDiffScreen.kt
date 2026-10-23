@@ -1262,17 +1262,24 @@ fun DateDiffScreen(
     if (showWatermarkCamera) {
         val currentCity = uiState.currentCityName
         val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
-        val landmarkName = checkInTitleInput.ifBlank { "东海国际中心" }
+        val resolvedLandmark = if (checkInTitleInput.isNotBlank()) {
+            checkInTitleInput
+        } else {
+            LocationUtils.getCurrentLocationWithDistrict(context).districtName
+                .substringAfter("·").trim().ifBlank { "车公庙" }
+        }
 
         WatermarkCameraScreen(
             cityName = localizedCity,
-            landmarkName = landmarkName,
+            landmarkName = resolvedLandmark,
+            latitude = checkInLat,
+            longitude = checkInLon,
             lang = lang,
             onPhotoCaptured = { photoPath ->
                 capturedPhotoPath = photoPath
                 showWatermarkCamera = false
                 showCheckInDialog = true
-                Toast.makeText(context, "防伪水印照片捕获成功！", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "防伪水印捕捉成功！", Toast.LENGTH_SHORT).show()
             },
             onDismiss = {
                 showWatermarkCamera = false

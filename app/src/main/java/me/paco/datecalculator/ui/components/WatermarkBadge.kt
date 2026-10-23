@@ -48,15 +48,26 @@ fun WatermarkBadgeOverlay(
     landmarkName: String,
     dateTimeStr: String,
     mapTileBitmap: Bitmap? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    useNeumorphicTheme: Boolean = true
 ) {
-    val badgeShape = RoundedCornerShape(18.dp)
+    val badgeShape = RoundedCornerShape(20.dp)
 
     Box(
         modifier = modifier
+            .then(
+                if (useNeumorphicTheme) {
+                    Modifier
+                        .neumorphicExtruded(shape = badgeShape, elevation = 6.dp)
+                        .background(NeumorphicBg, shape = badgeShape)
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), badgeShape)
+                } else {
+                    Modifier
+                        .background(Color(0xD81E293B), shape = badgeShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.20f), badgeShape)
+                }
+            )
             .clip(badgeShape)
-            .background(Color(0xD81E293B)) // 深色高透软玻璃质感
-            .border(1.dp, Color.White.copy(alpha = 0.20f), badgeShape)
             .padding(10.dp)
     ) {
         Row(
@@ -68,8 +79,16 @@ fun WatermarkBadgeOverlay(
             Box(
                 modifier = Modifier
                     .size(68.dp)
-                    .clip(mapBoxShape)
-                    .background(Color(0xFF0F172A)),
+                    .then(
+                        if (useNeumorphicTheme) {
+                            Modifier
+                                .neumorphicInset(shape = mapBoxShape, elevation = 3.dp)
+                                .background(NeumorphicSunkenBg, shape = mapBoxShape)
+                        } else {
+                            Modifier.background(Color(0xFF0F172A), shape = mapBoxShape)
+                        }
+                    )
+                    .clip(mapBoxShape),
                 contentAlignment = Alignment.Center
             ) {
                 if (mapTileBitmap != null) {
@@ -88,11 +107,11 @@ fun WatermarkBadgeOverlay(
                     )
                 }
 
-                // 中心黄色大图钉 📍
+                // 中心黄色/主题大图钉 📍
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
-                    tint = Color(0xFFF59E0B),
+                    tint = NeumorphicAccent,
                     modifier = Modifier.size(24.dp)
                 )
 
@@ -106,7 +125,7 @@ fun WatermarkBadgeOverlay(
                         Icon(
                             imageVector = Icons.Default.Map,
                             contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.9f),
+                            tint = if (useNeumorphicTheme) NeumorphicTextPrimary else Color.White,
                             modifier = Modifier.size(10.dp)
                         )
                         Spacer(modifier = Modifier.width(2.dp))
@@ -114,7 +133,7 @@ fun WatermarkBadgeOverlay(
                             text = "地图",
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White.copy(alpha = 0.9f)
+                            color = if (useNeumorphicTheme) NeumorphicTextPrimary else Color.White
                         )
                     }
                 }
@@ -131,7 +150,7 @@ fun WatermarkBadgeOverlay(
                     text = cityName.ifBlank { "深圳市, 中国" },
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
+                    color = if (useNeumorphicTheme) NeumorphicTextPrimary else Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -139,10 +158,10 @@ fun WatermarkBadgeOverlay(
                 Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
-                    text = landmarkName.ifBlank { "东海国际中心" },
+                    text = landmarkName.ifBlank { "车公庙" },
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.92f),
+                    color = if (useNeumorphicTheme) NeumorphicTextPrimary.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.92f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -159,7 +178,7 @@ fun WatermarkBadgeOverlay(
                     text = "🕐 $formattedTime",
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.78f),
+                    color = if (useNeumorphicTheme) NeumorphicAccent else Color.White.copy(alpha = 0.78f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
