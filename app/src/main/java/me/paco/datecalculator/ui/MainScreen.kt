@@ -109,16 +109,17 @@ fun MainScreen(
         DarkThemeMode.OFF -> false
     }
 
-    // 纯功能底栏列表（包含时间计算器，非中文语言环境下自动屏蔽农历转换，且标题跟随当前语言）
+    // 纯功能底栏列表（时间计算器入口放置于最右侧按键）
     val navItems = remember(showHome, isChineseLocale, lang) {
         val list = mutableListOf<Pair<String, ImageVector>>()
         if (showHome) list.add(LanguageUtils.getString("tab_home", lang) to Icons.Default.Home)
         list.add(LanguageUtils.getString("tab_calc", lang) to Icons.Default.CalendarToday)
-        list.add(LanguageUtils.getString("tab_time_calc", lang) to Icons.Default.MoreTime)
         list.add(LanguageUtils.getString("tab_countdown", lang) to Icons.Default.Event)
         if (isChineseLocale) {
             list.add(LanguageUtils.getString("tab_lunar", lang) to Icons.Default.SwapHoriz)
         }
+        // 需求 1: 计算器入口放到最右边的按钮
+        list.add(LanguageUtils.getString("tab_time_calc", lang) to Icons.Default.MoreTime)
         list
     }
 
