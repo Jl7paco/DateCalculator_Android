@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,7 +41,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * 100% 1:1 还原用户参考图 1 & 图 2 中的 iOS / Apple 地图风格高端水印 Badge 浮层
+ * 100% 1:1 还原用户参考图 1 & 图 2 中的 iOS / Apple 地图风格高端水印 Badge 浮层 (支持双指 Pinch 缩放)
  */
 @Composable
 fun WatermarkBadgeOverlay(
@@ -48,6 +49,7 @@ fun WatermarkBadgeOverlay(
     landmarkName: String,
     dateTimeStr: String,
     mapTileBitmap: Bitmap? = null,
+    scaleFactor: Float = 1.0f,
     modifier: Modifier = Modifier,
     useNeumorphicTheme: Boolean = true
 ) {
@@ -55,6 +57,10 @@ fun WatermarkBadgeOverlay(
 
     Box(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scaleFactor
+                scaleY = scaleFactor
+            }
             .then(
                 if (useNeumorphicTheme) {
                     Modifier
@@ -188,7 +194,7 @@ fun WatermarkBadgeOverlay(
 }
 
 /**
- * 绘制带有 1:1 Apple 地图风格 Badge 水印的照片 Bitmap
+ * 绘制带有 1:1 Apple 地图风格 Badge 水印的照片 Bitmap (精准比例缩放)
  */
 object WatermarkBitmapDrawer {
 
@@ -197,17 +203,18 @@ object WatermarkBitmapDrawer {
         cityName: String,
         landmarkName: String,
         dateTimeStr: String,
-        mapTileBitmap: Bitmap? = null
+        mapTileBitmap: Bitmap? = null,
+        userScaleFactor: Float = 1.0f
     ): Bitmap {
         val width = srcBitmap.width
         val height = srcBitmap.height
         val mutableBitmap = srcBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(mutableBitmap)
 
-        val scale = (width / 1080f).coerceIn(0.8f, 2.5f)
-        val badgeW = (320f * scale).coerceAtMost(width * 0.75f)
-        val badgeH = (110f * scale).coerceAtMost(height * 0.25f)
-        val margin = 32f * scale
+        val scale = (width / 1080f).coerceIn(0.8f, 2.5f) * userScaleFactor
+        val badgeW = (320f * scale).coerceAtMost(width * 0.85f)
+        val badgeH = (110f * scale).coerceAtMost(height * 0.30f)
+        val margin = 32f * (width / 1080f)
 
         val right = width - margin
         val left = right - badgeW
@@ -246,7 +253,7 @@ object WatermarkBitmapDrawer {
 
         textY += (20f * scale)
         textPaint.textSize = 13.5f * scale
-        val cleanLandmark = if (landmarkName.isBlank()) "东海国际中心" else landmarkName
+        val cleanLandmark = if (landmarkName.isBlank()) "车公庙" else landmarkName
         canvas.drawText(cleanLandmark, textX, textY, textPaint)
 
         textY += (20f * scale)
