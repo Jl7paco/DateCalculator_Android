@@ -113,7 +113,6 @@ fun MainScreen(
         if (showHome) list.add(LanguageUtils.getString("tab_home", lang) to Icons.Default.Home)
         list.add(LanguageUtils.getString("tab_calc", lang) to Icons.Default.CalendarToday)
         list.add(LanguageUtils.getString("tab_countdown", lang) to Icons.Default.Event)
-        list.add(LanguageUtils.getString("tab_anniversary", lang) to Icons.Default.Favorite)
         if (isChineseLocale) {
             list.add(LanguageUtils.getString("tab_lunar", lang) to Icons.Default.SwapHoriz)
         }
@@ -316,9 +315,7 @@ fun MainScreen(
                                 navItemTitle == LanguageUtils.getString("tab_home", lang) -> HomeScreen(viewModel = viewModel, uiState = uiState)
                                 navItemTitle == LanguageUtils.getString("tab_calc", lang) -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
                                 navItemTitle == LanguageUtils.getString("tab_countdown", lang) -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
-                                navItemTitle == LanguageUtils.getString("tab_anniversary", lang) -> AnniversaryScreen(viewModel = viewModel, uiState = uiState)
                                 navItemTitle == LanguageUtils.getString("tab_lunar", lang) -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
-                                navItemTitle == LanguageUtils.getString("tab_age", lang) -> AgeCalculatorScreen(viewModel = viewModel, uiState = uiState)
                                 else -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
                             }
                         }

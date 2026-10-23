@@ -24,6 +24,41 @@ data class DistrictLocation(
 
 object LocationUtils {
 
+    fun getDisplayCoordinates(lat: Double, lon: Double): Pair<Double, Double> {
+        // 需求 2: 如果在中国大陆境内，加入火星坐标系 GCJ-02 偏移以保证真实地图高精度对齐显示；若在大陆外则保持标准 WGS-84 无偏移！
+        return if (lat in 18.0..53.6 && lon in 73.5..135.1) {
+            val a = 6378245.0
+            val ee = 0.00669342162296594323
+            var dLat = transformLat(lon - 105.0, lat - 35.0)
+            var dLon = transformLon(lon - 105.0, lat - 35.0)
+            val radLat = lat / 180.0 * Math.PI
+            var magic = Math.sin(radLat)
+            magic = 1 - ee * magic * magic
+            val sqrtMagic = Math.sqrt(magic)
+            dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * Math.PI)
+            dLon = (dLon * 180.0) / (a / sqrtMagic * Math.cos(radLat) * Math.PI)
+            Pair(lat + dLat, lon + dLon)
+        } else {
+            Pair(lat, lon)
+        }
+    }
+
+    private fun transformLat(x: Double, y: Double): Double {
+        var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x))
+        ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0
+        ret += (20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin(y / 3.0 * Math.PI)) * 2.0 / 3.0
+        ret += (160.0 * Math.sin(y / 12.0 * Math.PI) + 320 * Math.sin(y * Math.PI / 30.0)) * 2.0 / 3.0
+        return ret
+    }
+
+    private fun transformLon(x: Double, y: Double): Double {
+        var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x))
+        ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0
+        ret += (20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin(x / 3.0 * Math.PI)) * 2.0 / 3.0
+        ret += (150.0 * Math.sin(x / 12.0 * Math.PI) + 300.0 * Math.sin(x / 30.0 * Math.PI)) * 2.0 / 3.0
+        return ret
+    }
+
     private fun haversineDistanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)

@@ -1,7 +1,16 @@
 package me.paco.datecalculator.util
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color as AndroidColor
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Shader
 import android.os.Build
 import me.paco.datecalculator.data.AppLanguage
+import java.io.File
+import java.io.FileOutputStream
 import me.paco.datecalculator.data.CalculationStage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.HolidayRegion
@@ -228,6 +237,63 @@ object DateCalculatorUtils {
         }
 
         return DeviceLaunchInfo(deviceName = cleanName, launchDate = launchDate)
+    }
+
+    fun addCheckInWatermark(
+        context: Context,
+        srcBitmap: Bitmap,
+        locationName: String,
+        coords: Pair<Double, Double>,
+        timestampStr: String,
+        titleText: String
+    ): String {
+        try {
+            val width = srcBitmap.width
+            val height = srcBitmap.height
+            val mutableBitmap = srcBitmap.copy(Bitmap.Config.ARGB_8888, true)
+            val canvas = Canvas(mutableBitmap)
+
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+            val textMargin = (width * 0.04f).coerceAtLeast(20f)
+            val bannerHeight = (height * 0.25f).coerceAtLeast(180f)
+
+            // 1. 底端暗调半透明渐变背景遮罩
+            val gradient = LinearGradient(
+                0f, height - bannerHeight, 0f, height.toFloat(),
+                AndroidColor.TRANSPARENT, AndroidColor.argb(220, 10, 15, 28),
+                Shader.TileMode.CLAMP
+            )
+            val bgPaint = Paint().apply { shader = gradient }
+            canvas.drawRect(0f, height - bannerHeight, width.toFloat(), height.toFloat(), bgPaint)
+
+            // 2. 绘制高清防伪水印文案 (包含地点、GPS火星偏移/WGS84坐标、时间戳、事件名称)
+            paint.color = AndroidColor.WHITE
+            paint.textSize = (width * 0.038f).coerceIn(24f, 52f)
+            paint.isFakeBoldText = true
+
+            val y3 = height - textMargin
+            val y2 = y3 - paint.textSize * 1.4f
+            val y1 = y2 - paint.textSize * 1.4f
+
+            canvas.drawText("📍 地点: $locationName", textMargin, y1, paint)
+
+            paint.color = AndroidColor.parseColor("#38BDF8") // 天蓝色 GPS
+            val (dispLat, dispLon) = LocationUtils.getDisplayCoordinates(coords.first, coords.second)
+            canvas.drawText("⏰ 时刻: $timestampStr  |  GPS: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)", textMargin, y2, paint)
+
+            paint.color = AndroidColor.parseColor("#F59E0B") // 琥珀黄打卡主题
+            canvas.drawText("🏷️ 打卡: $titleText", textMargin, y3, paint)
+
+            // 3. 保存带有专属水印的照片至应用私有目录
+            val dir = File(context.filesDir, "checkin_photos").apply { if (!exists()) mkdirs() }
+            val photoFile = File(dir, "photo_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(photoFile).use { out ->
+                mutableBitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+            }
+            return photoFile.absolutePath
+        } catch (_: Exception) {
+            return ""
+        }
     }
 
     fun isDaylightAtLocation(latitude: Double, longitude: Double): Boolean {

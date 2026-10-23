@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -61,6 +62,7 @@ import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PushPin
 import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import androidx.compose.material.icons.filled.Settings
@@ -68,7 +70,10 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.graphics.asImageBitmap
+import me.paco.datecalculator.util.LocationUtils
 import me.paco.datecalculator.util.WeatherUtils
+import java.io.File
 import java.time.format.DateTimeFormatter
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -133,13 +138,15 @@ import me.paco.datecalculator.util.NotificationUtils
 import me.paco.datecalculator.util.ShareUtils
 import java.time.LocalDate
 import java.time.YearMonth
+import java.util.Locale
 import kotlin.math.abs
 
 data class CountdownCardData(
     val id: Long,
     val eventName: String,
     val targetDate: LocalDate,
-    val baseDate: LocalDate
+    val baseDate: LocalDate,
+    val photoPath: String? = null
 )
 
 data class HolidayThemePattern(
@@ -284,6 +291,32 @@ fun DateDiffScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showCheckInDialog by remember { mutableStateOf(false) }
     var checkInTitleInput by remember { mutableStateOf("") }
+    var capturedPhotoPath by remember { mutableStateOf<String?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            val currentCity = uiState.currentCityName
+            val coords = WeatherUtils.getCityCoordinates(currentCity)
+            val nowTimeStr = java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+            val titleText = checkInTitleInput.ifBlank { "打卡地标" }
+            val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
+
+            val watermarkedPath = DateCalculatorUtils.addCheckInWatermark(
+                context = context,
+                srcBitmap = bitmap,
+                locationName = localizedCity,
+                coords = coords,
+                timestampStr = nowTimeStr,
+                titleText = titleText
+            )
+            if (watermarkedPath.isNotBlank()) {
+                capturedPhotoPath = watermarkedPath
+                Toast.makeText(context, "水印相机照片已自动生成！", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     // Start Date Type: 0 = 公历, 1 = 农历
     var startCalendarType by remember { mutableIntStateOf(0) }
@@ -331,13 +364,14 @@ fun DateDiffScreen(
         )
     }
 
-    fun addResultCard(eventName: String, targetDate: LocalDate) {
+    fun addResultCard(eventName: String, targetDate: LocalDate, photoPath: String? = null) {
         val name = eventName.ifBlank { LanguageUtils.getString("target_date", lang) }
         val newCard = CountdownCardData(
             id = System.currentTimeMillis() + resultCardList.size,
             eventName = name,
             targetDate = targetDate,
-            baseDate = LocalDate.now()
+            baseDate = LocalDate.now(),
+            photoPath = photoPath
         )
 
         val firstCard = resultCardList.firstOrNull()
@@ -600,7 +634,7 @@ fun DateDiffScreen(
         )
     }
 
-    // 精准打卡 Dialog
+    // 精准打卡 Dialog (支持水印相机照片现场捕捉与 OSM 地图融合)
     if (showCheckInDialog) {
         val currentCity = uiState.currentCityName
         val coords = WeatherUtils.getCityCoordinates(currentCity)
@@ -627,7 +661,8 @@ fun DateDiffScreen(
                         Column {
                             val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
                             Text("📍 定位地点: $localizedCity", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                            Text("GPS 经纬度: (${coords.first}, ${coords.second})", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
+                            val (dispLat, dispLon) = LocationUtils.getDisplayCoordinates(coords.first, coords.second)
+                            Text("GPS 经纬度: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
                             Text("打卡时刻: $nowTimeStr", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -671,6 +706,54 @@ fun DateDiffScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
+
+                    // 需求 1 & 3: 拍照打卡与水印相机按键
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
+                            .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { cameraLauncher.launch(null) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (capturedPhotoPath != null) "📷 已生成防伪水印照片 (点击重拍)" else "📷 拍照生成现场防伪水印照片",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeumorphicAccent
+                            )
+                        }
+                    }
+
+                    if (capturedPhotoPath != null) {
+                        val photoFile = File(capturedPhotoPath!!)
+                        if (photoFile.exists()) {
+                            val photoBmp = remember(capturedPhotoPath) {
+                                try { BitmapFactory.decodeFile(photoFile.absolutePath) } catch (_: Exception) { null }
+                            }
+                            if (photoBmp != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(110.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.30f), shape = RoundedCornerShape(12.dp))
+                                ) {
+                                    Image(
+                                        bitmap = photoBmp.asImageBitmap(),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -679,8 +762,9 @@ fun DateDiffScreen(
                         val inputTitle = checkInTitleInput.ifBlank { "打卡事件" }
                         val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
                         val checkInEventName = "打卡: $inputTitle ($localizedCity)"
-                        addResultCard(checkInEventName, LocalDate.now())
+                        addResultCard(checkInEventName, LocalDate.now(), photoPath = capturedPhotoPath)
                         checkInTitleInput = ""
+                        capturedPhotoPath = null
                         showCheckInDialog = false
                         Toast.makeText(context, "打卡成功！", Toast.LENGTH_SHORT).show()
                     },
@@ -690,7 +774,10 @@ fun DateDiffScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCheckInDialog = false }) {
+                TextButton(onClick = {
+                    showCheckInDialog = false
+                    capturedPhotoPath = null
+                }) {
                     Text(LanguageUtils.getString("cancel", lang), color = NeumorphicTextPrimary)
                 }
             },
@@ -880,84 +967,6 @@ fun DateDiffScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
             }
-
-            // 1. 起始日期 Header (高对比高清文本)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = LanguageUtils.getString("select_start_date", lang),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = NeumorphicTextPrimary
-                )
-
-                SolarLunarSwitch(
-                    isSolar = (startCalendarType == 0),
-                    onCalendarTypeChanged = { isSolar ->
-                        startCalendarType = if (isSolar) 0 else 1
-                    },
-                    language = lang
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (startCalendarType == 0) {
-                val inputShape = RoundedCornerShape(18.dp)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(58.dp)
-                        .neumorphicInset(shape = inputShape, elevation = 4.dp)
-                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape)
-                        .background(NeumorphicBg, shape = inputShape)
-                        .clip(inputShape)
-                        .clickable { showPickerForStart = true }
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                tint = NeumorphicAccent,
-                                modifier = Modifier.padding(end = 8.dp)
-                            )
-                            Text(
-                                text = "${LanguageUtils.getString("base_date", lang)}: ${DateCalculatorUtils.formatDateWithWeek(uiState.baseDate, lang)}",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicTextPrimary
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Icons.Default.EditCalendar,
-                            contentDescription = "Select Date",
-                            tint = NeumorphicAccent.copy(alpha = 0.8f)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 统一调取 QuickDateChips 全组件，确保 100% 视觉对齐 RoundedCornerShape(14.dp) 样式
-            QuickDateChips(
-                selectedDate = uiState.baseDate,
-                onSelectDate = { date -> viewModel.updateBaseDate(date) },
-                language = lang
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
 
             // 2. 目标日期 Header
             Row(
@@ -1278,6 +1287,8 @@ fun DateDiffScreen(
                         cardPattern.photoResId
                     }
 
+                    val isCardPinned = uiState.pinnedPresetHolidays.contains(cardData.eventName) || uiState.customEvents.any { (it.name == cardData.eventName || it.name.contains(cardData.eventName)) && it.isPinned }
+
                     val resultCardShape = RoundedCornerShape(22.dp)
                     Box(
                         modifier = Modifier
@@ -1288,14 +1299,30 @@ fun DateDiffScreen(
                             .border(1.2.dp, cardBorderColor, shape = resultCardShape)
                             .clip(resultCardShape)
                     ) {
-                        // 1. VectorDrawable 背景矢量素材层 (需求 3: 打卡卡片采用 100% 免费可商用的 OpenStreetMap Vector Tile 地图矢量贴图!)
-                        Image(
-                            painter = painterResource(bgDrawableResId),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            alpha = if (isDark) 0.60f else 0.50f,
-                            modifier = Modifier.matchParentSize()
-                        )
+                        // 1. 照片水印/ VectorDrawable 背景矢量素材层
+                        val photoFile = cardData.photoPath?.let { File(it) }
+                        val photoBitmap = remember(cardData.photoPath) {
+                            if (photoFile != null && photoFile.exists()) {
+                                try { BitmapFactory.decodeFile(photoFile.absolutePath) } catch (_: Exception) { null }
+                            } else null
+                        }
+
+                        if (photoBitmap != null) {
+                            Image(
+                                bitmap = photoBitmap.asImageBitmap(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.matchParentSize()
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(bgDrawableResId),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                alpha = if (isDark) 0.60f else 0.50f,
+                                modifier = Modifier.matchParentSize()
+                            )
+                        }
 
                         // 2. 需求 7: 结果卡片颜色遮罩 (未来的加入浅蓝色遮罩，过去的加入橙色遮罩)
                         Box(
@@ -1304,21 +1331,75 @@ fun DateDiffScreen(
                                 .background(cardMaskColor)
                         )
 
-                        // 3. 前景倒计时结果展示层 (需求 1: 移除红框标注内容，纯粹聚焦倒计时短语与巨幕数字)
+                        // 3. 前景倒计时结果展示层 (需求 1: 恢复置顶与删除工具栏，且不替换/覆盖现有卡片，压入新卡片)
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 18.dp, horizontal = 16.dp),
+                                .padding(vertical = 14.dp, horizontal = 16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // 需求 4 & 5: Days Matter 极佳主描述短语
-                            Text(
-                                text = phraseText,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isDark) Color.White else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
-                                textAlign = TextAlign.Center
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = phraseText,
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (isDark) Color.White else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
+                                    textAlign = TextAlign.Start,
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    // 置顶按钮
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                            .background(if (isCardPinned) NeumorphicAccent else NeumorphicBg, shape = CircleShape)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                val fullName = cardData.eventName
+                                                val foundCustom = uiState.customEvents.find { it.name == fullName || it.name.contains(cardData.eventName) }
+                                                if (foundCustom != null) {
+                                                    viewModel.togglePinCustomEvent(foundCustom, context)
+                                                } else {
+                                                    viewModel.togglePinPresetHoliday(fullName, context)
+                                                }
+                                                val msg = if (isCardPinned) "已取消置顶" else "已成功置顶！"
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PushPin,
+                                            contentDescription = "Pin",
+                                            tint = if (isCardPinned) Color.White else NeumorphicAccent,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    // 删除卡片按钮
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = if (isDark) Color.White.copy(alpha = 0.70f) else NeumorphicTextPrimary.copy(alpha = 0.60f),
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .clickable {
+                                                resultCardList = resultCardList.filterNot { it.id == cardData.id }
+                                            }
+                                    )
+                                }
+                            }
 
                             Spacer(modifier = Modifier.height(8.dp))
 
@@ -1333,14 +1414,16 @@ fun DateDiffScreen(
                                     fontWeight = FontWeight.Black,
                                     color = if (isDark) Color.White else (if (isPast) Color(0xFFEA580C) else Color(0xFF0284C7))
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = suffixText,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDark) Color.White.copy(alpha = 0.90f) else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
-                                    modifier = Modifier.padding(bottom = 6.dp)
-                                )
+                                if (suffixText.isNotBlank()) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = suffixText,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color.White.copy(alpha = 0.90f) else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
+                                        modifier = Modifier.padding(bottom = 6.dp)
+                                    )
+                                }
                             }
                         }
                     }
