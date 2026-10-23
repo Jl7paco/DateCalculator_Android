@@ -70,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
@@ -395,12 +396,24 @@ fun WatermarkCameraScreen(
             }
         }
 
-        // 需求 1: 水印卡片位于预览界面内部右上角，旋转时以右上角为锚点 (TransformOrigin(1.0f, 0.0f))，横屏时顺畅转入红框区域
+        // 需求 1: 水印卡片精准位于 4:3 取景框内部右上角 (top = 145.dp, end = 12.dp)。
+        // 配合 0°/90°/180°/270° 动态几何偏移 + 右上角锚点 (TransformOrigin(1.0f, 0.0f))，横屏时 100% 绝对落在预览框内部红框区域，绝不出界！
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 115.dp, end = 12.dp)
+                .padding(top = 145.dp, end = 12.dp)
         ) {
+            val cardWidthDp = 235.dp * watermarkScale
+            val cardHeightDp = 76.dp * watermarkScale
+            val rot = ((animatedRotation.toInt() % 360) + 360) % 360
+
+            val (rotOffsetX, rotOffsetY) = when (rot) {
+                270 -> Pair(0.dp, cardWidthDp)     // 270度（右横屏）：向下补齐卡片长度，完美居于预览框右侧红框内！
+                90  -> Pair(-cardHeightDp, 0.dp)  // 90度（左横屏）：向左补齐卡片厚度，完美居于预览框右上角！
+                180 -> Pair(0.dp, cardHeightDp)
+                else -> Pair(0.dp, 0.dp)          // 0度（竖屏）
+            }
+
             WatermarkBadgeOverlay(
                 cityName = liveCity,
                 landmarkName = liveLandmark,
@@ -408,6 +421,7 @@ fun WatermarkCameraScreen(
                 mapTileBitmap = mapTileBitmap,
                 scaleFactor = watermarkScale,
                 modifier = Modifier
+                    .offset(x = rotOffsetX, y = rotOffsetY)
                     .graphicsLayer {
                         rotationZ = animatedRotation
                         transformOrigin = TransformOrigin(1.0f, 0.0f)
