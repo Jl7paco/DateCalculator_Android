@@ -71,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -394,7 +395,7 @@ fun WatermarkCameraScreen(
             }
         }
 
-        // 需求 1: 水印卡片精准位于预览界面内部右上角 (红框位置：top = 115.dp, end = 12.dp，横竖屏均绝不上穿/不出界)
+        // 需求 1: 水印卡片位于预览界面内部右上角，旋转时以右上角为锚点 (TransformOrigin(1.0f, 0.0f))，横屏时顺畅转入红框区域
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -407,7 +408,10 @@ fun WatermarkCameraScreen(
                 mapTileBitmap = mapTileBitmap,
                 scaleFactor = watermarkScale,
                 modifier = Modifier
-                    .graphicsLayer { rotationZ = animatedRotation }
+                    .graphicsLayer {
+                        rotationZ = animatedRotation
+                        transformOrigin = TransformOrigin(1.0f, 0.0f)
+                    }
                     .pointerInput(Unit) {
                         detectTransformGestures { _, _, zoom, _ ->
                             watermarkScale = (watermarkScale * zoom).coerceIn(0.5f, 1.0f)

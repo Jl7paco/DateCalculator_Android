@@ -34,6 +34,12 @@ import kotlin.math.abs
 
 object RealMapTileLoader {
 
+    private val memoryTileCache = object : android.util.LruCache<String, Bitmap>(24) {
+        override fun sizeOf(key: String, value: Bitmap): Int {
+            return value.byteCount / 1024
+        }
+    }
+
     private fun latLonToTile(lat: Double, lon: Double, zoom: Int): Pair<Int, Int> {
         val n = 1 shl zoom
         val x = ((lon + 180.0) / 360.0 * n).toInt().coerceIn(0, n - 1)
@@ -52,13 +58,22 @@ object RealMapTileLoader {
             // Apply GCJ-02 shift if in Mainland China for 100% accurate alignment
             val (dispLat, dispLon) = LocationUtils.getDisplayCoordinates(lat, lon)
             val (x, y) = latLonToTile(dispLat, dispLon, zoom)
+            val memoryKey = "map_${zoom}_${x}_${y}"
+
+            val memoryBmp = memoryTileCache.get(memoryKey)
+            if (memoryBmp != null && !memoryBmp.isRecycled) {
+                return@withContext memoryBmp
+            }
 
             val cacheDir = File(context.cacheDir, "real_map_tiles_v3").apply { if (!exists()) mkdirs() }
             val cacheFile = File(cacheDir, "map_${zoom}_${x}_${y}.png")
 
             if (cacheFile.exists() && cacheFile.length() > 500) {
                 val cachedBmp = BitmapFactory.decodeFile(cacheFile.absolutePath)
-                if (cachedBmp != null) return@withContext cachedBmp
+                if (cachedBmp != null) {
+                    memoryTileCache.put(memoryKey, cachedBmp)
+                    return@withContext cachedBmp
+                }
             }
 
             // 调取 Esri World Street Map 与开放地图源 (100% 真实高清、无 API Key、无 Access Block、无水印)
@@ -72,9 +87,9 @@ object RealMapTileLoader {
                 try {
                     val url = URL(tileUrlStr)
                     val conn = url.openConnection() as HttpURLConnection
-                    conn.connectTimeout = 4000
-                    conn.readTimeout = 4000
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 DateCalculator/3.0.7")
+                    conn.connectTimeout = 3000
+                    conn.readTimeout = 3000
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) DateCalculator/3.0.7")
 
                     if (conn.responseCode == 200) {
                         conn.inputStream.use { input ->
@@ -83,7 +98,10 @@ object RealMapTileLoader {
                             }
                         }
                         val downloadedBmp = BitmapFactory.decodeFile(cacheFile.absolutePath)
-                        if (downloadedBmp != null) return@withContext downloadedBmp
+                        if (downloadedBmp != null) {
+                            memoryTileCache.put(memoryKey, downloadedBmp)
+                            return@withContext downloadedBmp
+                        }
                     }
                 } catch (_: Exception) {}
             }
