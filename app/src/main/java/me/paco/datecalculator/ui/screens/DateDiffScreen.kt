@@ -413,6 +413,7 @@ private fun DateDiffResultCardItem(
 
     val isSaturdayCard = cardData.eventName.contains("星期六") || cardData.eventName.contains("Saturday")
     val isTodaySaturday = isSaturdayCard && (cardData.baseDate.dayOfWeek == java.time.DayOfWeek.SATURDAY)
+    val isToday = (natDays == 0L)
 
     // 剔除可能重复的前缀 "下一个", 防止呈现 "距离下一个 下一个星期六还有"
     val cleanTitle = remember(localizedCardTitle) {
@@ -425,7 +426,7 @@ private fun DateDiffResultCardItem(
             .trim()
     }
 
-    val phraseText = remember(isTodaySaturday, isPast, cleanTitle, effectiveLang) {
+    val phraseText = remember(isToday, isTodaySaturday, isPast, cleanTitle, effectiveLang) {
         if (isTodaySaturday) {
             when (effectiveLang) {
                 AppLanguage.ENGLISH -> "Today is Saturday!"
@@ -434,9 +435,17 @@ private fun DateDiffResultCardItem(
                 AppLanguage.KOREAN -> "오늘이 바로 토요일입니다!"
                 else -> "今天就是星期六！"
             }
+        } else if (isToday) {
+            when (effectiveLang) {
+                AppLanguage.ENGLISH -> "$cleanTitle is Today!"
+                AppLanguage.TRADITIONAL_CHINESE -> "$cleanTitle 就是今天！"
+                AppLanguage.JAPANESE -> "$cleanTitle は今日です！"
+                AppLanguage.KOREAN -> "오늘이 바로 $cleanTitle!"
+                else -> "$cleanTitle 就是今天！"
+            }
         } else if (isPast) {
             when (effectiveLang) {
-                AppLanguage.ENGLISH -> "$cleanTitle Has Passed"
+                AppLanguage.ENGLISH -> "$cleanTitle Passed"
                 AppLanguage.TRADITIONAL_CHINESE -> "${cleanTitle} 已經"
                 AppLanguage.JAPANESE -> "${cleanTitle} 経過"
                 AppLanguage.KOREAN -> "${cleanTitle} 경과"
@@ -453,8 +462,8 @@ private fun DateDiffResultCardItem(
         }
     }
 
-    val suffixText = remember(isTodaySaturday, isPast, effectiveLang) {
-        if (isTodaySaturday) {
+    val suffixText = remember(isToday, isTodaySaturday, isPast, effectiveLang) {
+        if (isTodaySaturday || isToday) {
             ""
         } else if (isPast) {
             when (effectiveLang) {
@@ -1045,14 +1054,47 @@ fun DateDiffScreen(
                     ) {
                         Column {
                             val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
-                            Text("📍 定位地点: $localizedCity", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
                             val (dispLat, dispLon) = LocationUtils.getDisplayCoordinates(coords.first, coords.second)
-                            Text("GPS 经纬度: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
-                            Text("打卡时刻: $nowTimeStr", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+
+                            val locTxt = when (effectiveLang) {
+                                AppLanguage.ENGLISH -> "📍 Location: $localizedCity"
+                                AppLanguage.TRADITIONAL_CHINESE -> "📍 定位地點: $localizedCity"
+                                AppLanguage.JAPANESE -> "📍 位置: $localizedCity"
+                                AppLanguage.KOREAN -> "📍 위치: $localizedCity"
+                                else -> "📍 定位地点: $localizedCity"
+                            }
+
+                            val gpsTxt = when (effectiveLang) {
+                                AppLanguage.ENGLISH -> "GPS Coords: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                                AppLanguage.TRADITIONAL_CHINESE -> "GPS 經緯度: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                                AppLanguage.JAPANESE -> "GPS 座標: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                                AppLanguage.KOREAN -> "GPS 좌표: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                                else -> "GPS 经纬度: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                            }
+
+                            val timeTxt = when (effectiveLang) {
+                                AppLanguage.ENGLISH -> "Time: $nowTimeStr"
+                                AppLanguage.TRADITIONAL_CHINESE -> "打卡時刻: $nowTimeStr"
+                                AppLanguage.JAPANESE -> "時刻: $nowTimeStr"
+                                AppLanguage.KOREAN -> "시간: $nowTimeStr"
+                                else -> "打卡时刻: $nowTimeStr"
+                            }
+
+                            Text(locTxt, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                            Text(gpsTxt, fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
+                            Text(timeTxt, fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    Text("打卡事件名称", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    val titleHeaderTxt = when (effectiveLang) {
+                        AppLanguage.ENGLISH -> "Check-In Event Title"
+                        AppLanguage.TRADITIONAL_CHINESE -> "打卡事件名稱"
+                        AppLanguage.JAPANESE -> "チェックインイベント名"
+                        AppLanguage.KOREAN -> "체크인 이벤트 이름"
+                        else -> "打卡事件名称"
+                    }
+
+                    Text(titleHeaderTxt, fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
                     val checkInTitlePlaceholder = when (effectiveLang) {
                         AppLanguage.ENGLISH -> "e.g. Arrived in Paris / First Concert"
                         AppLanguage.TRADITIONAL_CHINESE -> "如: 抵達巴黎 / 首次看演唱會"
@@ -1092,7 +1134,25 @@ fun DateDiffScreen(
                         )
                     }
 
-                    // 需求 1 & 3: 拍照打卡与水印相机按键
+                    // 需求 1 & 3: 拍照打卡与水印相机按键 (多语言动态翻译)
+                    val photoBtnTxt = if (capturedPhotoPath != null) {
+                        when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "📷 Watermark Photo Created (Tap to Retake)"
+                            AppLanguage.TRADITIONAL_CHINESE -> "📷 已生成防偽水印照片 (點擊重拍)"
+                            AppLanguage.JAPANESE -> "📷 水印つき写真作成済み（タップで再撮影）"
+                            AppLanguage.KOREAN -> "📷 워터마크 사진 생성됨 (터치하여 재촬영)"
+                            else -> "📷 已生成防伪水印照片 (点击重拍)"
+                        }
+                    } else {
+                        when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "📷 Take Photo with Watermark"
+                            AppLanguage.TRADITIONAL_CHINESE -> "📷 拍照生成現場防偽水印照片"
+                            AppLanguage.JAPANESE -> "📷 水印つき写真を撮影"
+                            AppLanguage.KOREAN -> "📷 워터마크 사진 촬영"
+                            else -> "📷 拍照生成现场防伪水印照片"
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1107,7 +1167,7 @@ fun DateDiffScreen(
                             Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (capturedPhotoPath != null) "📷 已生成防伪水印照片 (点击重拍)" else "📷 拍照生成现场防伪水印照片",
+                                text = photoBtnTxt,
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = NeumorphicAccent

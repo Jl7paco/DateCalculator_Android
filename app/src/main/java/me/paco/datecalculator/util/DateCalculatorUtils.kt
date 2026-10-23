@@ -61,10 +61,11 @@ object RealMapTileLoader {
                 if (cachedBmp != null) return@withContext cachedBmp
             }
 
-            // Download real map tile from legal OpenStreetMap / CartoDB servers
+            // Download real map tile from legal CartoDB Voyager / OpenStreetMap servers
             val tileUrls = listOf(
-                "https://tile.openstreetmap.org/$zoom/$x/$y.png",
-                "https://a.basemaps.cartocdn.com/rastertiles/voyager/$zoom/$x/$y.png"
+                "https://a.basemaps.cartocdn.com/rastertiles/voyager/$zoom/$x/$y.png",
+                "https://b.basemaps.cartocdn.com/rastertiles/voyager/$zoom/$x/$y.png",
+                "https://tile.openstreetmap.org/$zoom/$x/$y.png"
             )
 
             for (tileUrlStr in tileUrls) {
@@ -73,7 +74,7 @@ object RealMapTileLoader {
                     val conn = url.openConnection() as HttpURLConnection
                     conn.connectTimeout = 4000
                     conn.readTimeout = 4000
-                    conn.setRequestProperty("User-Agent", "DateCalculator_Android/3.0.7 (me.paco.datecalculator)")
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 DateCalculator/3.0.7")
 
                     if (conn.responseCode == 200) {
                         conn.inputStream.use { input ->

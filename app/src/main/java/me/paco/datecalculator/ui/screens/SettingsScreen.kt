@@ -110,11 +110,11 @@ fun SettingsScreen(
     var regionMenuExpanded by remember { mutableStateOf(false) }
 
     val syncedToastText = when (lang.getEffectiveLanguage()) {
-        AppLanguage.ENGLISH -> "Successfully synced state government official holiday data!"
-        AppLanguage.JAPANESE -> "政府公式の祝日データを正常に同期しました！"
-        AppLanguage.KOREAN -> "정부 공식 공휴일 데이터를 성공적으로 동기화했습니다!"
-        AppLanguage.TRADITIONAL_CHINESE -> "成功同步最新政府法定節假日數據！"
-        else -> "已成功同步最新国务院法定节假日数据！"
+        AppLanguage.ENGLISH -> "Holidays updated!"
+        AppLanguage.TRADITIONAL_CHINESE -> "節假日已經更新"
+        AppLanguage.JAPANESE -> "祝日が更新されました"
+        AppLanguage.KOREAN -> "공휴일이 업데이트되었습니다"
+        else -> "节假日已经更新"
     }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
