@@ -361,7 +361,7 @@ fun TimeCalculatorScreen(
                         if (expression.isNotBlank()) {
                             val evalResult = evaluateTimeExpression(expression, lang)
                             if (evalResult.isNotBlank() && evalResult != "Err") {
-                                viewModel.saveToHistory("TIME_CALC", "时间加减: " + LanguageUtils.formatTimeExpressionForDisplay(expression, lang), evalResult)
+                                viewModel.saveToHistory("时间计算器", LanguageUtils.formatTimeExpressionForDisplay(expression, lang), evalResult)
                             }
                         }
                     }

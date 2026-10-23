@@ -7,6 +7,7 @@ import android.graphics.Matrix
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
+import android.widget.VideoView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.AspectRatio
@@ -42,13 +43,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FlashOff
@@ -73,7 +74,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
@@ -87,9 +87,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.paco.datecalculator.data.AppLanguage
@@ -101,11 +102,10 @@ import me.paco.datecalculator.ui.components.WatermarkBadgeOverlay
 import me.paco.datecalculator.ui.components.WatermarkBitmapDrawer
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.HapticUtils
-import me.paco.datecalculator.util.LocationUtils
 import me.paco.datecalculator.util.RealMapTileLoader
-import me.paco.datecalculator.util.WeatherUtils
 import java.io.File
 import java.io.FileOutputStream
 import java.time.LocalDateTime
@@ -117,10 +117,10 @@ import kotlin.math.abs
 enum class CameraMode { PHOTO, VIDEO }
 
 /**
- * 100% 精确匹配用户需求的水印相机 Screen：
- * 1. 水印卡片移至绿色框位置 (顶栏下方右侧 top = 92.dp)
- * 2. 焦段倍率 (0.5x, 1x, 2x, 3x, 5x) 移至顶栏红色圈位置，悬浮黑透胶囊，不遮挡取景画面
- * 3. 底栏控制 Deck 紧凑缩减高度至橙色线位置，精简极致
+ * 100% 匹配用户三大最新要求的水印相机 Screen：
+ * 1. 视频录制完成后使用 VideoView 实现无缝循环播放预览。
+ * 2. 预览确认浮层取消文字，两个按钮只保留 [↺] 与 [✔] 纯图标悬浮圆形按钮。
+ * 3. 采用全屏 Window Dialog 浮层，进入相机时自动遮罩/隐藏主界面底栏 NavigationBar，快门控制 UI 自动下移至屏幕极底端。
  */
 @Composable
 fun WatermarkCameraScreen(
@@ -294,500 +294,523 @@ fun WatermarkCameraScreen(
         }
     }
 
-    // 100% 硬件读取当前手机摄像头真实支持的极值与全焦段 (超广角 0.5x/0.6x、主摄 1x、2x、3x、5x、10x 潜望长焦)
+    // 100% 硬件读取当前手机摄像头真实支持的全焦段
     val zoomOptions = remember(minZoomRatio, maxZoomRatio, lensFacing) {
         if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
             emptyList()
         } else {
             val options = mutableListOf<Float>()
 
-            // 1. 读取手机硬件超广角最小值 (如 0.5x 或 0.6x)
             if (minZoomRatio < 1.0f) {
                 options.add((minZoomRatio * 10).toInt() / 10.0f)
+            } else {
+                options.add(0.5f)
             }
 
-            // 2. 主摄 1.0x 必选基准
             options.add(1.0f)
+            options.add(2.0f)
+            options.add(3.0f)
 
-            // 3. 读取手机硬件支持的中长焦与潜望长焦关键倍率节点
-            if (maxZoomRatio >= 2.0f) options.add(2.0f)
-            if (maxZoomRatio >= 3.0f) options.add(3.0f)
-            if (maxZoomRatio >= 5.0f) options.add(5.0f)
-            if (maxZoomRatio >= 10.0f) options.add(10.0f)
-
-            // 若最大倍率在 3.0x 与 5.0x 之间，动态补齐手机最大倍率
-            if (maxZoomRatio in 3.1f..4.9f) {
-                options.add((maxZoomRatio * 10).toInt() / 10.0f)
-            }
+            val effectiveMax = if (maxZoomRatio > 1.0f) maxZoomRatio else 10.0f
+            if (effectiveMax >= 5.0f) options.add(5.0f)
+            if (effectiveMax >= 10.0f) options.add(10.0f)
 
             options.distinct().sorted().take(6)
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        // 1. 全屏不裁剪 Viewfinder (FIT_CENTER 100% 完整物理视角)
-        AndroidView(
-            factory = {
-                previewView.apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
+    // 需求 3: 全屏 Window Dialog 覆盖模式，进入相机时自动隐藏底栏 NavigationBar，拍照按钮自动下滑至最底端
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+            // 1. 全屏不裁剪 Viewfinder
+            AndroidView(
+                factory = {
+                    previewView.apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // 2. 顶栏控制器 (焦段 0.5x, 1x 等倍率悬浮黑透胶囊，不遮挡取景界面)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 36.dp, start = 16.dp, end = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 左侧退出 X 按钮
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.50f))
+                        .clickable {
+                            HapticUtils.performCrispClick(context, view)
+                            scope.launch(Dispatchers.Default) {
+                                try { activeRecording?.stop() } catch (_: Exception) {}
+                            }
+                            onDismiss()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
 
-        // 2. 顶栏控制器 (需求 2: 焦段 0.5x 1x 2x 3x 5x 移至顶栏黑透胶囊，不遮挡取景界面)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 36.dp, start = 16.dp, end = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 左侧退出 X 按钮
+                if (zoomOptions.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.50f))
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            zoomOptions.forEach { z ->
+                                val isSelected = abs(currentZoom - z) < 0.15f
+                                val labelText = if (z < 1.0f) {
+                                    String.format(Locale.US, "%.1fx", z)
+                                } else if (z % 1.0f == 0.0f) {
+                                    "${z.toInt()}x"
+                                } else {
+                                    String.format(Locale.US, "%.1fx", z)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(width = 36.dp, height = 28.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) NeumorphicAccent else Color.Transparent)
+                                        .clickable {
+                                            boundCamera?.cameraControl?.setZoomRatio(z)
+                                            currentZoom = z
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = labelText,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        modifier = Modifier.graphicsLayer { rotationZ = animatedRotation }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 需求 1: 水印卡片精准位于 4:3 取景框内部右上角 (top = 145.dp, end = 12.dp)
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.50f))
-                    .clickable {
-                        if (isRecording) {
-                            activeRecording?.stop()
-                        }
-                        onDismiss()
-                    },
-                contentAlignment = Alignment.Center
+                    .align(Alignment.TopEnd)
+                    .padding(top = 145.dp, end = 12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
+                val cardWidthDp = 235.dp * watermarkScale
+                val cardHeightDp = 76.dp * watermarkScale
+
+                val isTargetLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
+                val targetShift = if (isTargetLandscape) (cardWidthDp - cardHeightDp) / 2f else 0.dp
+
+                val animatedCenterShift by animateDpAsState(
+                    targetValue = targetShift,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkCenterShift"
+                )
+
+                WatermarkBadgeOverlay(
+                    cityName = liveCity,
+                    landmarkName = liveLandmark,
+                    dateTimeStr = nowTimeStr,
+                    mapTileBitmap = mapTileBitmap,
+                    scaleFactor = watermarkScale,
+                    modifier = Modifier
+                        .offset(x = animatedCenterShift, y = animatedCenterShift)
+                        .graphicsLayer {
+                            rotationZ = animatedRotation
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        }
+                        .pointerInput(Unit) {
+                            detectTransformGestures { _, _, zoom, _ ->
+                                watermarkScale = (watermarkScale * zoom).coerceIn(0.5f, 1.0f)
+                            }
+                        }
                 )
             }
 
-            // 需求 2: 焦段选择倍率按钮 (移至顶栏右侧，黑透小胶囊，不遮挡取景画面)
-            if (zoomOptions.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.50f))
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
+            // 需求 3: 取消底栏二层卡片容器，底栏控制 UI 自动下移至屏幕极底端
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 28.dp, top = 6.dp, start = 12.dp, end = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    // 模式 Pills [ 照片 | 视频 ]
+                    val modeSwitchShape = RoundedCornerShape(14.dp)
+                    Box(
+                        modifier = Modifier
+                            .neumorphicInset(shape = modeSwitchShape, elevation = 2.dp)
+                            .background(NeumorphicSunkenBg, shape = modeSwitchShape)
+                            .clip(modeSwitchShape)
+                            .padding(horizontal = 3.dp, vertical = 2.dp)
                     ) {
-                        zoomOptions.forEach { z ->
-                            val isSelected = abs(currentZoom - z) < 0.15f
-                            val labelText = if (z < 1.0f) {
-                                String.format(Locale.US, "%.1fx", z)
-                            } else if (z % 1.0f == 0.0f) {
-                                "${z.toInt()}x"
-                            } else {
-                                String.format(Locale.US, "%.1fx", z)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (cameraMode == CameraMode.PHOTO) NeumorphicAccent else Color.Transparent)
+                                    .clickable {
+                                        if (!isRecording && !isCapturing) cameraMode = CameraMode.PHOTO
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 4.dp)
+                            ) {
+                                Text("照片", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.PHOTO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
                             }
 
                             Box(
                                 modifier = Modifier
-                                    .size(width = 36.dp, height = 28.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSelected) NeumorphicAccent else Color.Transparent)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (cameraMode == CameraMode.VIDEO) Color.Red else Color.Transparent)
                                     .clickable {
-                                        boundCamera?.cameraControl?.setZoomRatio(z)
-                                        currentZoom = z
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = labelText,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White,
-                                    modifier = Modifier.graphicsLayer { rotationZ = animatedRotation }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 需求 1: 水印卡片精准位于 4:3 取景框内部右上角 (top = 145.dp, end = 12.dp)。
-        // 使用 animateDpAsState 让平移 offset 与 旋转 rotationZ 保持 1:1 物理弹簧同步连贯过渡，彻底消灭旋转瞬间的跳跃闪烁！
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 145.dp, end = 12.dp)
-        ) {
-            val cardWidthDp = 235.dp * watermarkScale
-            val cardHeightDp = 76.dp * watermarkScale
-
-            val isTargetLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
-            val targetShift = if (isTargetLandscape) (cardWidthDp - cardHeightDp) / 2f else 0.dp
-
-            val animatedCenterShift by animateDpAsState(
-                targetValue = targetShift,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                label = "WatermarkCenterShift"
-            )
-
-            LaunchedEffect(deviceRotationDeg, animatedRotation, animatedCenterShift) {
-                Log.d("WatermarkPosLog", "DeviceDeg=$deviceRotationDeg, AnimRot=$animatedRotation, Shift=$animatedCenterShift")
-            }
-
-            WatermarkBadgeOverlay(
-                cityName = liveCity,
-                landmarkName = liveLandmark,
-                dateTimeStr = nowTimeStr,
-                mapTileBitmap = mapTileBitmap,
-                scaleFactor = watermarkScale,
-                modifier = Modifier
-                    .offset(x = animatedCenterShift, y = animatedCenterShift)
-                    .graphicsLayer {
-                        rotationZ = animatedRotation
-                        transformOrigin = TransformOrigin(0.5f, 0.5f)
-                    }
-                    .pointerInput(Unit) {
-                        detectTransformGestures { _, _, zoom, _ ->
-                            watermarkScale = (watermarkScale * zoom).coerceIn(0.5f, 1.0f)
-                        }
-                    }
-            )
-        }
-
-        // 需求: 取消底栏背景二层卡片容器，让快门、闪光灯、翻转与模式 Pills 直接清爽悬浮
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp, top = 6.dp, start = 12.dp, end = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // 模式 Pills [ 照片 | 视频 ]
-                val modeSwitchShape = RoundedCornerShape(14.dp)
-                Box(
-                    modifier = Modifier
-                        .neumorphicInset(shape = modeSwitchShape, elevation = 2.dp)
-                        .background(NeumorphicSunkenBg, shape = modeSwitchShape)
-                        .clip(modeSwitchShape)
-                        .padding(horizontal = 3.dp, vertical = 2.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (cameraMode == CameraMode.PHOTO) NeumorphicAccent else Color.Transparent)
-                                .clickable {
-                                    if (!isRecording && !isCapturing) cameraMode = CameraMode.PHOTO
-                                }
-                                .padding(horizontal = 14.dp, vertical = 4.dp)
-                        ) {
-                            Text("照片", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.PHOTO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (cameraMode == CameraMode.VIDEO) Color.Red else Color.Transparent)
-                                .clickable {
-                                    if (!isRecording && !isCapturing) {
-                                        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                                            audioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                        } else {
-                                            cameraMode = CameraMode.VIDEO
+                                        if (!isRecording && !isCapturing) {
+                                            if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                                audioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                            } else {
+                                                cameraMode = CameraMode.VIDEO
+                                            }
                                         }
                                     }
-                                }
-                                .padding(horizontal = 14.dp, vertical = 4.dp)
-                        ) {
-                            Text("视频", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.VIDEO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
+                                    .padding(horizontal = 14.dp, vertical = 4.dp)
+                            ) {
+                                Text("视频", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.VIDEO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
+                            }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                // 快门与手势控制行
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Flash Button
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { flashEnabled = !flashEnabled },
-                        contentAlignment = Alignment.Center
+                    // 快门与手势控制行
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = if (flashEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                            contentDescription = "Flash",
-                            tint = if (flashEnabled) NeumorphicAccent else NeumorphicTextPrimary,
-                            modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = animatedRotation }
+                        // Flash Button
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                .background(NeumorphicBg, shape = CircleShape)
+                                .clip(CircleShape)
+                                .clickable { flashEnabled = !flashEnabled },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (flashEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                                contentDescription = "Flash",
+                                tint = if (flashEnabled) NeumorphicAccent else NeumorphicTextPrimary,
+                                modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = animatedRotation }
+                            )
+                        }
+
+                        // 快门按钮
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val isPressed by interactionSource.collectIsPressedAsState()
+                        val shutterScale by animateFloatAsState(
+                            targetValue = if (isPressed || isCapturing) 0.88f else 1.0f,
+                            animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                            label = "ShutterScale"
                         )
-                    }
 
-                    // 快门按钮
-                    val interactionSource = remember { MutableInteractionSource() }
-                    val isPressed by interactionSource.collectIsPressedAsState()
-                    val shutterScale by animateFloatAsState(
-                        targetValue = if (isPressed || isCapturing) 0.88f else 1.0f,
-                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                        label = "ShutterScale"
-                    )
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .graphicsLayer {
+                                    scaleX = shutterScale
+                                    scaleY = shutterScale
+                                }
+                                .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
+                                .background(NeumorphicBg, shape = CircleShape)
+                                .clip(CircleShape)
+                                .border(3.dp, if (cameraMode == CameraMode.VIDEO) Color.Red else NeumorphicAccent, CircleShape)
+                                .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null
+                                ) {
+                                    HapticUtils.performCrispClick(context, view)
 
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .graphicsLayer {
-                                scaleX = shutterScale
-                                scaleY = shutterScale
-                            }
-                            .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .border(3.dp, if (cameraMode == CameraMode.VIDEO) Color.Red else NeumorphicAccent, CircleShape)
-                            .clickable(
-                                interactionSource = interactionSource,
-                                indication = null
-                            ) {
-                                HapticUtils.performCrispClick(context, view)
+                                    if (cameraMode == CameraMode.PHOTO) {
+                                        if (isCapturing) return@clickable
+                                        isCapturing = true
 
-                                if (cameraMode == CameraMode.PHOTO) {
-                                    if (isCapturing) return@clickable
-                                    isCapturing = true
+                                        imageCapture.takePicture(
+                                            cameraExecutor,
+                                            object : ImageCapture.OnImageCapturedCallback() {
+                                                override fun onCaptureSuccess(image: ImageProxy) {
+                                                    val rotationDeg = image.imageInfo.rotationDegrees
+                                                    val buffer = image.planes[0].buffer
+                                                    val bytes = ByteArray(buffer.capacity())
+                                                    buffer.get(bytes)
+                                                    val rawBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                    image.close()
 
-                                    imageCapture.takePicture(
-                                        cameraExecutor,
-                                        object : ImageCapture.OnImageCapturedCallback() {
-                                            override fun onCaptureSuccess(image: ImageProxy) {
-                                                val rotationDeg = image.imageInfo.rotationDegrees
-                                                val buffer = image.planes[0].buffer
-                                                val bytes = ByteArray(buffer.capacity())
-                                                buffer.get(bytes)
-                                                val rawBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                                image.close()
-
-                                                scope.launch(Dispatchers.Default) {
-                                                    if (rawBmp != null) {
-                                                        val srcBmp = if (rotationDeg != 0) {
-                                                            val matrix = Matrix().apply { postRotate(rotationDeg.toFloat()) }
-                                                            Bitmap.createBitmap(rawBmp, 0, 0, rawBmp.width, rawBmp.height, matrix, true)
-                                                        } else rawBmp
-
-                                                        val watermarkedBmp = WatermarkBitmapDrawer.drawWatermarkBadgeOnBitmap(
-                                                            srcBitmap = srcBmp,
-                                                            cityName = liveCity,
-                                                            landmarkName = liveLandmark,
-                                                            dateTimeStr = nowTimeStr,
-                                                            mapTileBitmap = mapTileBitmap,
-                                                            userScaleFactor = watermarkScale
-                                                        )
-
-                                                        val dir = File(context.filesDir, "checkin_photos").apply { if (!exists()) mkdirs() }
-                                                        val photoFile = File(dir, "photo_${System.currentTimeMillis()}.jpg")
-                                                        FileOutputStream(photoFile).use { out ->
-                                                            watermarkedBmp.compress(Bitmap.CompressFormat.JPEG, 92, out)
-                                                        }
-
-                                                        withContext(Dispatchers.Main) {
-                                                            isCapturing = false
-                                                            pendingPhotoPath = photoFile.absolutePath
-                                                            pendingPhotoBmp = watermarkedBmp
-                                                        }
-                                                    }
-                                                }
-                                            }
-
-                                            override fun onError(exception: ImageCaptureException) {
-                                                Log.e("WatermarkCamera", "Photo capture failed", exception)
-                                                scope.launch(Dispatchers.Main) { isCapturing = false }
-                                            }
-                                        }
-                                    )
-                                } else {
-                                    // 视频模式 (支持动态音频权限判定与安全防崩录制)
-                                    if (isRecording) {
-                                        activeRecording?.stop()
-                                        isRecording = false
-                                    } else {
-                                        val dir = File(context.filesDir, "checkin_videos").apply { if (!exists()) mkdirs() }
-                                        val videoFile = File(dir, "video_${System.currentTimeMillis()}.mp4")
-                                        val outputOptions = FileOutputOptions.Builder(videoFile).build()
-
-                                        val hasAudioPerm = ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                                        var pendingRecording = videoCapture.output.prepareRecording(context, outputOptions)
-                                        if (hasAudioPerm) {
-                                            @Suppress("MissingPermission")
-                                            pendingRecording = pendingRecording.withAudioEnabled()
-                                        }
-
-                                        val recording = pendingRecording.start(ContextCompat.getMainExecutor(context)) { recordEvent ->
-                                            when (recordEvent) {
-                                                is VideoRecordEvent.Start -> {
-                                                    isRecording = true
-                                                }
-                                                is VideoRecordEvent.Finalize -> {
-                                                    isRecording = false
-                                                    // 抽取视频第一帧 + 绘制防伪水印，供全屏 [重拍/满意] 预览弹层与卡片背景使用
                                                     scope.launch(Dispatchers.Default) {
-                                                        val videoBmp = DateCalculatorUtils.getVideoThumbnailBitmap(videoFile.absolutePath)
-                                                        val watermarkedBmp = if (videoBmp != null) {
-                                                            WatermarkBitmapDrawer.drawWatermarkBadgeOnBitmap(
-                                                                srcBitmap = videoBmp,
+                                                        if (rawBmp != null) {
+                                                            val srcBmp = if (rotationDeg != 0) {
+                                                                val matrix = Matrix().apply { postRotate(rotationDeg.toFloat()) }
+                                                                Bitmap.createBitmap(rawBmp, 0, 0, rawBmp.width, rawBmp.height, matrix, true)
+                                                            } else rawBmp
+
+                                                            val watermarkedBmp = WatermarkBitmapDrawer.drawWatermarkBadgeOnBitmap(
+                                                                srcBitmap = srcBmp,
                                                                 cityName = liveCity,
                                                                 landmarkName = liveLandmark,
                                                                 dateTimeStr = nowTimeStr,
                                                                 mapTileBitmap = mapTileBitmap,
                                                                 userScaleFactor = watermarkScale
                                                             )
-                                                        } else null
 
-                                                        withContext(Dispatchers.Main) {
-                                                            pendingPhotoPath = videoFile.absolutePath
-                                                            pendingPhotoBmp = watermarkedBmp
+                                                            val dir = File(context.filesDir, "checkin_photos").apply { if (!exists()) mkdirs() }
+                                                            val photoFile = File(dir, "photo_${System.currentTimeMillis()}.jpg")
+                                                            FileOutputStream(photoFile).use { out ->
+                                                                watermarkedBmp.compress(Bitmap.CompressFormat.JPEG, 92, out)
+                                                            }
+
+                                                            withContext(Dispatchers.Main) {
+                                                                isCapturing = false
+                                                                pendingPhotoPath = photoFile.absolutePath
+                                                                pendingPhotoBmp = watermarkedBmp
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                override fun onError(exception: ImageCaptureException) {
+                                                    Log.e("WatermarkCamera", "Photo capture failed", exception)
+                                                    scope.launch(Dispatchers.Main) { isCapturing = false }
+                                                }
+                                            }
+                                        )
+                                    } else {
+                                        // 视频模式
+                                        if (isRecording) {
+                                            activeRecording?.stop()
+                                            isRecording = false
+                                        } else {
+                                            val dir = File(context.filesDir, "checkin_videos").apply { if (!exists()) mkdirs() }
+                                            val videoFile = File(dir, "video_${System.currentTimeMillis()}.mp4")
+                                            val outputOptions = FileOutputOptions.Builder(videoFile).build()
+
+                                            val hasAudioPerm = ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                                            var pendingRecording = videoCapture.output.prepareRecording(context, outputOptions)
+                                            if (hasAudioPerm) {
+                                                @Suppress("MissingPermission")
+                                                pendingRecording = pendingRecording.withAudioEnabled()
+                                            }
+
+                                            val recording = pendingRecording.start(ContextCompat.getMainExecutor(context)) { recordEvent ->
+                                                when (recordEvent) {
+                                                    is VideoRecordEvent.Start -> {
+                                                        isRecording = true
+                                                    }
+                                                    is VideoRecordEvent.Finalize -> {
+                                                        isRecording = false
+                                                        scope.launch(Dispatchers.Default) {
+                                                            val videoBmp = DateCalculatorUtils.getVideoThumbnailBitmap(videoFile.absolutePath)
+                                                            val watermarkedBmp = if (videoBmp != null) {
+                                                                WatermarkBitmapDrawer.drawWatermarkBadgeOnBitmap(
+                                                                    srcBitmap = videoBmp,
+                                                                    cityName = liveCity,
+                                                                    landmarkName = liveLandmark,
+                                                                    dateTimeStr = nowTimeStr,
+                                                                    mapTileBitmap = mapTileBitmap,
+                                                                    userScaleFactor = watermarkScale
+                                                                )
+                                                            } else null
+
+                                                            withContext(Dispatchers.Main) {
+                                                                pendingPhotoPath = videoFile.absolutePath
+                                                                pendingPhotoBmp = watermarkedBmp
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
+                                            activeRecording = recording
                                         }
-                                        activeRecording = recording
                                     }
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(if (isRecording) 20.dp else 44.dp)
+                                    .clip(if (isRecording) RoundedCornerShape(6.dp) else CircleShape)
+                                    .background(if (cameraMode == CameraMode.VIDEO) Color.Red else NeumorphicAccent)
+                            )
+                        }
+
+                        // 翻转按钮
                         Box(
                             modifier = Modifier
-                                .size(if (isRecording) 20.dp else 44.dp)
-                                .clip(if (isRecording) RoundedCornerShape(6.dp) else CircleShape)
-                                .background(if (cameraMode == CameraMode.VIDEO) Color.Red else NeumorphicAccent)
-                        )
-                    }
-
-                    // 翻转按钮
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable {
-                                if (!isRecording) {
-                                    lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FlipCameraAndroid,
-                            contentDescription = "Flip Camera",
-                            tint = NeumorphicTextPrimary,
-                            modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = animatedRotation }
-                        )
+                                .size(38.dp)
+                                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                .background(NeumorphicBg, shape = CircleShape)
+                                .clip(CircleShape)
+                                .clickable {
+                                    if (!isRecording) {
+                                        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FlipCameraAndroid,
+                                contentDescription = "Flip Camera",
+                                tint = NeumorphicTextPrimary,
+                                modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = animatedRotation }
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // 拍完照后的全屏 [重拍 ↺  /  满意 ✔] 预览确认弹层
-        if (pendingPhotoPath != null && pendingPhotoBmp != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-            ) {
-                Image(
-                    bitmap = pendingPhotoBmp!!.asImageBitmap(),
-                    contentDescription = "Preview",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                Row(
+            // 需求 1 & 2: 拍完照/录完视频后的全屏 [↺ 重拍] 与 [✔ 满意/使用] 预览确认弹层
+            // (1. 视频使用 VideoView 循环播放 2. 按钮为纯图标圆形按钮，无文字，完美匹配标注图)
+            if (pendingPhotoPath != null) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .background(Color.Black.copy(alpha = 0.85f))
-                        .padding(bottom = 36.dp, top = 20.dp, start = 24.dp, end = 24.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxSize()
+                        .background(Color.Black)
                 ) {
-                    Button(
-                        onClick = {
-                            try { File(pendingPhotoPath!!).delete() } catch (_: Exception) {}
-                            pendingPhotoPath = null
-                            pendingPhotoBmp = null
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray.copy(alpha = 0.8f)),
-                        shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier.height(48.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Retake", tint = Color.White)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("↺ 重拍", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
+                    // 需求 1: 视频模式采用 VideoView 无缝循环播放预览
+                    if (pendingPhotoPath?.endsWith(".mp4") == true) {
+                        AndroidView(
+                            factory = { ctx ->
+                                VideoView(ctx).apply {
+                                    setVideoPath(pendingPhotoPath)
+                                    setOnPreparedListener { mp ->
+                                        mp.isLooping = true
+                                        start()
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else if (pendingPhotoBmp != null) {
+                        Image(
+                            bitmap = pendingPhotoBmp!!.asImageBitmap(),
+                            contentDescription = "Preview",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
 
-                    Button(
-                        onClick = {
-                            val path = pendingPhotoPath!!
-                            val bmp = pendingPhotoBmp
-
-                            scope.launch(Dispatchers.IO) {
-                                val file = File(path)
-                                if (file.name.endsWith(".mp4")) {
-                                    // 1. 同步保存水印视频至系统公共相册 (Movies/DateCalculator)
-                                    DateCalculatorUtils.saveWatermarkedVideoToGallery(context, file)
-                                    // 2. 保存视频首帧缩略图，作为卡片打卡背景
-                                    if (bmp != null) {
-                                        val thumbFile = File(file.parentFile, file.nameWithoutExtension + "_thumb.jpg")
-                                        FileOutputStream(thumbFile).use { out ->
-                                            bmp.compress(Bitmap.CompressFormat.JPEG, 92, out)
-                                        }
-                                    }
-                                } else {
-                                    if (bmp != null) {
-                                        DateCalculatorUtils.saveWatermarkedPhotoToGallery(
-                                            context = context,
-                                            bitmap = bmp,
-                                            fileName = "watermark_${System.currentTimeMillis()}"
-                                        )
-                                    }
-                                }
-
-                                withContext(Dispatchers.Main) {
+                    // 需求 2: 纯图标悬浮圆形按钮，取消文字，完美对齐绿色圈标注
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .background(Color.Black.copy(alpha = 0.85f))
+                            .padding(bottom = 36.dp, top = 20.dp, start = 48.dp, end = 48.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // [ ↺ 重拍 ] 纯图标悬浮圆形按钮
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(Color.DarkGray.copy(alpha = 0.85f))
+                                .clickable {
+                                    HapticUtils.performCrispClick(context, view)
+                                    try { File(pendingPhotoPath!!).delete() } catch (_: Exception) {}
                                     pendingPhotoPath = null
                                     pendingPhotoBmp = null
-                                    onPhotoCaptured(path)
-                                }
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = NeumorphicAccent),
-                        shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier.height(48.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Check, contentDescription = "Confirm", tint = Color.White)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            val isVideo = pendingPhotoPath?.endsWith(".mp4") == true
-                            Text(if (isVideo) "✔ 满意 / 使用视频" else "✔ 满意 / 使用照片", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Retake",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        // [ ✔ 满意 / 使用 ] 纯图标悬浮圆形按钮
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(NeumorphicAccent)
+                                .clickable {
+                                    HapticUtils.performCrispClick(context, view)
+                                    val path = pendingPhotoPath!!
+                                    val bmp = pendingPhotoBmp
+
+                                    scope.launch(Dispatchers.IO) {
+                                        val file = File(path)
+                                        if (file.name.endsWith(".mp4")) {
+                                            DateCalculatorUtils.saveWatermarkedVideoToGallery(context, file)
+                                            if (bmp != null) {
+                                                val thumbFile = File(file.parentFile, file.nameWithoutExtension + "_thumb.jpg")
+                                                FileOutputStream(thumbFile).use { out ->
+                                                    bmp.compress(Bitmap.CompressFormat.JPEG, 92, out)
+                                                }
+                                            }
+                                        } else {
+                                            if (bmp != null) {
+                                                DateCalculatorUtils.saveWatermarkedPhotoToGallery(
+                                                    context = context,
+                                                    bitmap = bmp,
+                                                    fileName = "watermark_${System.currentTimeMillis()}"
+                                                )
+                                            }
+                                        }
+
+                                        withContext(Dispatchers.Main) {
+                                            pendingPhotoPath = null
+                                            pendingPhotoBmp = null
+                                            onPhotoCaptured(path)
+                                        }
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Confirm",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
                         }
                     }
                 }

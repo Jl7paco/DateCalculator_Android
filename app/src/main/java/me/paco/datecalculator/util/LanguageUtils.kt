@@ -839,15 +839,12 @@ object LanguageUtils {
     }
 
     fun getLocalizedHistoryCategory(rawCat: String, language: AppLanguage): String {
-        val effective = language.getEffectiveLanguage()
-        if (effective == AppLanguage.SIMPLIFIED_CHINESE || effective == AppLanguage.TRADITIONAL_CHINESE) {
-            return rawCat
-        }
         return when (rawCat) {
-            "日期计算" -> "Date Calc"
-            "农历公历" -> "Lunar & Solar"
-            "倒数日" -> "Countdown"
-            "年龄计算" -> "Age Calc"
+            "TIME_CALC", "time_calc", "时间计算器" -> getString("tab_time_calc", language)
+            "DATE_CALC", "date_calc", "日期计算" -> getString("tab_calc", language)
+            "LUNAR_SOLAR", "lunar_solar", "农历公历" -> getString("tab_lunar", language)
+            "COUNTDOWN", "countdown", "倒数日" -> getString("tab_countdown", language)
+            "AGE_CALC", "age_calc", "年龄计算" -> getString("tab_age", language)
             else -> rawCat
         }
     }

@@ -156,6 +156,8 @@ object LunarCalendarUtils {
         return 0
     }
 
+    fun getLeapMonthOfYear(y: Int): Int = leapMonth(y)
+
     private fun leapMonth(y: Int): Int {
         val info = LUNAR_INFO.getOrElse(y - 1900) { 0x04bd8 }
         return info and 0xf
