@@ -41,7 +41,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * 100% 1:1 还原用户参考图 1 & 图 2 中的 iOS / Apple 地图风格高端水印 Badge 浮层 (支持双指 Pinch 缩放)
+ * 需求 1: 预览界面与拍出成品的水印样式、布局、色彩与文字排版 100% 绝对一致 (Apple 地图风格 Badge)
  */
 @Composable
 fun WatermarkBadgeOverlay(
@@ -50,30 +50,19 @@ fun WatermarkBadgeOverlay(
     dateTimeStr: String,
     mapTileBitmap: Bitmap? = null,
     scaleFactor: Float = 1.0f,
-    modifier: Modifier = Modifier,
-    useNeumorphicTheme: Boolean = true
+    modifier: Modifier = Modifier
 ) {
-    val badgeShape = RoundedCornerShape(20.dp)
+    val badgeShape = RoundedCornerShape(18.dp)
 
     Box(
         modifier = modifier
             .graphicsLayer {
-                scaleX = scaleFactor
-                scaleY = scaleFactor
+                scaleX = scaleFactor.coerceIn(0.5f, 1.0f)
+                scaleY = scaleFactor.coerceIn(0.5f, 1.0f)
             }
-            .then(
-                if (useNeumorphicTheme) {
-                    Modifier
-                        .neumorphicExtruded(shape = badgeShape, elevation = 6.dp)
-                        .background(NeumorphicBg, shape = badgeShape)
-                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), badgeShape)
-                } else {
-                    Modifier
-                        .background(Color(0xD81E293B), shape = badgeShape)
-                        .border(1.dp, Color.White.copy(alpha = 0.20f), badgeShape)
-                }
-            )
             .clip(badgeShape)
+            .background(Color(0xD81E293B))
+            .border(1.dp, Color.White.copy(alpha = 0.20f), badgeShape)
             .padding(10.dp)
     ) {
         Row(
@@ -84,17 +73,9 @@ fun WatermarkBadgeOverlay(
             val mapBoxShape = RoundedCornerShape(12.dp)
             Box(
                 modifier = Modifier
-                    .size(68.dp)
-                    .then(
-                        if (useNeumorphicTheme) {
-                            Modifier
-                                .neumorphicInset(shape = mapBoxShape, elevation = 3.dp)
-                                .background(NeumorphicSunkenBg, shape = mapBoxShape)
-                        } else {
-                            Modifier.background(Color(0xFF0F172A), shape = mapBoxShape)
-                        }
-                    )
-                    .clip(mapBoxShape),
+                    .size(64.dp)
+                    .clip(mapBoxShape)
+                    .background(Color(0xFF0F172A)),
                 contentAlignment = Alignment.Center
             ) {
                 if (mapTileBitmap != null) {
@@ -113,25 +94,23 @@ fun WatermarkBadgeOverlay(
                     )
                 }
 
-                // 中心黄色/主题大图钉 📍
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
-                    tint = NeumorphicAccent,
+                    tint = Color(0xFFF59E0B),
                     modifier = Modifier.size(24.dp)
                 )
 
-                // 左下角小标签: "地图"
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(4.dp)
+                        .padding(3.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Map,
                             contentDescription = null,
-                            tint = if (useNeumorphicTheme) NeumorphicTextPrimary else Color.White,
+                            tint = Color.White.copy(alpha = 0.9f),
                             modifier = Modifier.size(10.dp)
                         )
                         Spacer(modifier = Modifier.width(2.dp))
@@ -139,7 +118,7 @@ fun WatermarkBadgeOverlay(
                             text = "地图",
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (useNeumorphicTheme) NeumorphicTextPrimary else Color.White
+                            color = Color.White.copy(alpha = 0.9f)
                         )
                     }
                 }
@@ -150,13 +129,13 @@ fun WatermarkBadgeOverlay(
             // 2. 右侧地理名称与时刻排版
             Column(
                 horizontalAlignment = Alignment.Start,
-                modifier = Modifier.width(180.dp)
+                modifier = Modifier.width(175.dp)
             ) {
                 Text(
                     text = cityName.ifBlank { "深圳市, 中国" },
-                    fontSize = 13.5.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (useNeumorphicTheme) NeumorphicTextPrimary else Color.White,
+                    color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -165,9 +144,9 @@ fun WatermarkBadgeOverlay(
 
                 Text(
                     text = landmarkName.ifBlank { "车公庙" },
-                    fontSize = 12.5.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (useNeumorphicTheme) NeumorphicTextPrimary.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.92f),
+                    color = Color.White.copy(alpha = 0.92f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -182,9 +161,9 @@ fun WatermarkBadgeOverlay(
 
                 Text(
                     text = "🕐 $formattedTime",
-                    fontSize = 10.5.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (useNeumorphicTheme) NeumorphicAccent else Color.White.copy(alpha = 0.78f),
+                    color = Color.White.copy(alpha = 0.78f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -194,7 +173,7 @@ fun WatermarkBadgeOverlay(
 }
 
 /**
- * 绘制带有 1:1 Apple 地图风格 Badge 水印的照片 Bitmap (精准比例缩放)
+ * 需求 1: 在照片 Bitmap 上绘制与预览界面 100% 视觉像素级一致的水印 Badge
  */
 object WatermarkBitmapDrawer {
 
@@ -211,10 +190,10 @@ object WatermarkBitmapDrawer {
         val mutableBitmap = srcBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(mutableBitmap)
 
-        val scale = (width / 1080f).coerceIn(0.8f, 2.5f) * userScaleFactor
-        val badgeW = (320f * scale).coerceAtMost(width * 0.85f)
-        val badgeH = (110f * scale).coerceAtMost(height * 0.30f)
-        val margin = 32f * (width / 1080f)
+        val scale = (width / 1080f).coerceAtLeast(1.0f) * userScaleFactor.coerceIn(0.5f, 1.0f)
+        val badgeW = (width * 0.60f * userScaleFactor.coerceIn(0.5f, 1.0f)).coerceAtMost(width * 0.85f)
+        val badgeH = badgeW * 0.32f
+        val margin = 28f * scale
 
         val right = width - margin
         val left = right - badgeW
@@ -222,13 +201,13 @@ object WatermarkBitmapDrawer {
         val top = bottom - badgeH
 
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.argb(215, 30, 41, 59)
+            color = android.graphics.Color.argb(216, 30, 41, 59)
         }
 
         val rect = RectF(left, top, right, bottom)
-        canvas.drawRoundRect(rect, 24f * scale, 24f * scale, bgPaint)
+        canvas.drawRoundRect(rect, 22f * scale, 22f * scale, bgPaint)
 
-        val mapMargin = 12f * scale
+        val mapMargin = 10f * scale
         val mapSize = badgeH - (mapMargin * 2)
         val mapRect = RectF(left + mapMargin, top + mapMargin, left + mapMargin + mapSize, top + mapMargin + mapSize)
 
@@ -236,28 +215,28 @@ object WatermarkBitmapDrawer {
             canvas.drawBitmap(mapTileBitmap, null, mapRect, null)
         } else {
             val mapBgPaint = Paint().apply { color = android.graphics.Color.parseColor("#0F172A") }
-            canvas.drawRoundRect(mapRect, 14f * scale, 14f * scale, mapBgPaint)
+            canvas.drawRoundRect(mapRect, 12f * scale, 12f * scale, mapBgPaint)
         }
 
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.WHITE
-            textSize = 15f * scale
+            textSize = 14.5f * scale
             isFakeBoldText = true
         }
 
-        val textX = left + mapMargin + mapSize + (12f * scale)
-        var textY = top + mapMargin + (22f * scale)
+        val textX = left + mapMargin + mapSize + (10f * scale)
+        var textY = top + mapMargin + (20f * scale)
 
         val cleanCity = if (cityName.isBlank()) "深圳市, 中国" else cityName
         canvas.drawText(cleanCity, textX, textY, textPaint)
 
-        textY += (20f * scale)
-        textPaint.textSize = 13.5f * scale
+        textY += (18f * scale)
+        textPaint.textSize = 13f * scale
         val cleanLandmark = if (landmarkName.isBlank()) "车公庙" else landmarkName
         canvas.drawText(cleanLandmark, textX, textY, textPaint)
 
-        textY += (20f * scale)
-        textPaint.textSize = 11.5f * scale
+        textY += (18f * scale)
+        textPaint.textSize = 10.5f * scale
         textPaint.color = android.graphics.Color.parseColor("#CBD5E1")
         val cleanTime = if (dateTimeStr.isBlank()) LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 a h:mm", Locale.SIMPLIFIED_CHINESE)) else dateTimeStr
         canvas.drawText("🕐 $cleanTime", textX, textY, textPaint)
