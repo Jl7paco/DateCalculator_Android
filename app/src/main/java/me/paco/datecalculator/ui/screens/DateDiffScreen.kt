@@ -4,8 +4,10 @@ import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -674,6 +676,17 @@ fun DateDiffScreen(
     var capturedPhotoPath by remember { mutableStateOf<String?>(null) }
     var checkInLat by remember { mutableDoubleStateOf(22.533) }
     var checkInLon by remember { mutableDoubleStateOf(113.930) }
+    var showWatermarkCamera by remember { mutableStateOf(false) }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            showWatermarkCamera = true
+        } else {
+            Toast.makeText(context, "请授予相机权限以体验水印相机打卡", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     LaunchedEffect(showCheckInDialog) {
         if (showCheckInDialog) {
@@ -1160,7 +1173,14 @@ fun DateDiffScreen(
                             .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
                             .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { cameraLauncher.launch(null) },
+                            .clickable {
+                                val hasCamPerm = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                                if (hasCamPerm) {
+                                    showWatermarkCamera = true
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1234,6 +1254,24 @@ fun DateDiffScreen(
             },
             containerColor = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg,
             shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    if (showWatermarkCamera) {
+        val currentCity = uiState.currentCityName
+        val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
+        val landmarkName = checkInTitleInput.ifBlank { "东海国际中心" }
+
+        WatermarkCameraScreen(
+            cityName = localizedCity,
+            landmarkName = landmarkName,
+            lang = lang,
+            onPhotoCaptured = { photoPath ->
+                capturedPhotoPath = photoPath
+                showWatermarkCamera = false
+                Toast.makeText(context, "防伪水印照片捕获成功！", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showWatermarkCamera = false }
         )
     }
 
