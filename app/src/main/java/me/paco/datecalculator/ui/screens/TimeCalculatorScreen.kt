@@ -246,13 +246,13 @@ fun TimeCalculatorScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 2. 单位图例提示 Chip 行 (d = 天数, h = 小时, m = 分钟, s = 秒)
+            // 2. 单位图例提示 Chip 行 (y = 年, d = 天数, h = 小时, m = 分钟, s = 秒)
             val unitHints = when (effectiveLang) {
-                AppLanguage.ENGLISH -> listOf("d = Days", "h = Hours", "m = Minutes", "s = Seconds")
-                AppLanguage.TRADITIONAL_CHINESE -> listOf("d = 天數", "h = 小時", "m = 分鐘", "s = 秒")
-                AppLanguage.JAPANESE -> listOf("d = 日", "h = 時間", "m = 分", "s = 秒")
-                AppLanguage.KOREAN -> listOf("d = 일", "h = 시간", "m = 분", "s = 초")
-                else -> listOf("d = 天数", "h = 小时", "m = 分钟", "s = 秒")
+                AppLanguage.ENGLISH -> listOf("y = Years", "d = Days", "h = Hours", "m = Mins", "s = Secs")
+                AppLanguage.TRADITIONAL_CHINESE -> listOf("y = 年數", "d = 天數", "h = 小時", "m = 分鐘", "s = 秒")
+                AppLanguage.JAPANESE -> listOf("y = 年", "d = 日", "h = 時間", "m = 分", "s = 秒")
+                AppLanguage.KOREAN -> listOf("y = 년", "d = 일", "h = 시간", "m = 분", "s = 초")
+                else -> listOf("y = 年数", "d = 天数", "h = 小时", "m = 分钟", "s = 秒")
             }
 
             Row(
@@ -264,11 +264,11 @@ fun TimeCalculatorScreen(
                         modifier = Modifier
                             .neumorphicInset(shape = RoundedCornerShape(8.dp), elevation = 2.dp)
                             .background(NeumorphicSunkenBg, shape = RoundedCornerShape(8.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = hint,
-                            fontSize = 10.5.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
                             color = NeumorphicTextPrimary.copy(alpha = 0.75f)
                         )
@@ -276,19 +276,20 @@ fun TimeCalculatorScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            // 需求 2: 计算器键盘布局往下下移沉降 28dp，视觉层级更加沉稳舒展
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // 需求 2: 取消计算器二层外围卡片，按键直接呈现在主页面上；
-            // 需求 3: 按键布局 100% 参照截图 (最右列为 ÷, ×, -, +, =；Row 0 为 Clear, ⌫, (, ÷；Grid 789, 456, 123, )0.=)
+            // 需求 3: 键盘按键区 (100% 还原截图 5x4 算法按键网格，最右列为 ÷, ×, -, +, =)
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Row 0: 时间单位键 (d, h, m, s)
+                // Row 0: 需求 1 - 加入 "y = 年" 的全量时间单位按键组 (y, d, h, m, s)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    TimeCalcKeyBtn(label = "y", onClick = { HapticUtils.performCrispClick(context, view); appendToken("y") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "d", onClick = { HapticUtils.performCrispClick(context, view); appendToken("d") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "h", onClick = { HapticUtils.performCrispClick(context, view); appendToken("h") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "m", onClick = { HapticUtils.performCrispClick(context, view); appendToken("m") }, modifier = Modifier.weight(1f))

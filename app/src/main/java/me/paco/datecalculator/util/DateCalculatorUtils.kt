@@ -275,34 +275,52 @@ object DateCalculatorUtils {
 
     fun getDeviceLaunchInfo(): DeviceLaunchInfo {
         val manufacturer = Build.MANUFACTURER.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-        val model = Build.MODEL
+        val rawModel = Build.MODEL.trim()
 
-        val cleanName = if (model.contains(manufacturer, ignoreCase = true)) {
-            model
-        } else {
-            "$manufacturer $model"
-        }.trim()
+        // 智能查询并核对真机硬件销售型号 (如 SM-S9280 -> Samsung Galaxy S24 Ultra, 发布于 2024-01-17)
+        val (marketingName, releaseDate) = when {
+            // 三星 Galaxy S24 系列 (如 SM-S9280 / SM-S928B)
+            rawModel.contains("S928") || rawModel.contains("S9280") -> "Samsung Galaxy S24 Ultra" to LocalDate.of(2024, 1, 17)
+            rawModel.contains("S926") || rawModel.contains("S9260") -> "Samsung Galaxy S24+" to LocalDate.of(2024, 1, 17)
+            rawModel.contains("S921") || rawModel.contains("S9210") -> "Samsung Galaxy S24" to LocalDate.of(2024, 1, 17)
 
-        val lowerName = cleanName.lowercase(Locale.getDefault())
+            // 三星 Galaxy S23 系列
+            rawModel.contains("S918") || rawModel.contains("S9180") -> "Samsung Galaxy S23 Ultra" to LocalDate.of(2023, 2, 1)
+            rawModel.contains("S916") || rawModel.contains("S9160") -> "Samsung Galaxy S23+" to LocalDate.of(2023, 2, 1)
+            rawModel.contains("S911") || rawModel.contains("S9110") -> "Samsung Galaxy S23" to LocalDate.of(2023, 2, 1)
 
-        val launchDate = when {
-            lowerName.contains("s24") || lowerName.contains("xiaomi 14") -> LocalDate.of(2024, 1, 17)
-            lowerName.contains("s23") || lowerName.contains("xiaomi 13") || lowerName.contains("pixel 8") -> LocalDate.of(2023, 2, 1)
-            lowerName.contains("s22") || lowerName.contains("xiaomi 12") || lowerName.contains("pixel 7") -> LocalDate.of(2022, 2, 9)
-            lowerName.contains("s21") || lowerName.contains("pixel 6") -> LocalDate.of(2021, 1, 14)
-            lowerName.contains("iphone 15") -> LocalDate.of(2023, 9, 22)
-            lowerName.contains("iphone 14") -> LocalDate.of(2022, 9, 16)
-            lowerName.contains("iphone 13") -> LocalDate.of(2021, 9, 24)
-            else -> when (Build.VERSION.SDK_INT) {
-                Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> LocalDate.of(2023, 10, 4)
-                Build.VERSION_CODES.TIRAMISU -> LocalDate.of(2022, 8, 15)
-                Build.VERSION_CODES.S_V2, Build.VERSION_CODES.S -> LocalDate.of(2021, 10, 4)
-                Build.VERSION_CODES.R -> LocalDate.of(2020, 9, 8)
-                else -> LocalDate.of(2021, 1, 1)
+            // 三星 Galaxy S22 系列
+            rawModel.contains("S908") || rawModel.contains("S9080") -> "Samsung Galaxy S22 Ultra" to LocalDate.of(2022, 2, 9)
+            rawModel.contains("S906") || rawModel.contains("S9060") -> "Samsung Galaxy S22+" to LocalDate.of(2022, 2, 9)
+            rawModel.contains("S901") || rawModel.contains("S9010") -> "Samsung Galaxy S22" to LocalDate.of(2022, 2, 9)
+
+            // 小米旗舰系列
+            rawModel.contains("2311DRK48C") || rawModel.contains("23127PN0CC") -> "Xiaomi 14 / Pro" to LocalDate.of(2023, 10, 26)
+            rawModel.contains("2211133C") || rawModel.contains("2210132C") -> "Xiaomi 13 / Pro" to LocalDate.of(2022, 12, 11)
+
+            // 谷歌 Pixel & Apple iPhone
+            rawModel.contains("Pixel 8") -> "Google Pixel 8" to LocalDate.of(2023, 10, 4)
+            rawModel.contains("Pixel 7") -> "Google Pixel 7" to LocalDate.of(2022, 10, 6)
+            rawModel.contains("iPhone16") -> "iPhone 15 Pro" to LocalDate.of(2023, 9, 22)
+            rawModel.contains("iPhone15") -> "iPhone 14 Pro" to LocalDate.of(2022, 9, 16)
+
+            else -> {
+                val clean = if (rawModel.contains(manufacturer, ignoreCase = true)) {
+                    rawModel
+                } else {
+                    "$manufacturer $rawModel"
+                }
+                clean to when (Build.VERSION.SDK_INT) {
+                    Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> LocalDate.of(2023, 10, 4)
+                    Build.VERSION_CODES.TIRAMISU -> LocalDate.of(2022, 8, 15)
+                    Build.VERSION_CODES.S_V2, Build.VERSION_CODES.S -> LocalDate.of(2021, 10, 4)
+                    Build.VERSION_CODES.R -> LocalDate.of(2020, 9, 8)
+                    else -> LocalDate.of(2021, 1, 1)
+                }
             }
         }
 
-        return DeviceLaunchInfo(deviceName = cleanName, launchDate = launchDate)
+        return DeviceLaunchInfo(deviceName = marketingName, launchDate = releaseDate)
     }
 
     fun addCheckInWatermark(

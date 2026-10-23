@@ -89,6 +89,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -148,7 +149,9 @@ data class CountdownCardData(
     val eventName: String,
     val targetDate: LocalDate,
     val baseDate: LocalDate,
-    val photoPath: String? = null
+    val photoPath: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 data class HolidayThemePattern(
@@ -353,7 +356,18 @@ private fun DateDiffResultCardItem(
     val isSaturdayCard = cardData.eventName.contains("星期六") || cardData.eventName.contains("Saturday")
     val isTodaySaturday = isSaturdayCard && (cardData.baseDate.dayOfWeek == java.time.DayOfWeek.SATURDAY)
 
-    val phraseText = remember(isTodaySaturday, isPast, localizedCardTitle, effectiveLang) {
+    // 剔除可能重复的前缀 "下一个", 防止呈现 "距离下一个 下一个星期六还有"
+    val cleanTitle = remember(localizedCardTitle) {
+        localizedCardTitle
+            .replace("下一个", "")
+            .replace("下一次", "")
+            .replace("Next ", "")
+            .replace("次なる ", "")
+            .replace("다음 ", "")
+            .trim()
+    }
+
+    val phraseText = remember(isTodaySaturday, isPast, cleanTitle, effectiveLang) {
         if (isTodaySaturday) {
             when (effectiveLang) {
                 AppLanguage.ENGLISH -> "Today is Saturday!"
@@ -364,19 +378,19 @@ private fun DateDiffResultCardItem(
             }
         } else if (isPast) {
             when (effectiveLang) {
-                AppLanguage.ENGLISH -> "$localizedCardTitle Has Passed"
-                AppLanguage.TRADITIONAL_CHINESE -> "${localizedCardTitle} 聲音"
-                AppLanguage.JAPANESE -> "${localizedCardTitle} 経過"
-                AppLanguage.KOREAN -> "${localizedCardTitle} 경과"
-                else -> "${localizedCardTitle} 已经"
+                AppLanguage.ENGLISH -> "$cleanTitle Has Passed"
+                AppLanguage.TRADITIONAL_CHINESE -> "${cleanTitle} 已經"
+                AppLanguage.JAPANESE -> "${cleanTitle} 経過"
+                AppLanguage.KOREAN -> "${cleanTitle} 경과"
+                else -> "${cleanTitle} 已经"
             }
         } else {
             when (effectiveLang) {
-                AppLanguage.ENGLISH -> "Days Until Next $localizedCardTitle"
-                AppLanguage.TRADITIONAL_CHINESE -> "距離下一次 ${localizedCardTitle} 還有"
-                AppLanguage.JAPANESE -> "次なる ${localizedCardTitle} まで"
-                AppLanguage.KOREAN -> "다음 ${localizedCardTitle} 까지"
-                else -> "距离下一个 ${localizedCardTitle} 还有"
+                AppLanguage.ENGLISH -> "Days Until Next $cleanTitle"
+                AppLanguage.TRADITIONAL_CHINESE -> "距離下一次 $cleanTitle 還有"
+                AppLanguage.JAPANESE -> "次なる $cleanTitle まで"
+                AppLanguage.KOREAN -> "다음 $cleanTitle 까지"
+                else -> "距离下一个 $cleanTitle 还有"
             }
         }
     }
@@ -436,9 +450,10 @@ private fun DateDiffResultCardItem(
         var realMapBitmap by remember(cardData.eventName) { mutableStateOf<android.graphics.Bitmap?>(null) }
 
         if (isCheckInCard && cardData.photoPath.isNullOrBlank()) {
-            LaunchedEffect(cardData.eventName) {
-                val coords = WeatherUtils.getCityCoordinates(uiState.currentCityName)
-                val bmp = me.paco.datecalculator.util.RealMapTileLoader.loadRealMapTile(context, coords.first, coords.second)
+            val targetLat = cardData.latitude ?: WeatherUtils.getCityCoordinates(uiState.currentCityName).first
+            val targetLon = cardData.longitude ?: WeatherUtils.getCityCoordinates(uiState.currentCityName).second
+            LaunchedEffect(cardData.eventName, targetLat, targetLon) {
+                val bmp = me.paco.datecalculator.util.RealMapTileLoader.loadRealMapTile(context, targetLat, targetLon)
                 if (bmp != null) {
                     realMapBitmap = bmp
                 }
@@ -590,6 +605,23 @@ fun DateDiffScreen(
     var showCheckInDialog by remember { mutableStateOf(false) }
     var checkInTitleInput by remember { mutableStateOf("") }
     var capturedPhotoPath by remember { mutableStateOf<String?>(null) }
+    var checkInLat by remember { mutableDoubleStateOf(22.533) }
+    var checkInLon by remember { mutableDoubleStateOf(113.930) }
+
+    LaunchedEffect(showCheckInDialog) {
+        if (showCheckInDialog) {
+            LocationUtils.requestSingleLocationUpdate(context) { loc ->
+                if (loc != null) {
+                    checkInLat = loc.latitude
+                    checkInLon = loc.longitude
+                } else {
+                    val coords = WeatherUtils.getCityCoordinates(uiState.currentCityName)
+                    checkInLat = coords.first
+                    checkInLon = coords.second
+                }
+            }
+        }
+    }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
@@ -662,14 +694,22 @@ fun DateDiffScreen(
         )
     }
 
-    fun addResultCard(eventName: String, targetDate: LocalDate, photoPath: String? = null) {
+    fun addResultCard(
+        eventName: String,
+        targetDate: LocalDate,
+        photoPath: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
+    ) {
         val name = eventName.ifBlank { LanguageUtils.getString("target_date", lang) }
         val newCard = CountdownCardData(
             id = System.currentTimeMillis() + resultCardList.size,
             eventName = name,
             targetDate = targetDate,
             baseDate = LocalDate.now(),
-            photoPath = photoPath
+            photoPath = photoPath,
+            latitude = latitude,
+            longitude = longitude
         )
 
         // 插入新卡片至推栈最顶端，100% 绝对保留现有全量卡片，不做任何替换或 drop 删除！
@@ -1049,7 +1089,13 @@ fun DateDiffScreen(
                         val inputTitle = checkInTitleInput.ifBlank { "打卡事件" }
                         val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
                         val checkInEventName = "打卡: $inputTitle ($localizedCity)"
-                        addResultCard(checkInEventName, LocalDate.now(), photoPath = capturedPhotoPath)
+                        addResultCard(
+                            eventName = checkInEventName,
+                            targetDate = LocalDate.now(),
+                            photoPath = capturedPhotoPath,
+                            latitude = checkInLat,
+                            longitude = checkInLon
+                        )
                         checkInTitleInput = ""
                         capturedPhotoPath = null
                         showCheckInDialog = false
