@@ -153,7 +153,8 @@ fun LunarConverterScreen(
 
     LaunchedEffect(solarDate) {
         if (isUserChangedDate) {
-            if (LunarCalendarUtils.isImportantTraditionalFestival(solarDate)) {
+            val lunarResult = LunarCalendarUtils.solarToLunar(solarDate)
+            if (LunarCalendarUtils.isImportantTraditionalFestival(lunarResult.festival)) {
                 fireworksTriggerCount++
             }
         }
