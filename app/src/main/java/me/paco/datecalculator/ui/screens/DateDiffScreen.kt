@@ -374,19 +374,8 @@ fun DateDiffScreen(
             photoPath = photoPath
         )
 
-        val firstCard = resultCardList.firstOrNull()
-        val isFirstCardPinned = firstCard != null && (
-            uiState.customEvents.any { (it.name == firstCard.eventName || it.name.contains(firstCard.eventName)) && it.isPinned } ||
-            uiState.pinnedPresetHolidays.contains(firstCard.eventName)
-        )
-
-        resultCardList = if (firstCard == null) {
-            listOf(newCard)
-        } else if (!isFirstCardPinned) {
-            listOf(newCard) + resultCardList.drop(1).filterNot { it.eventName == name }
-        } else {
-            listOf(newCard) + resultCardList.filterNot { it.eventName == name }
-        }
+        // 插入新卡片至推栈最顶端，100% 绝对保留现有全量卡片，不做任何替换或 drop 删除！
+        resultCardList = listOf(newCard) + resultCardList.filterNot { it.eventName == name }
     }
 
     val targetLunarYear = targetLunarYearInput.toIntOrNull() ?: todayLunar.year
