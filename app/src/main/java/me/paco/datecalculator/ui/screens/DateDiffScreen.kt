@@ -1148,22 +1148,22 @@ fun DateDiffScreen(
                         )
                     }
 
-                    // 需求 1 & 3: 拍照打卡与水印相机按键 (多语言动态翻译)
+                    // 需求 1 & 2: 移除 emoji，文案修改为 "水印相机"
                     val photoBtnTxt = if (capturedPhotoPath != null) {
                         when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "📷 Watermark Photo Created (Tap to Retake)"
-                            AppLanguage.TRADITIONAL_CHINESE -> "📷 已生成防偽水印照片 (點擊重拍)"
-                            AppLanguage.JAPANESE -> "📷 水印つき写真作成済み（タップで再撮影）"
-                            AppLanguage.KOREAN -> "📷 워터마크 사진 생성됨 (터치하여 재촬영)"
-                            else -> "📷 已生成防伪水印照片 (点击重拍)"
+                            AppLanguage.ENGLISH -> "Watermark Camera (Photo Saved)"
+                            AppLanguage.TRADITIONAL_CHINESE -> "水印相機 (已拍攝照片)"
+                            AppLanguage.JAPANESE -> "透かしカメラ (撮影済み)"
+                            AppLanguage.KOREAN -> "워터마크 카메라 (촬영 완료)"
+                            else -> "水印相机 (已拍摄照片)"
                         }
                     } else {
                         when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "📷 Take Photo with Watermark"
-                            AppLanguage.TRADITIONAL_CHINESE -> "📷 拍照生成現場防偽水印照片"
-                            AppLanguage.JAPANESE -> "📷 水印つき写真を撮影"
-                            AppLanguage.KOREAN -> "📷 워터마크 사진 촬영"
-                            else -> "📷 拍照生成现场防伪水印照片"
+                            AppLanguage.ENGLISH -> "Watermark Camera"
+                            AppLanguage.TRADITIONAL_CHINESE -> "水印相機"
+                            AppLanguage.JAPANESE -> "透かしカメラ"
+                            AppLanguage.KOREAN -> "워터마크 카메라"
+                            else -> "水印相机"
                         }
                     }
 

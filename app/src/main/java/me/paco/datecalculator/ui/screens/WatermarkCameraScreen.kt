@@ -332,7 +332,7 @@ fun WatermarkCameraScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. 需求 5: 预览界面双指 Pinch 缩放水印 (与成品尺寸 100% 保持一致)
+        // 2. 需求 3 & 5: 预览界面双指 Pinch 极速流畅缩放水印 (最大尺寸严格限制为初始尺寸 1.0x, 防止溢出 Bug)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -348,7 +348,7 @@ fun WatermarkCameraScreen(
                     .align(Alignment.TopEnd)
                     .pointerInput(Unit) {
                         detectTransformGestures { _, _, zoom, _ ->
-                            watermarkScale = (watermarkScale * zoom).coerceIn(0.6f, 1.8f)
+                            watermarkScale = (watermarkScale * zoom).coerceIn(0.5f, 1.0f)
                         }
                     }
             )
