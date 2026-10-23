@@ -682,6 +682,7 @@ fun DateDiffScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
+            showCheckInDialog = false
             showWatermarkCamera = true
         } else {
             Toast.makeText(context, "请授予相机权限以体验水印相机打卡", Toast.LENGTH_SHORT).show()
@@ -1176,6 +1177,7 @@ fun DateDiffScreen(
                             .clickable {
                                 val hasCamPerm = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
                                 if (hasCamPerm) {
+                                    showCheckInDialog = false
                                     showWatermarkCamera = true
                                 } else {
                                     cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -1269,9 +1271,13 @@ fun DateDiffScreen(
             onPhotoCaptured = { photoPath ->
                 capturedPhotoPath = photoPath
                 showWatermarkCamera = false
+                showCheckInDialog = true
                 Toast.makeText(context, "防伪水印照片捕获成功！", Toast.LENGTH_SHORT).show()
             },
-            onDismiss = { showWatermarkCamera = false }
+            onDismiss = {
+                showWatermarkCamera = false
+                showCheckInDialog = true
+            }
         )
     }
 

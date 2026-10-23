@@ -76,6 +76,11 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            useLegacyPackaging = false
+            excludes += "**/libimage_processing_util_jni.so"
+            excludes += "**/librenderscript*.so"
+        }
     }
 }
 
