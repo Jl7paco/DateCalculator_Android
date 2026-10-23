@@ -112,7 +112,10 @@ import kotlin.math.abs
 enum class CameraMode { PHOTO, VIDEO }
 
 /**
- * 100% 重构水印相机 Screen (满足 7 大需求：不裁剪全传感器取景、极简防侵占控制面板、极速极速拍完预览确认【重拍/满意】、取消相册入口)
+ * 100% 精确匹配用户需求的水印相机 Screen：
+ * 1. 水印卡片移至绿色框位置 (顶栏下方右侧 top = 92.dp)
+ * 2. 焦段倍率 (0.5x, 1x, 2x, 3x, 5x) 移至顶栏红色圈位置，悬浮黑透胶囊，不遮挡取景画面
+ * 3. 底栏控制 Deck 紧凑缩减高度至橙色线位置，精简极致
  */
 @Composable
 fun WatermarkCameraScreen(
@@ -145,7 +148,6 @@ fun WatermarkCameraScreen(
     var recordingSeconds by remember { mutableLongStateOf(0L) }
     var activeRecording by remember { mutableStateOf<Recording?>(null) }
 
-    // 需求 6: 拍完照片后的 [重拍 / 满意确认] 预览过渡状态
     var pendingPhotoPath by remember { mutableStateOf<String?>(null) }
     var pendingPhotoBmp by remember { mutableStateOf<Bitmap?>(null) }
 
@@ -159,7 +161,6 @@ fun WatermarkCameraScreen(
         LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 a h:mm", Locale.SIMPLIFIED_CHINESE))
     }
 
-    // 需求 4: 极速离屏预载 Map Tile
     LaunchedEffect(latitude, longitude) {
         val bmp = RealMapTileLoader.loadRealMapTile(context, latitude, longitude)
         if (bmp != null) {
@@ -167,7 +168,6 @@ fun WatermarkCameraScreen(
         }
     }
 
-    // 需求 1: 强制锁屏为 PORTRAIT 竖屏布局，仅在横持手机时将文字与图标做 90/270 度顺滑旋转 (与 iOS/原生相机保持 100% 相同)
     var deviceRotationDeg by remember { mutableIntStateOf(0) }
     DisposableEffect(context) {
         val activity = (context as? android.app.Activity)
@@ -201,7 +201,6 @@ fun WatermarkCameraScreen(
         label = "DeviceRotation"
     )
 
-    // 需求 2: 取景预览设置 FIT_CENTER，绝不裁剪任何镜头画面！
     val previewView = remember {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FIT_CENTER
@@ -303,28 +302,14 @@ fun WatermarkCameraScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. 顶部 Floating Badge 水印 (与成品样式 100% 相同)
-        Box(
+        // 2. 顶栏控制器 (需求 2: 将 0.5x 1x 等焦段倍率调整移至顶栏红色圈位置，不遮挡取景界面)
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 44.dp, end = 16.dp, start = 16.dp)
+                .padding(top = 40.dp, start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            WatermarkBadgeOverlay(
-                cityName = liveCity,
-                landmarkName = liveLandmark,
-                dateTimeStr = nowTimeStr,
-                mapTileBitmap = mapTileBitmap,
-                scaleFactor = watermarkScale,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .graphicsLayer { rotationZ = animatedRotation }
-                    .pointerInput(Unit) {
-                        detectTransformGestures { _, _, zoom, _ ->
-                            watermarkScale = (watermarkScale * zoom).coerceIn(0.5f, 1.0f)
-                        }
-                    }
-            )
-
             // 左侧退出 X 按钮
             Box(
                 modifier = Modifier
@@ -336,8 +321,7 @@ fun WatermarkCameraScreen(
                             activeRecording?.stop()
                         }
                         onDismiss()
-                    }
-                    .align(Alignment.TopStart),
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -347,29 +331,18 @@ fun WatermarkCameraScreen(
                     modifier = Modifier.size(20.dp)
                 )
             }
-        }
 
-        // 需求 3: 极简低矮靠底控制 Deck (绝不过度侵占取景视野)
-        val bottomDeckShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .neumorphicExtruded(shape = bottomDeckShape, elevation = 6.dp)
-                .background(NeumorphicBg, shape = bottomDeckShape)
-                .clip(bottomDeckShape)
-                .padding(bottom = 20.dp, top = 12.dp, start = 20.dp, end = 20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // 焦段选择 (仅后置)
-                if (zoomOptions.isNotEmpty()) {
+            // 需求 2: 焦段选择倍率按钮 (移至顶栏右侧/红圈位置，黑透小胶囊，不遮挡取景画面)
+            if (zoomOptions.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.50f))
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         zoomOptions.forEach { z ->
                             val isSelected = abs(currentZoom - z) < 0.15f
@@ -377,10 +350,9 @@ fun WatermarkCameraScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .neumorphicExtruded(shape = CircleShape, elevation = if (isSelected) 2.dp else 4.dp)
-                                    .background(if (isSelected) NeumorphicAccent else NeumorphicBg, shape = CircleShape)
+                                    .size(28.dp)
                                     .clip(CircleShape)
+                                    .background(if (isSelected) NeumorphicAccent else Color.Transparent)
                                     .clickable {
                                         boundCamera?.cameraControl?.setZoomRatio(z)
                                         currentZoom = z
@@ -389,26 +361,64 @@ fun WatermarkCameraScreen(
                             ) {
                                 Text(
                                     text = labelText,
-                                    fontSize = 11.sp,
+                                    fontSize = 10.5.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = if (isSelected) Color.White else NeumorphicTextPrimary,
+                                    color = Color.White,
                                     modifier = Modifier.graphicsLayer { rotationZ = animatedRotation }
                                 )
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
                 }
+            }
+        }
 
+        // 需求 1: 水印卡片移至绿色框位置 (顶栏下方右侧 top = 92.dp)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 92.dp, end = 16.dp)
+        ) {
+            WatermarkBadgeOverlay(
+                cityName = liveCity,
+                landmarkName = liveLandmark,
+                dateTimeStr = nowTimeStr,
+                mapTileBitmap = mapTileBitmap,
+                scaleFactor = watermarkScale,
+                modifier = Modifier
+                    .graphicsLayer { rotationZ = animatedRotation }
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, _, zoom, _ ->
+                            watermarkScale = (watermarkScale * zoom).coerceIn(0.5f, 1.0f)
+                        }
+                    }
+            )
+        }
+
+        // 需求 3: 底栏控制 Deck 紧凑缩减高度至橙色线位置
+        val bottomDeckShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .neumorphicExtruded(shape = bottomDeckShape, elevation = 6.dp)
+                .background(NeumorphicBg, shape = bottomDeckShape)
+                .clip(bottomDeckShape)
+                .padding(bottom = 12.dp, top = 8.dp, start = 16.dp, end = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 // 模式 Pills [ 照片 | 视频 ]
-                val modeSwitchShape = RoundedCornerShape(16.dp)
+                val modeSwitchShape = RoundedCornerShape(14.dp)
                 Box(
                     modifier = Modifier
                         .neumorphicInset(shape = modeSwitchShape, elevation = 2.dp)
                         .background(NeumorphicSunkenBg, shape = modeSwitchShape)
                         .clip(modeSwitchShape)
-                        .padding(horizontal = 3.dp, vertical = 3.dp)
+                        .padding(horizontal = 3.dp, vertical = 2.dp)
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -416,33 +426,33 @@ fun WatermarkCameraScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(if (cameraMode == CameraMode.PHOTO) NeumorphicAccent else Color.Transparent)
                                 .clickable {
                                     if (!isRecording && !isCapturing) cameraMode = CameraMode.PHOTO
                                 }
                                 .padding(horizontal = 14.dp, vertical = 4.dp)
                         ) {
-                            Text("照片", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.PHOTO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
+                            Text("照片", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.PHOTO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
                         }
 
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(if (cameraMode == CameraMode.VIDEO) Color.Red else Color.Transparent)
                                 .clickable {
                                     if (!isRecording && !isCapturing) cameraMode = CameraMode.VIDEO
                                 }
                                 .padding(horizontal = 14.dp, vertical = 4.dp)
                         ) {
-                            Text("视频", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.VIDEO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
+                            Text("视频", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.VIDEO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // 快门与手势控制行 (需求 5: 已经取消访问相册的入口按钮)
+                // 快门与手势控制行
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround,
@@ -451,8 +461,8 @@ fun WatermarkCameraScreen(
                     // Flash Button
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+                            .size(38.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
                             .background(NeumorphicBg, shape = CircleShape)
                             .clip(CircleShape)
                             .clickable { flashEnabled = !flashEnabled },
@@ -462,7 +472,7 @@ fun WatermarkCameraScreen(
                             imageVector = if (flashEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
                             contentDescription = "Flash",
                             tint = if (flashEnabled) NeumorphicAccent else NeumorphicTextPrimary,
-                            modifier = Modifier.size(18.dp).graphicsLayer { rotationZ = animatedRotation }
+                            modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = animatedRotation }
                         )
                     }
 
@@ -477,12 +487,12 @@ fun WatermarkCameraScreen(
 
                     Box(
                         modifier = Modifier
-                            .size(68.dp)
+                            .size(60.dp)
                             .graphicsLayer {
                                 scaleX = shutterScale
                                 scaleY = shutterScale
                             }
-                            .neumorphicExtruded(shape = CircleShape, elevation = 6.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
                             .background(NeumorphicBg, shape = CircleShape)
                             .clip(CircleShape)
                             .border(3.dp, if (cameraMode == CameraMode.VIDEO) Color.Red else NeumorphicAccent, CircleShape)
@@ -496,7 +506,6 @@ fun WatermarkCameraScreen(
                                     if (isCapturing) return@clickable
                                     isCapturing = true
 
-                                    // 需求 4: 后台协程处理图片旋转与 1:1 水印合成，极速响应！
                                     imageCapture.takePicture(
                                         cameraExecutor,
                                         object : ImageCapture.OnImageCapturedCallback() {
@@ -510,13 +519,11 @@ fun WatermarkCameraScreen(
 
                                                 scope.launch(Dispatchers.Default) {
                                                     if (rawBmp != null) {
-                                                        // 需求 6: 修正 EXIF 旋转角度
                                                         val srcBmp = if (rotationDeg != 0) {
                                                             val matrix = Matrix().apply { postRotate(rotationDeg.toFloat()) }
                                                             Bitmap.createBitmap(rawBmp, 0, 0, rawBmp.width, rawBmp.height, matrix, true)
                                                         } else rawBmp
 
-                                                        // 1:1 绘制防伪水印
                                                         val watermarkedBmp = WatermarkBitmapDrawer.drawWatermarkBadgeOnBitmap(
                                                             srcBitmap = srcBmp,
                                                             cityName = liveCity,
@@ -584,7 +591,7 @@ fun WatermarkCameraScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(if (isRecording) 24.dp else 50.dp)
+                                .size(if (isRecording) 20.dp else 44.dp)
                                 .clip(if (isRecording) RoundedCornerShape(6.dp) else CircleShape)
                                 .background(if (cameraMode == CameraMode.VIDEO) Color.Red else NeumorphicAccent)
                         )
@@ -593,8 +600,8 @@ fun WatermarkCameraScreen(
                     // 翻转按钮
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 4.dp)
+                            .size(38.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
                             .background(NeumorphicBg, shape = CircleShape)
                             .clip(CircleShape)
                             .clickable {
@@ -608,14 +615,14 @@ fun WatermarkCameraScreen(
                             imageVector = Icons.Default.FlipCameraAndroid,
                             contentDescription = "Flip Camera",
                             tint = NeumorphicTextPrimary,
-                            modifier = Modifier.size(18.dp).graphicsLayer { rotationZ = animatedRotation }
+                            modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = animatedRotation }
                         )
                     }
                 }
             }
         }
 
-        // 需求 6: 拍完照后的全屏 [重拍 ↺  /  满意 ✔] 预览确认弹层
+        // 拍完照后的全屏 [重拍 ↺  /  满意 ✔] 预览确认弹层
         if (pendingPhotoPath != null && pendingPhotoBmp != null) {
             Box(
                 modifier = Modifier
@@ -629,7 +636,6 @@ fun WatermarkCameraScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 底部 [ ↺ 重拍 ] 与 [ ✔ 满意 / 使用照片 ] 按键栏
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -639,10 +645,8 @@ fun WatermarkCameraScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // ↺ 重拍
                     Button(
                         onClick = {
-                            // 丢弃照片，删除临时文件并返回相机
                             try { File(pendingPhotoPath!!).delete() } catch (_: Exception) {}
                             pendingPhotoPath = null
                             pendingPhotoBmp = null
@@ -658,13 +662,11 @@ fun WatermarkCameraScreen(
                         }
                     }
 
-                    // ✔ 满意 / 使用照片
                     Button(
                         onClick = {
                             val path = pendingPhotoPath!!
                             val bmp = pendingPhotoBmp!!
 
-                            // 同步保存到系统相册
                             DateCalculatorUtils.saveWatermarkedPhotoToGallery(
                                 context = context,
                                 bitmap = bmp,
