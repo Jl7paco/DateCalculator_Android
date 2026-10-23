@@ -644,8 +644,25 @@ fun WatermarkCameraScreen(
                                                 }
                                                 is VideoRecordEvent.Finalize -> {
                                                     isRecording = false
-                                                    Toast.makeText(context, "水印视频录制完成！", Toast.LENGTH_SHORT).show()
-                                                    onPhotoCaptured(videoFile.absolutePath)
+                                                    // 抽取视频第一帧 + 绘制防伪水印，供全屏 [重拍/满意] 预览弹层与卡片背景使用
+                                                    scope.launch(Dispatchers.Default) {
+                                                        val videoBmp = DateCalculatorUtils.getVideoThumbnailBitmap(videoFile.absolutePath)
+                                                        val watermarkedBmp = if (videoBmp != null) {
+                                                            WatermarkBitmapDrawer.drawWatermarkBadgeOnBitmap(
+                                                                srcBitmap = videoBmp,
+                                                                cityName = liveCity,
+                                                                landmarkName = liveLandmark,
+                                                                dateTimeStr = nowTimeStr,
+                                                                mapTileBitmap = mapTileBitmap,
+                                                                userScaleFactor = watermarkScale
+                                                            )
+                                                        } else null
+
+                                                        withContext(Dispatchers.Main) {
+                                                            pendingPhotoPath = videoFile.absolutePath
+                                                            pendingPhotoBmp = watermarkedBmp
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -731,17 +748,36 @@ fun WatermarkCameraScreen(
                     Button(
                         onClick = {
                             val path = pendingPhotoPath!!
-                            val bmp = pendingPhotoBmp!!
+                            val bmp = pendingPhotoBmp
 
-                            DateCalculatorUtils.saveWatermarkedPhotoToGallery(
-                                context = context,
-                                bitmap = bmp,
-                                fileName = "watermark_${System.currentTimeMillis()}"
-                            )
+                            scope.launch(Dispatchers.IO) {
+                                val file = File(path)
+                                if (file.name.endsWith(".mp4")) {
+                                    // 1. 同步保存水印视频至系统公共相册 (Movies/DateCalculator)
+                                    DateCalculatorUtils.saveWatermarkedVideoToGallery(context, file)
+                                    // 2. 保存视频首帧缩略图，作为卡片打卡背景
+                                    if (bmp != null) {
+                                        val thumbFile = File(file.parentFile, file.nameWithoutExtension + "_thumb.jpg")
+                                        FileOutputStream(thumbFile).use { out ->
+                                            bmp.compress(Bitmap.CompressFormat.JPEG, 92, out)
+                                        }
+                                    }
+                                } else {
+                                    if (bmp != null) {
+                                        DateCalculatorUtils.saveWatermarkedPhotoToGallery(
+                                            context = context,
+                                            bitmap = bmp,
+                                            fileName = "watermark_${System.currentTimeMillis()}"
+                                        )
+                                    }
+                                }
 
-                            pendingPhotoPath = null
-                            pendingPhotoBmp = null
-                            onPhotoCaptured(path)
+                                withContext(Dispatchers.Main) {
+                                    pendingPhotoPath = null
+                                    pendingPhotoBmp = null
+                                    onPhotoCaptured(path)
+                                }
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = NeumorphicAccent),
                         shape = RoundedCornerShape(20.dp),
@@ -750,7 +786,8 @@ fun WatermarkCameraScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.Check, contentDescription = "Confirm", tint = Color.White)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("✔ 满意 / 使用照片", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            val isVideo = pendingPhotoPath?.endsWith(".mp4") == true
+                            Text(if (isVideo) "✔ 满意 / 使用视频" else "✔ 满意 / 使用照片", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
                 }

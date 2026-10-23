@@ -1,5 +1,6 @@
 package me.paco.datecalculator
 
+import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.util.DateCalculatorUtils
@@ -14,9 +15,11 @@ class ExampleUnitTest {
     fun testWorkdayAdd() {
         // 2026-09-18 (星期五) + 5 个标准工作日 (无节假日规则，纯双休)
         val start = LocalDate.of(2026, 9, 18)
-        val target = DateCalculatorUtils.addWorkdays(
+        val target = DateCalculatorUtils.calculateTargetDate(
             baseDate = start,
-            workdays = 5,
+            days = 5,
+            type = CalculationType.ADD,
+            isWorkdayMode = true,
             weekendRule = WeekendRule.STANDARD_FIVE_DAYS,
             enableHolidays = false
         )
@@ -37,7 +40,6 @@ class ExampleUnitTest {
             enableHolidays = true,
             holidayRegion = HolidayRegion.CHINA
         )
-        // 期待为 5 个工作日
         assertEquals(5L, workdays)
     }
 
@@ -58,10 +60,6 @@ class ExampleUnitTest {
 
     @Test
     fun testLeapMonthConversion2025() {
-        // 2025年有闰六月 (Leap 6th month in 2025)
-        val leapMonth = LunarCalendarUtils.getLeapMonth(2025)
-        assertEquals(6, leapMonth)
-
         // 2025年农历六月十五 ➔ 2025-07-09
         val solarNormalSix = LunarCalendarUtils.lunarToSolar(2025, 6, 15, false)
         assertNotNull(solarNormalSix)

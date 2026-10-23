@@ -374,6 +374,52 @@ object DateCalculatorUtils {
         return uri
     }
 
+    /**
+     * 抽取视频文件首帧/高清帧画面作为卡片与全屏预览的默认背景图
+     */
+    fun getVideoThumbnailBitmap(videoPath: String): Bitmap? {
+        val retriever = android.media.MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(videoPath)
+            retriever.getFrameAtTime(1000000L) ?: retriever.frameAtTime
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        } finally {
+            try { retriever.release() } catch (_: Exception) {}
+        }
+    }
+    fun saveWatermarkedVideoToGallery(context: Context, videoFile: File): android.net.Uri? {
+        val resolver = context.contentResolver
+        val contentValues = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, "watermark_video_${System.currentTimeMillis()}.mp4")
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Movies/DateCalculator")
+                put(android.provider.MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+        }
+
+        val uri = resolver.insert(android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
+        if (uri != null) {
+            try {
+                resolver.openOutputStream(uri)?.use { out ->
+                    java.io.FileInputStream(videoFile).use { input ->
+                        input.copyTo(out)
+                    }
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    contentValues.clear()
+                    contentValues.put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0)
+                    resolver.update(uri, contentValues, null, null)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        return uri
+    }
+
     fun addCheckInWatermark(
         context: Context,
         srcBitmap: Bitmap,
