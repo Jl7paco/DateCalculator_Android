@@ -130,6 +130,7 @@ data class DateCalculatorUiState(
     val disabledPresetHolidays: Set<String> = emptySet(),
     val pinnedPresetHolidays: Set<String> = emptySet(),
     val isMultiStageExtensionEnabled: Boolean = false,
+    val isAgeModeSelected: Boolean = false,
     val multiStagePlanTitle: String = "",
     val stages: List<CalculationStage> = listOf(
         CalculationStage(type = CalculationType.ADD, daysInput = "", remark = ""),
@@ -336,6 +337,10 @@ class DateCalculatorViewModel : ViewModel() {
 
     fun updateCalcSubMode(subMode: CalcSubMode) {
         _uiState.value = _uiState.value.copy(calcSubMode = subMode, showResult = false)
+    }
+
+    fun setAgeModeSelected(selected: Boolean) {
+        _uiState.value = _uiState.value.copy(isAgeModeSelected = selected)
     }
 
     fun updateWeekendRule(rule: WeekendRule, context: Context? = null) {

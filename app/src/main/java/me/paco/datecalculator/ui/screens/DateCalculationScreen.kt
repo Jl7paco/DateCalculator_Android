@@ -249,7 +249,7 @@ fun DateCalculationScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 2. 模式三向切换分段按钮
+            // 2. 模式四向切换分段按钮 (合并年龄计算入口)
             DateCalcSubModeSection(
                 uiState = uiState,
                 lang = lang,
@@ -258,71 +258,80 @@ fun DateCalculationScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 3. 基准起算日期选择面板
-            DateCalcBaseDateSection(
-                uiState = uiState,
-                lang = lang,
-                onDatePickerClick = { showDatePicker = true },
-                onSelectDate = { date ->
-                    viewModel.updateBaseDate(date)
-                    viewModel.performCalculation()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 4. 推算规则选择行 (工作日 / 自然日)
-            DateCalcRuleSection(
-                uiState = uiState,
-                lang = lang,
-                effectiveLang = effectiveLang,
-                viewModel = viewModel
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 5. 模式 A: 单段加减算面板
-            if (!uiState.isMultiStageExtensionEnabled && uiState.calcSubMode == CalcSubMode.FORWARD_DAYS) {
-                DateCalcSingleInputSection(
+            if (uiState.isAgeModeSelected) {
+                // 模式 D: 年龄与生存天数精准计算 (嵌入式无缝呈现)
+                AgeCalculatorScreen(
+                    viewModel = viewModel,
+                    uiState = uiState,
+                    showTopHeader = false
+                )
+            } else {
+                // 3. 基准起算日期选择面板
+                DateCalcBaseDateSection(
                     uiState = uiState,
                     lang = lang,
-                    singleDeadlineText = singleDeadlineText,
-                    onDeadlineClick = { showSingleDeadlinePicker = true },
-                    viewModel = viewModel
+                    onDatePickerClick = { showDatePicker = true },
+                    onSelectDate = { date ->
+                        viewModel.updateBaseDate(date)
+                        viewModel.performCalculation()
+                    }
                 )
-            }
 
-            // 6. 模式 B: 区间拆算输入面板
-            if (!uiState.isMultiStageExtensionEnabled && uiState.calcSubMode == CalcSubMode.REVERSE_RANGE) {
-                DateCalcRangeSection(
-                    uiState = uiState,
-                    lang = lang,
-                    onReverseDatePickerClick = { showReverseEndDatePicker = true },
-                    onEqualClick = { viewModel.performCalculation() }
-                )
-            }
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // 7. 模式 C: 高级多段计算模式
-            if (uiState.isMultiStageExtensionEnabled) {
-                DateCalcMultiStageSection(
+                // 4. 推算规则选择行 (工作日 / 自然日)
+                DateCalcRuleSection(
                     uiState = uiState,
                     lang = lang,
                     effectiveLang = effectiveLang,
                     viewModel = viewModel
                 )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 5. 模式 A: 单段加减算面板
+                if (!uiState.isMultiStageExtensionEnabled && uiState.calcSubMode == CalcSubMode.FORWARD_DAYS) {
+                    DateCalcSingleInputSection(
+                        uiState = uiState,
+                        lang = lang,
+                        singleDeadlineText = singleDeadlineText,
+                        onDeadlineClick = { showSingleDeadlinePicker = true },
+                        viewModel = viewModel
+                    )
+                }
+
+                // 6. 模式 B: 区间拆算输入面板
+                if (!uiState.isMultiStageExtensionEnabled && uiState.calcSubMode == CalcSubMode.REVERSE_RANGE) {
+                    DateCalcRangeSection(
+                        uiState = uiState,
+                        lang = lang,
+                        onReverseDatePickerClick = { showReverseEndDatePicker = true },
+                        onEqualClick = { viewModel.performCalculation() }
+                    )
+                }
+
+                // 7. 模式 C: 高级多段计算模式
+                if (uiState.isMultiStageExtensionEnabled) {
+                    DateCalcMultiStageSection(
+                        uiState = uiState,
+                        lang = lang,
+                        effectiveLang = effectiveLang,
+                        viewModel = viewModel
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // 8. 计算结果展示层
+                DateCalcResultSection(
+                    uiState = uiState,
+                    lang = lang,
+                    targetDate = singleTargetDate,
+                    viewModel = viewModel
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 8. 计算结果展示层
-            DateCalcResultSection(
-                uiState = uiState,
-                lang = lang,
-                targetDate = targetDate,
-                viewModel = viewModel
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -388,9 +397,11 @@ private fun DateCalcSubModeSection(
     val subModes = listOf(
         LanguageUtils.getString("mode_forward", lang),
         LanguageUtils.getString("mode_reverse", lang),
-        LanguageUtils.getString("multi_stage_btn", lang)
+        LanguageUtils.getString("multi_stage_btn", lang),
+        LanguageUtils.getString("tab_age", lang)
     )
     val selectedSubIndex = when {
+        uiState.isAgeModeSelected -> 3
         uiState.isMultiStageExtensionEnabled -> 2
         uiState.calcSubMode == CalcSubMode.REVERSE_RANGE -> 1
         else -> 0
@@ -402,17 +413,23 @@ private fun DateCalcSubModeSection(
         onIndexSelected = { index ->
             when (index) {
                 0 -> {
+                    viewModel.setAgeModeSelected(false)
                     viewModel.toggleMultiStageExtension(false)
                     viewModel.updateCalcSubMode(CalcSubMode.FORWARD_DAYS)
                     viewModel.performCalculation()
                 }
                 1 -> {
+                    viewModel.setAgeModeSelected(false)
                     viewModel.toggleMultiStageExtension(false)
                     viewModel.updateCalcSubMode(CalcSubMode.REVERSE_RANGE)
                     viewModel.performCalculation()
                 }
                 2 -> {
+                    viewModel.setAgeModeSelected(false)
                     viewModel.toggleMultiStageExtension(true)
+                }
+                3 -> {
+                    viewModel.setAgeModeSelected(true)
                 }
             }
         },

@@ -84,7 +84,8 @@ import java.time.LocalDate
 fun AgeCalculatorScreen(
     viewModel: DateCalculatorViewModel,
     uiState: DateCalculatorUiState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showTopHeader: Boolean = true
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -158,70 +159,78 @@ fun AgeCalculatorScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(14.dp)
+            modifier = if (showTopHeader) {
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(14.dp)
+            } else {
+                Modifier.fillMaxWidth()
+            }
         ) {
-            // 顶栏 (36dp 高度, 15sp 标题)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(36.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Cake,
-                        contentDescription = null,
-                        tint = NeumorphicAccent,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = LanguageUtils.getString("tab_age", lang),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NeumorphicTextPrimary
-                    )
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showHistoryDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
+            if (showTopHeader) {
+                // 顶栏 (36dp 高度, 15sp 标题)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = LanguageUtils.getString("history_title", lang),
+                            imageVector = Icons.Default.Cake,
+                            contentDescription = null,
                             tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = LanguageUtils.getString("tab_age", lang),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NeumorphicTextPrimary
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showSettingsDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = LanguageUtils.getString("settings_title", lang),
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                .background(NeumorphicBg, shape = CircleShape)
+                                .clip(CircleShape)
+                                .clickable { showHistoryDialog = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = LanguageUtils.getString("history_title", lang),
+                                tint = NeumorphicAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                                .background(NeumorphicBg, shape = CircleShape)
+                                .clip(CircleShape)
+                                .clickable { showSettingsDialog = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = LanguageUtils.getString("settings_title", lang),
+                                tint = NeumorphicAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
             Spacer(modifier = Modifier.height(10.dp))

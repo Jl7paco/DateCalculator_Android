@@ -117,7 +117,6 @@ fun MainScreen(
         if (isChineseLocale) {
             list.add(LanguageUtils.getString("tab_lunar", lang) to Icons.Default.SwapHoriz)
         }
-        list.add(LanguageUtils.getString("tab_age", lang) to Icons.Default.Cake)
         list
     }
 
