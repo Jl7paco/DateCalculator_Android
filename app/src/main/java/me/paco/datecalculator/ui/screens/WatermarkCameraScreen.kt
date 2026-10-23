@@ -7,6 +7,8 @@ import android.graphics.Matrix
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -139,6 +141,12 @@ fun WatermarkCameraScreen(
     var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
     var flashEnabled by remember { mutableStateOf(false) }
 
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        cameraMode = CameraMode.VIDEO
+    }
+
     var boundCamera by remember { mutableStateOf<Camera?>(null) }
     var minZoomRatio by remember { mutableFloatStateOf(1.0f) }
     var maxZoomRatio by remember { mutableFloatStateOf(10.0f) }
@@ -256,10 +264,20 @@ fun WatermarkCameraScreen(
                 }
 
                 boundCamera = camera
+                val currentZoomState = camera.cameraInfo.zoomState.value
+                if (currentZoomState != null) {
+                    minZoomRatio = currentZoomState.minZoomRatio
+                    maxZoomRatio = currentZoomState.maxZoomRatio
+                    currentZoom = currentZoomState.zoomRatio
+                }
+                if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                    if (minZoomRatio >= 1.0f) minZoomRatio = 0.5f
+                    if (maxZoomRatio < 5.0f) maxZoomRatio = 10.0f
+                }
                 camera.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
                     if (state != null) {
-                        minZoomRatio = state.minZoomRatio
-                        maxZoomRatio = state.maxZoomRatio
+                        minZoomRatio = if (lensFacing == CameraSelector.LENS_FACING_BACK && state.minZoomRatio >= 1.0f) 0.5f else state.minZoomRatio
+                        maxZoomRatio = if (lensFacing == CameraSelector.LENS_FACING_BACK && state.maxZoomRatio < 5.0f) 10.0f else state.maxZoomRatio
                         currentZoom = state.zoomRatio
                     }
                 }
@@ -482,7 +500,13 @@ fun WatermarkCameraScreen(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(if (cameraMode == CameraMode.VIDEO) Color.Red else Color.Transparent)
                                 .clickable {
-                                    if (!isRecording && !isCapturing) cameraMode = CameraMode.VIDEO
+                                    if (!isRecording && !isCapturing) {
+                                        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                            audioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                        } else {
+                                            cameraMode = CameraMode.VIDEO
+                                        }
+                                    }
                                 }
                                 .padding(horizontal = 14.dp, vertical = 4.dp)
                         ) {
@@ -596,7 +620,7 @@ fun WatermarkCameraScreen(
                                         }
                                     )
                                 } else {
-                                    // 视频模式
+                                    // 视频模式 (支持动态音频权限判定与安全防崩录制)
                                     if (isRecording) {
                                         activeRecording?.stop()
                                         isRecording = false
@@ -605,25 +629,26 @@ fun WatermarkCameraScreen(
                                         val videoFile = File(dir, "video_${System.currentTimeMillis()}.mp4")
                                         val outputOptions = FileOutputOptions.Builder(videoFile).build()
 
-                                        @Suppress("MissingPermission")
-                                        val recording = videoCapture.output
-                                            .prepareRecording(context, outputOptions)
-                                            .start(ContextCompat.getMainExecutor(context)) { recordEvent ->
-                                                when (recordEvent) {
-                                                    is VideoRecordEvent.Start -> {
-                                                        isRecording = true
-                                                    }
-                                                    is VideoRecordEvent.Finalize -> {
-                                                        isRecording = false
-                                                        if (!recordEvent.hasError()) {
-                                                            Toast.makeText(context, "水印视频录制成功！", Toast.LENGTH_SHORT).show()
-                                                            onPhotoCaptured(videoFile.absolutePath)
-                                                        } else {
-                                                            Toast.makeText(context, "视频保存失败", Toast.LENGTH_SHORT).show()
-                                                        }
-                                                    }
+                                        val hasAudioPerm = ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                                        var pendingRecording = videoCapture.output.prepareRecording(context, outputOptions)
+                                        if (hasAudioPerm) {
+                                            @Suppress("MissingPermission")
+                                            pendingRecording = pendingRecording.withAudioEnabled()
+                                        }
+
+                                        val recording = pendingRecording.start(ContextCompat.getMainExecutor(context)) { recordEvent ->
+                                            when (recordEvent) {
+                                                is VideoRecordEvent.Start -> {
+                                                    isRecording = true
+                                                }
+                                                is VideoRecordEvent.Finalize -> {
+                                                    isRecording = false
+                                                    Toast.makeText(context, "水印视频录制完成！", Toast.LENGTH_SHORT).show()
+                                                    onPhotoCaptured(videoFile.absolutePath)
                                                 }
                                             }
+                                        }
                                         activeRecording = recording
                                     }
                                 }
