@@ -89,6 +89,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -311,6 +312,262 @@ private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark:
         overlayMaskColor = accent.copy(alpha = maskAlpha),
         accentColor = accent
     )
+}
+
+@Composable
+private fun DateDiffResultCardItem(
+    cardData: CountdownCardData,
+    uiState: DateCalculatorUiState,
+    lang: AppLanguage,
+    effectiveLang: AppLanguage,
+    isDark: Boolean,
+    context: Context,
+    viewModel: DateCalculatorViewModel,
+    onDeleteCard: (Long) -> Unit
+) {
+    val natDays = remember(cardData.baseDate, cardData.targetDate) {
+        DateCalculatorUtils.naturalDaysBetween(cardData.baseDate, cardData.targetDate)
+    }
+    val isPast = remember(cardData.baseDate, cardData.targetDate) {
+        cardData.targetDate.isBefore(cardData.baseDate)
+    }
+    val absDays = abs(natDays)
+
+    val cardMaskColor = remember(isPast, isDark) {
+        if (isPast) {
+            Color(0xFFEA580C).copy(alpha = if (isDark) 0.35f else 0.22f)
+        } else {
+            Color(0xFF0284C7).copy(alpha = if (isDark) 0.35f else 0.22f)
+        }
+    }
+
+    val cardBorderColor = remember(isPast) {
+        if (isPast) Color(0xFFEA580C).copy(alpha = 0.45f) else Color(0xFF0284C7).copy(alpha = 0.45f)
+    }
+
+    val localizedCardTitle = remember(cardData.eventName, lang) {
+        LanguageUtils.getLocalizedHolidayName(cardData.eventName, lang)
+            .replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
+    }
+
+    val isSaturdayCard = cardData.eventName.contains("星期六") || cardData.eventName.contains("Saturday")
+    val isTodaySaturday = isSaturdayCard && (cardData.baseDate.dayOfWeek == java.time.DayOfWeek.SATURDAY)
+
+    val phraseText = remember(isTodaySaturday, isPast, localizedCardTitle, effectiveLang) {
+        if (isTodaySaturday) {
+            when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Today is Saturday!"
+                AppLanguage.TRADITIONAL_CHINESE -> "今天就是星期六！"
+                AppLanguage.JAPANESE -> "今日は土曜日です！"
+                AppLanguage.KOREAN -> "오늘이 바로 토요일입니다!"
+                else -> "今天就是星期六！"
+            }
+        } else if (isPast) {
+            when (effectiveLang) {
+                AppLanguage.ENGLISH -> "$localizedCardTitle Has Passed"
+                AppLanguage.TRADITIONAL_CHINESE -> "${localizedCardTitle} 聲音"
+                AppLanguage.JAPANESE -> "${localizedCardTitle} 経過"
+                AppLanguage.KOREAN -> "${localizedCardTitle} 경과"
+                else -> "${localizedCardTitle} 已经"
+            }
+        } else {
+            when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Days Until Next $localizedCardTitle"
+                AppLanguage.TRADITIONAL_CHINESE -> "距離下一次 ${localizedCardTitle} 還有"
+                AppLanguage.JAPANESE -> "次なる ${localizedCardTitle} まで"
+                AppLanguage.KOREAN -> "다음 ${localizedCardTitle} 까지"
+                else -> "距离下一个 ${localizedCardTitle} 还有"
+            }
+        }
+    }
+
+    val suffixText = remember(isTodaySaturday, isPast, effectiveLang) {
+        if (isTodaySaturday) {
+            ""
+        } else if (isPast) {
+            when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Days"
+                AppLanguage.TRADITIONAL_CHINESE -> "天了"
+                AppLanguage.JAPANESE -> "日目"
+                AppLanguage.KOREAN -> "일 지남"
+                else -> "天了"
+            }
+        } else {
+            when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Days"
+                AppLanguage.TRADITIONAL_CHINESE -> "天"
+                AppLanguage.JAPANESE -> "日"
+                AppLanguage.KOREAN -> "일"
+                else -> "天"
+            }
+        }
+    }
+
+    val cardPattern = getHolidayThemePattern(cardData.eventName, uiState.holidayRegion, isDark)
+
+    val bgDrawableResId = remember(cardData.eventName, cardData.targetDate, uiState.holidayRegion) {
+        when {
+            cardData.eventName.contains("打卡") -> R.drawable.bg_open_street_map
+            isSpecificHolidayOrDate(cardData.eventName) -> cardPattern.photoResId
+            else -> getSeasonalBackgroundResId(cardData.targetDate, uiState.holidayRegion)
+        }
+    }
+
+    val isCardPinned = uiState.pinnedPresetHolidays.contains(cardData.eventName) || uiState.customEvents.any { (it.name == cardData.eventName || it.name.contains(cardData.eventName)) && it.isPinned }
+
+    val resultCardShape = RoundedCornerShape(22.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .neumorphicExtruded(shape = resultCardShape, elevation = 6.dp)
+            .background(NeumorphicBg, shape = resultCardShape)
+            .border(1.2.dp, cardBorderColor, shape = resultCardShape)
+            .clip(resultCardShape)
+    ) {
+        val photoFile = cardData.photoPath?.let { File(it) }
+        val photoBitmap = remember(cardData.photoPath) {
+            if (photoFile != null && photoFile.exists()) {
+                try { BitmapFactory.decodeFile(photoFile.absolutePath) } catch (_: Exception) { null }
+            } else null
+        }
+
+        val isCheckInCard = cardData.eventName.contains("打卡")
+        var realMapBitmap by remember(cardData.eventName) { mutableStateOf<android.graphics.Bitmap?>(null) }
+
+        if (isCheckInCard && cardData.photoPath.isNullOrBlank()) {
+            LaunchedEffect(cardData.eventName) {
+                val coords = WeatherUtils.getCityCoordinates(uiState.currentCityName)
+                val bmp = me.paco.datecalculator.util.RealMapTileLoader.loadRealMapTile(context, coords.first, coords.second)
+                if (bmp != null) {
+                    realMapBitmap = bmp
+                }
+            }
+        }
+
+        if (photoBitmap != null) {
+            Image(
+                bitmap = photoBitmap.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize()
+            )
+        } else if (realMapBitmap != null) {
+            Image(
+                bitmap = realMapBitmap!!.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alpha = if (isDark) 0.70f else 0.60f,
+                modifier = Modifier.matchParentSize()
+            )
+        } else {
+            Image(
+                painter = painterResource(bgDrawableResId),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alpha = if (isDark) 0.60f else 0.50f,
+                modifier = Modifier.matchParentSize()
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(cardMaskColor)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp, horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = phraseText,
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isDark) Color.White else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                            .background(if (isCardPinned) NeumorphicAccent else NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable {
+                                val fullName = cardData.eventName
+                                val foundCustom = uiState.customEvents.find { it.name == fullName || it.name.contains(cardData.eventName) }
+                                if (foundCustom != null) {
+                                    viewModel.togglePinCustomEvent(foundCustom, context)
+                                } else {
+                                    viewModel.togglePinPresetHoliday(fullName, context)
+                                }
+                                val msg = if (isCardPinned) "已取消置顶" else "已成功置顶！"
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = "Pin",
+                            tint = if (isCardPinned) Color.White else NeumorphicAccent,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = if (isDark) Color.White.copy(alpha = 0.70f) else NeumorphicTextPrimary.copy(alpha = 0.60f),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable {
+                                onDeleteCard(cardData.id)
+                            }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "$absDays",
+                    fontSize = 42.sp,
+                    fontWeight = FontWeight.Black,
+                    color = if (isDark) Color.White else (if (isPast) Color(0xFFEA580C) else Color(0xFF0284C7))
+                )
+                if (suffixText.isNotBlank()) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = suffixText,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White.copy(alpha = 0.90f) else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -1238,248 +1495,22 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. 多卡片推栈倒计时结果展示层 (需求 1/4/5/7: 参照 Days Matter 智能语法, 包含未来"距离下一个X还有"与过去"X已经", 未来卡片天蓝色遮罩, 过去卡片橙色遮罩)
+            // 4. 多卡片推栈倒计时结果展示层 (全量组件模块化拆分，启用 key(cardData.id) 与 remember 缓存，零卡顿流畅滑动)
             if (resultCardList.isNotEmpty()) {
-                resultCardList.forEachIndexed { cardIdx, cardData ->
-                    val natDays = DateCalculatorUtils.naturalDaysBetween(cardData.baseDate, cardData.targetDate)
-                    val isPast = cardData.targetDate.isBefore(cardData.baseDate)
-                    val absDays = abs(natDays)
-
-                    // 需求 7: 结果卡片颜色遮罩 - 未来的加入浅蓝色遮罩，过去的加入橙色遮罩
-                    val cardMaskColor = if (isPast) {
-                        Color(0xFFEA580C).copy(alpha = if (isDark) 0.35f else 0.22f)
-                    } else {
-                        Color(0xFF0284C7).copy(alpha = if (isDark) 0.35f else 0.22f)
-                    }
-
-                    val cardBorderColor = if (isPast) Color(0xFFEA580C).copy(alpha = 0.45f) else Color(0xFF0284C7).copy(alpha = 0.45f)
-
-                    // 动态多语言翻译节假日文本
-                    val localizedCardTitle = LanguageUtils.getLocalizedHolidayName(cardData.eventName, lang)
-                        .replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
-
-                    // 需求 2: 星期六倒计时 (若当天为星期六则直接提醒“今天就是星期六！”)
-                    val isSaturdayCard = cardData.eventName.contains("星期六") || cardData.eventName.contains("Saturday")
-                    val isTodaySaturday = isSaturdayCard && (cardData.baseDate.dayOfWeek == java.time.DayOfWeek.SATURDAY)
-
-                    // 需求 4 & 5: Days Matter 倒计时智能描述短语 (例如: "距离下一个中考还有", "小米 13 发布已经")
-                    val phraseText = if (isTodaySaturday) {
-                        when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "Today is Saturday!"
-                            AppLanguage.TRADITIONAL_CHINESE -> "今天就是星期六！"
-                            AppLanguage.JAPANESE -> "今日は土曜日です！"
-                            AppLanguage.KOREAN -> "오늘이 바로 토요일입니다!"
-                            else -> "今天就是星期六！"
-                        }
-                    } else if (isPast) {
-                        when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "$localizedCardTitle Has Passed"
-                            AppLanguage.TRADITIONAL_CHINESE -> "${localizedCardTitle} 已經"
-                            AppLanguage.JAPANESE -> "${localizedCardTitle} 経過"
-                            AppLanguage.KOREAN -> "${localizedCardTitle} 경과"
-                            else -> "${localizedCardTitle} 已经"
-                        }
-                    } else {
-                        when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "Days Until Next $localizedCardTitle"
-                            AppLanguage.TRADITIONAL_CHINESE -> "距離下一次 ${localizedCardTitle} 還有"
-                            AppLanguage.JAPANESE -> "次なる ${localizedCardTitle} まで"
-                            AppLanguage.KOREAN -> "다음 ${localizedCardTitle} 까지"
-                            else -> "距离下一个 ${localizedCardTitle} 还有"
-                        }
-                    }
-
-                    val suffixText = if (isTodaySaturday) {
-                        ""
-                    } else if (isPast) {
-                        when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "Days"
-                            AppLanguage.TRADITIONAL_CHINESE -> "天了"
-                            AppLanguage.JAPANESE -> "日目"
-                            AppLanguage.KOREAN -> "일 지남"
-                            else -> "天了"
-                        }
-                    } else {
-                        when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "Days"
-                            AppLanguage.TRADITIONAL_CHINESE -> "天"
-                            AppLanguage.JAPANESE -> "日"
-                            AppLanguage.KOREAN -> "일"
-                            else -> "天"
-                        }
-                    }
-
-                    // 需求 1 & 2: 特定节假日与常用按键共用矢量背景，非特定节假日按目标日期所在地半球季节自动选配背景 (春季: bg_eid, 夏季: bg_lotus, 秋季: bg_harvest, 冬季: bg_winter)
-                    val cardPattern = getHolidayThemePattern(cardData.eventName, uiState.holidayRegion, isDark)
-                    val bgDrawableResId = when {
-                        cardData.eventName.contains("打卡") -> R.drawable.bg_open_street_map
-                        isSpecificHolidayOrDate(cardData.eventName) -> cardPattern.photoResId
-                        else -> getSeasonalBackgroundResId(cardData.targetDate, uiState.holidayRegion)
-                    }
-
-                    val isCardPinned = uiState.pinnedPresetHolidays.contains(cardData.eventName) || uiState.customEvents.any { (it.name == cardData.eventName || it.name.contains(cardData.eventName)) && it.isPinned }
-
-                    val resultCardShape = RoundedCornerShape(22.dp)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .neumorphicExtruded(shape = resultCardShape, elevation = 6.dp)
-                            .background(NeumorphicBg, shape = resultCardShape)
-                            .border(1.2.dp, cardBorderColor, shape = resultCardShape)
-                            .clip(resultCardShape)
-                    ) {
-                        // 1. 照片水印/ 真实地图瓦片 / VectorDrawable 背景矢量素材层
-                        val photoFile = cardData.photoPath?.let { File(it) }
-                        val photoBitmap = remember(cardData.photoPath) {
-                            if (photoFile != null && photoFile.exists()) {
-                                try { BitmapFactory.decodeFile(photoFile.absolutePath) } catch (_: Exception) { null }
-                            } else null
-                        }
-
-                        val isCheckInCard = cardData.eventName.contains("打卡")
-                        var realMapBitmap by remember(cardData.eventName) { mutableStateOf<android.graphics.Bitmap?>(null) }
-
-                        if (isCheckInCard && cardData.photoPath.isNullOrBlank()) {
-                            LaunchedEffect(cardData.eventName) {
-                                val coords = WeatherUtils.getCityCoordinates(uiState.currentCityName)
-                                val bmp = me.paco.datecalculator.util.RealMapTileLoader.loadRealMapTile(context, coords.first, coords.second)
-                                if (bmp != null) {
-                                    realMapBitmap = bmp
-                                }
+                resultCardList.forEach { cardData ->
+                    key(cardData.id) {
+                        DateDiffResultCardItem(
+                            cardData = cardData,
+                            uiState = uiState,
+                            lang = lang,
+                            effectiveLang = effectiveLang,
+                            isDark = isDark,
+                            context = context,
+                            viewModel = viewModel,
+                            onDeleteCard = { deleteId ->
+                                resultCardList = resultCardList.filterNot { it.id == deleteId }
                             }
-                        }
-
-                        if (photoBitmap != null) {
-                            // 照片水印相机拍摄的高清打卡背景图
-                            Image(
-                                bitmap = photoBitmap.asImageBitmap(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.matchParentSize()
-                            )
-                        } else if (realMapBitmap != null) {
-                            // 需求 2: 真实调取的在地 OpenStreetMap 地图瓦片 PNG 背景 (大陆内 GCJ-02 火星偏移对齐，大陆外 WGS-84 无偏移)
-                            Image(
-                                bitmap = realMapBitmap!!.asImageBitmap(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                alpha = if (isDark) 0.70f else 0.60f,
-                                modifier = Modifier.matchParentSize()
-                            )
-                        } else {
-                            // 3. OpenStreetMap 矢量地图瓦片降级保底图层
-                            Image(
-                                painter = painterResource(bgDrawableResId),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                alpha = if (isDark) 0.60f else 0.50f,
-                                modifier = Modifier.matchParentSize()
-                            )
-                        }
-
-                        // 2. 需求 7: 结果卡片颜色遮罩 (未来的加入浅蓝色遮罩，过去的加入橙色遮罩)
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(cardMaskColor)
                         )
-
-                        // 3. 前景倒计时结果展示层 (需求 1: 恢复置顶与删除工具栏，且不替换/覆盖现有卡片，压入新卡片)
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 14.dp, horizontal = 16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = phraseText,
-                                    fontSize = 14.5.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = if (isDark) Color.White else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
-                                    textAlign = TextAlign.Start,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-
-                                Spacer(modifier = Modifier.width(6.dp))
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    // 置顶按钮
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                                            .background(if (isCardPinned) NeumorphicAccent else NeumorphicBg, shape = CircleShape)
-                                            .clip(CircleShape)
-                                            .clickable {
-                                                val fullName = cardData.eventName
-                                                val foundCustom = uiState.customEvents.find { it.name == fullName || it.name.contains(cardData.eventName) }
-                                                if (foundCustom != null) {
-                                                    viewModel.togglePinCustomEvent(foundCustom, context)
-                                                } else {
-                                                    viewModel.togglePinPresetHoliday(fullName, context)
-                                                }
-                                                val msg = if (isCardPinned) "已取消置顶" else "已成功置顶！"
-                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PushPin,
-                                            contentDescription = "Pin",
-                                            tint = if (isCardPinned) Color.White else NeumorphicAccent,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    // 删除卡片按钮
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Close",
-                                        tint = if (isDark) Color.White.copy(alpha = 0.70f) else NeumorphicTextPrimary.copy(alpha = 0.60f),
-                                        modifier = Modifier
-                                            .size(18.dp)
-                                            .clickable {
-                                                resultCardList = resultCardList.filterNot { it.id == cardData.id }
-                                            }
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            // 巨幕 42sp 极速倒计时天数
-                            Row(
-                                verticalAlignment = Alignment.Bottom,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = "$absDays",
-                                    fontSize = 42.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = if (isDark) Color.White else (if (isPast) Color(0xFFEA580C) else Color(0xFF0284C7))
-                                )
-                                if (suffixText.isNotBlank()) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = suffixText,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isDark) Color.White.copy(alpha = 0.90f) else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
-                                        modifier = Modifier.padding(bottom = 6.dp)
-                                    )
-                                }
-                            }
-                        }
                     }
                 }
             }
