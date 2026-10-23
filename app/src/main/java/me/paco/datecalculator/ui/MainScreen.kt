@@ -309,7 +309,7 @@ fun MainScreen(
 
                 HorizontalPager(
                     state = pagerState,
-                    beyondBoundsPageCount = 1,
+                    beyondBoundsPageCount = 2,
                     modifier = modifier.fillMaxSize()
                 ) { page ->
                     key(page) {

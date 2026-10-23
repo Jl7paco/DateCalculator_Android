@@ -276,15 +276,15 @@ fun TimeCalculatorScreen(
                 }
             }
 
-            // 需求 2: 计算器键盘布局往下下移沉降 28dp，视觉层级更加沉稳舒展
-            Spacer(modifier = Modifier.height(28.dp))
+            // 需求 1: 键盘网格向下对齐沉降，通过弹性 Spacer(weight(1f)) 推动按键区优雅靠下对齐
+            Spacer(modifier = Modifier.weight(1f))
 
-            // 需求 3: 键盘按键区 (100% 还原截图 5x4 算法按键网格，最右列为 ÷, ×, -, +, =)
+            // 需求 1: 键盘按键区 (括号 `(` 与 `)` 放置在同一行，最右列为 ÷, ×, -, +, =)
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Row 0: 需求 1 - 加入 "y = 年" 的全量时间单位按键组 (y, d, h, m, s)
+                // Row 0: 全量时间单位按键组 (y, d, h, m, s)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -296,7 +296,7 @@ fun TimeCalculatorScreen(
                     TimeCalcKeyBtn(label = "s", onClick = { HapticUtils.performCrispClick(context, view); appendToken("s") }, modifier = Modifier.weight(1f))
                 }
 
-                // Row 1 (功能键与除号): Clear, ⌫, (, ÷
+                // Row 1 (需求 1: 括号 `(` 与 `)` 统一放在同一行): Clear, ⌫, (, )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -322,10 +322,10 @@ fun TimeCalculatorScreen(
                         }
                     )
                     TimeCalcKeyBtn(label = "(", onClick = { HapticUtils.performCrispClick(context, view); appendToken("(") }, modifier = Modifier.weight(1f))
-                    TimeCalcKeyBtn(label = "÷", isAccentColor = true, onClick = { HapticUtils.performCrispClick(context, view); appendToken(" ÷ ") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = ")", onClick = { HapticUtils.performCrispClick(context, view); appendToken(")") }, modifier = Modifier.weight(1f))
                 }
 
-                // Row 2: 7, 8, 9, ×
+                // Row 2: 7, 8, 9, ÷
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -333,10 +333,10 @@ fun TimeCalculatorScreen(
                     TimeCalcKeyBtn(label = "7", onClick = { HapticUtils.performCrispClick(context, view); appendToken("7") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "8", onClick = { HapticUtils.performCrispClick(context, view); appendToken("8") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "9", onClick = { HapticUtils.performCrispClick(context, view); appendToken("9") }, modifier = Modifier.weight(1f))
-                    TimeCalcKeyBtn(label = "×", isAccentColor = true, onClick = { HapticUtils.performCrispClick(context, view); appendToken(" × ") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = "÷", isAccentColor = true, onClick = { HapticUtils.performCrispClick(context, view); appendToken(" ÷ ") }, modifier = Modifier.weight(1f))
                 }
 
-                // Row 3: 4, 5, 6, -
+                // Row 3: 4, 5, 6, ×
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -344,10 +344,10 @@ fun TimeCalculatorScreen(
                     TimeCalcKeyBtn(label = "4", onClick = { HapticUtils.performCrispClick(context, view); appendToken("4") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "5", onClick = { HapticUtils.performCrispClick(context, view); appendToken("5") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "6", onClick = { HapticUtils.performCrispClick(context, view); appendToken("6") }, modifier = Modifier.weight(1f))
-                    TimeCalcKeyBtn(label = "-", isAccentColor = true, onClick = { HapticUtils.performCrispClick(context, view); appendToken(" - ") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = "×", isAccentColor = true, onClick = { HapticUtils.performCrispClick(context, view); appendToken(" × ") }, modifier = Modifier.weight(1f))
                 }
 
-                // Row 4: 1, 2, 3, +
+                // Row 4: 1, 2, 3, -
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -355,21 +355,21 @@ fun TimeCalculatorScreen(
                     TimeCalcKeyBtn(label = "1", onClick = { HapticUtils.performCrispClick(context, view); appendToken("1") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "2", onClick = { HapticUtils.performCrispClick(context, view); appendToken("2") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "3", onClick = { HapticUtils.performCrispClick(context, view); appendToken("3") }, modifier = Modifier.weight(1f))
-                    TimeCalcKeyBtn(label = "+", isAccentColor = true, onClick = { HapticUtils.performCrispClick(context, view); appendToken(" + ") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = "-", isAccentColor = true, onClick = { HapticUtils.performCrispClick(context, view); appendToken(" - ") }, modifier = Modifier.weight(1f))
                 }
 
-                // Row 5: ), 0, ., =
+                // Row 5: 0, ., =, +
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    TimeCalcKeyBtn(label = ")", onClick = { HapticUtils.performCrispClick(context, view); appendToken(")") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "0", onClick = { HapticUtils.performCrispClick(context, view); appendToken("0") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = ".", onClick = { HapticUtils.performCrispClick(context, view); appendToken(".") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "=", isAccentColor = true, onClick = {
                         HapticUtils.performCrispClick(context, view)
                         evaluateExpression()
                     }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = "+", isAccentColor = true, onClick = { HapticUtils.performCrispClick(context, view); appendToken(" + ") }, modifier = Modifier.weight(1f))
                 }
             }
 
