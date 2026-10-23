@@ -16,6 +16,7 @@ object LanguageUtils {
         "app_title" to "万能日期计算器",
         "tab_home" to "首页",
         "tab_calc" to "日期计算",
+        "tab_time_calc" to "时间计算器",
         "tab_diff" to "倒数日",
         "tab_countdown" to "倒数日",
         "tab_anniversary" to "纪念日",

@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreTime
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -78,6 +79,7 @@ import me.paco.datecalculator.ui.screens.DateCalculationScreen
 import me.paco.datecalculator.ui.screens.DateDiffScreen
 import me.paco.datecalculator.ui.screens.HomeScreen
 import me.paco.datecalculator.ui.screens.LunarConverterScreen
+import me.paco.datecalculator.ui.screens.TimeCalculatorScreen
 import me.paco.datecalculator.ui.theme.DateCalculatorTheme
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.LanguageUtils
@@ -107,11 +109,12 @@ fun MainScreen(
         DarkThemeMode.OFF -> false
     }
 
-    // 纯功能底栏列表（非中文语言环境下自动屏蔽农历转换，且标题跟随当前语言）
+    // 纯功能底栏列表（包含时间计算器，非中文语言环境下自动屏蔽农历转换，且标题跟随当前语言）
     val navItems = remember(showHome, isChineseLocale, lang) {
         val list = mutableListOf<Pair<String, ImageVector>>()
         if (showHome) list.add(LanguageUtils.getString("tab_home", lang) to Icons.Default.Home)
         list.add(LanguageUtils.getString("tab_calc", lang) to Icons.Default.CalendarToday)
+        list.add(LanguageUtils.getString("tab_time_calc", lang) to Icons.Default.MoreTime)
         list.add(LanguageUtils.getString("tab_countdown", lang) to Icons.Default.Event)
         if (isChineseLocale) {
             list.add(LanguageUtils.getString("tab_lunar", lang) to Icons.Default.SwapHoriz)
@@ -314,6 +317,7 @@ fun MainScreen(
                             when {
                                 navItemTitle == LanguageUtils.getString("tab_home", lang) -> HomeScreen(viewModel = viewModel, uiState = uiState)
                                 navItemTitle == LanguageUtils.getString("tab_calc", lang) -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
+                                navItemTitle == LanguageUtils.getString("tab_time_calc", lang) -> TimeCalculatorScreen(viewModel = viewModel, uiState = uiState)
                                 navItemTitle == LanguageUtils.getString("tab_countdown", lang) -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
                                 navItemTitle == LanguageUtils.getString("tab_lunar", lang) -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
                                 else -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)

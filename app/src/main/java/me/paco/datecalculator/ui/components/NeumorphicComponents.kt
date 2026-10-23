@@ -201,13 +201,16 @@ fun NeumorphicIconButton(
 }
 
 /**
- * 3D 新拟物圆润拨动开关 (清脆触感按压震动，消除左上角白色阴影溢出)
+ * 3D 新拟物圆润精小拨动开关 (清脆触感按压震动，完美匹配 11sp/12sp 标牌文案高度)
  */
 @Composable
 fun NeumorphicSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    width: Dp = 32.dp,
+    height: Dp = 18.dp,
+    thumbSize: Dp = 14.dp
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -223,16 +226,16 @@ fun NeumorphicSwitch(
 
     Box(
         modifier = modifier
-            .width(52.dp)
-            .height(28.dp)
-            .neumorphicInset(shape = trackShape, elevation = 2.dp)
+            .width(width)
+            .height(height)
+            .neumorphicInset(shape = trackShape, elevation = 1.5.dp)
             .background(if (checked) NeumorphicAccent else NeumorphicSunkenBg, shape = trackShape)
             .clip(trackShape)
             .clickable {
                 HapticUtils.performCrispClick(context, view)
                 onCheckedChange(!checked)
             }
-            .padding(3.dp),
+            .padding(2.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(
@@ -247,7 +250,7 @@ fun NeumorphicSwitch(
             val thumbShadowColor = if (isDark) Color.Black.copy(alpha = 0.60f) else Color(0xFF64748B).copy(alpha = 0.30f)
             Box(
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(thumbSize)
                     .drawBehind {
                         val shapeOutline = CircleShape.createOutline(size, layoutDirection, this)
                         drawIntoCanvas { canvas ->
@@ -256,9 +259,9 @@ fun NeumorphicSwitch(
                                     isAntiAlias = true
                                     color = android.graphics.Color.TRANSPARENT
                                     setShadowLayer(
-                                        4.dp.toPx(),
+                                        2.5.dp.toPx(),
                                         0f,
-                                        1.5.dp.toPx(),
+                                        1.dp.toPx(),
                                         thumbShadowColor.toArgb()
                                     )
                                 }

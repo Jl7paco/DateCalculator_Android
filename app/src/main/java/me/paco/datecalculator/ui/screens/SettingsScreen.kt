@@ -370,7 +370,8 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                val bgModes = BackgroundMode.values().toList()
+                // 隐藏 3D 卫星地球背景选项入口，仅呈现极简空白与月历视图模式
+                val bgModes = listOf(BackgroundMode.BLANK, BackgroundMode.CALENDAR)
                 val bgModeLabels = bgModes.map { it.getLocalizedName(lang) }
                 val selectedBgIndex = bgModes.indexOf(config.backgroundMode).coerceAtLeast(0)
 
@@ -383,25 +384,6 @@ fun SettingsScreen(
                     },
                     height = 36.dp
                 )
-
-                if (config.backgroundMode == BackgroundMode.EARTH_3D) {
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    val earthThemePrompt = when (effectiveLang) {
-                        AppLanguage.ENGLISH -> "💡 Theme auto-switches to Light/Dark based on real-time solar daylight at your location (fixed 8,000 km altitude)."
-                        AppLanguage.JAPANESE -> "💡 3D地球モードでは、現在地のリアルタイムの昼夜に応じてライト/ダークテーマが自動修正されます (高度 8,000 km)。"
-                        AppLanguage.KOREAN -> "💡 3D 지구 모드에서는 현재 위치의 실시간 낮/밤 상태에 따라 라이트/다크 테마가 자동 적용됩니다 (고도 8,000 km)."
-                        AppLanguage.TRADITIONAL_CHINESE -> "💡 處於 3D 衛星地球模式下，系統將自動根據您所在位置的實時晝夜重寫主題色（固定 8,000 km 最佳航天視距）。"
-                        else -> "💡 处于 3D 卫星地球模式下，系统将自动根据您所在位置的实时昼夜重写主题色（固定 8,000 km 最佳航天视距）。"
-                    }
-
-                    Text(
-                        text = earthThemePrompt,
-                        fontSize = 10.5.sp,
-                        color = NeumorphicAccent.copy(alpha = 0.85f),
-                        lineHeight = 15.sp
-                    )
-                }
             }
         }
 

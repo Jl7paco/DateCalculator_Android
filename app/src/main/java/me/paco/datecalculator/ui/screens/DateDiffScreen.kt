@@ -156,6 +156,46 @@ data class HolidayThemePattern(
     val accentColor: Color
 )
 
+private fun isSpecificHolidayOrDate(eventName: String): Boolean {
+    val clean = eventName.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
+    return clean.contains("国庆") || clean.contains("國慶") || clean.contains("元旦") || clean.contains("春节") ||
+           clean.contains("清明") || clean.contains("劳动") || clean.contains("五一") || clean.contains("勞動") ||
+           clean.contains("端午") || clean.contains("高考") || clean.contains("中考") || clean.contains("中秋") ||
+           clean.contains("香港") || clean.contains("澳门") || clean.contains("澳門") || clean.contains("圣诞") ||
+           clean.contains("聖誕") || clean.contains("成人") || clean.contains("儿童") || clean.contains("兒童") ||
+           clean.contains("复活") || clean.contains("佛诞") || clean.contains("佛誕") || clean.contains("卫塞") ||
+           clean.contains("感恩") || clean.contains("万圣") || clean.contains("萬聖") || clean.contains("重阳") ||
+           clean.contains("lunar") || clean.contains("national") || clean.contains("easter") || clean.contains("christmas")
+}
+
+private fun getSeasonalBackgroundResId(targetDate: LocalDate, region: HolidayRegion): Int {
+    val month = targetDate.monthValue
+    val isSouthern = (region == HolidayRegion.AUSTRALIA || region == HolidayRegion.NEW_ZEALAND)
+
+    val season = if (isSouthern) {
+        when (month) {
+            9, 10, 11 -> "SPRING"
+            12, 1, 2 -> "SUMMER"
+            3, 4, 5 -> "AUTUMN"
+            else -> "WINTER"
+        }
+    } else {
+        when (month) {
+            3, 4, 5 -> "SPRING"
+            6, 7, 8 -> "SUMMER"
+            9, 10, 11 -> "AUTUMN"
+            else -> "WINTER"
+        }
+    }
+
+    return when (season) {
+        "SPRING" -> R.drawable.bg_eid
+        "SUMMER" -> R.drawable.bg_lotus
+        "AUTUMN" -> R.drawable.bg_harvest
+        else -> R.drawable.bg_winter
+    }
+}
+
 @Composable
 private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark: Boolean): HolidayThemePattern {
     // 包含中文、日文平假名/片假名 (\u3040-\u30ff)、韩文 (\uac00-\ud7af) 与英文字母，避免日韩文字被误剔除
@@ -1269,12 +1309,12 @@ fun DateDiffScreen(
                         }
                     }
 
-                    // 根据路径下 Manifest 映射规则获得 VectorDrawable 背景素材与色调
+                    // 需求 1 & 2: 特定节假日与常用按键共用矢量背景，非特定节假日按目标日期所在地半球季节自动选配背景 (春季: bg_eid, 夏季: bg_lotus, 秋季: bg_harvest, 冬季: bg_winter)
                     val cardPattern = getHolidayThemePattern(cardData.eventName, uiState.holidayRegion, isDark)
-                    val bgDrawableResId = if (cardData.eventName.contains("打卡")) {
-                        R.drawable.bg_open_street_map
-                    } else {
-                        cardPattern.photoResId
+                    val bgDrawableResId = when {
+                        cardData.eventName.contains("打卡") -> R.drawable.bg_open_street_map
+                        isSpecificHolidayOrDate(cardData.eventName) -> cardPattern.photoResId
+                        else -> getSeasonalBackgroundResId(cardData.targetDate, uiState.holidayRegion)
                     }
 
                     val isCardPinned = uiState.pinnedPresetHolidays.contains(cardData.eventName) || uiState.customEvents.any { (it.name == cardData.eventName || it.name.contains(cardData.eventName)) && it.isPinned }
