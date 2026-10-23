@@ -2,15 +2,20 @@ package me.paco.datecalculator.util
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
 import android.os.Build
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import me.paco.datecalculator.data.AppLanguage
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import me.paco.datecalculator.data.CalculationStage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.data.HolidayRegion
@@ -26,6 +31,67 @@ import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
 import java.util.Locale
 import kotlin.math.abs
+
+object RealMapTileLoader {
+
+    private fun latLonToTile(lat: Double, lon: Double, zoom: Int): Pair<Int, Int> {
+        val n = 1 shl zoom
+        val x = ((lon + 180.0) / 360.0 * n).toInt().coerceIn(0, n - 1)
+        val radLat = Math.toRadians(lat)
+        val y = ((1.0 - kotlin.math.ln(kotlin.math.tan(radLat) + 1.0 / kotlin.math.cos(radLat)) / Math.PI) / 2.0 * n).toInt().coerceIn(0, n - 1)
+        return Pair(x, y)
+    }
+
+    suspend fun loadRealMapTile(
+        context: Context,
+        lat: Double,
+        lon: Double,
+        zoom: Int = 15
+    ): Bitmap? = withContext(Dispatchers.IO) {
+        try {
+            // Apply GCJ-02 shift if in Mainland China for 100% accurate alignment
+            val (dispLat, dispLon) = LocationUtils.getDisplayCoordinates(lat, lon)
+            val (x, y) = latLonToTile(dispLat, dispLon, zoom)
+
+            val cacheDir = File(context.cacheDir, "real_map_tiles").apply { if (!exists()) mkdirs() }
+            val cacheFile = File(cacheDir, "osm_${zoom}_${x}_${y}.png")
+
+            if (cacheFile.exists() && cacheFile.length() > 500) {
+                val cachedBmp = BitmapFactory.decodeFile(cacheFile.absolutePath)
+                if (cachedBmp != null) return@withContext cachedBmp
+            }
+
+            // Download real map tile from legal OpenStreetMap / CartoDB servers
+            val tileUrls = listOf(
+                "https://tile.openstreetmap.org/$zoom/$x/$y.png",
+                "https://a.basemaps.cartocdn.com/rastertiles/voyager/$zoom/$x/$y.png"
+            )
+
+            for (tileUrlStr in tileUrls) {
+                try {
+                    val url = URL(tileUrlStr)
+                    val conn = url.openConnection() as HttpURLConnection
+                    conn.connectTimeout = 4000
+                    conn.readTimeout = 4000
+                    conn.setRequestProperty("User-Agent", "DateCalculator_Android/3.0.7 (me.paco.datecalculator)")
+
+                    if (conn.responseCode == 200) {
+                        conn.inputStream.use { input ->
+                            FileOutputStream(cacheFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        val downloadedBmp = BitmapFactory.decodeFile(cacheFile.absolutePath)
+                        if (downloadedBmp != null) return@withContext downloadedBmp
+                    }
+                } catch (_: Exception) {}
+            }
+            null
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
 
 object DateCalculatorUtils {
 

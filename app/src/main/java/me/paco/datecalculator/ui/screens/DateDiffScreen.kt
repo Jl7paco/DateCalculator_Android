@@ -87,6 +87,7 @@ import me.paco.datecalculator.ui.components.QuickDateChips
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -1288,7 +1289,7 @@ fun DateDiffScreen(
                             .border(1.2.dp, cardBorderColor, shape = resultCardShape)
                             .clip(resultCardShape)
                     ) {
-                        // 1. 照片水印/ VectorDrawable 背景矢量素材层
+                        // 1. 照片水印/ 真实地图瓦片 / VectorDrawable 背景矢量素材层
                         val photoFile = cardData.photoPath?.let { File(it) }
                         val photoBitmap = remember(cardData.photoPath) {
                             if (photoFile != null && photoFile.exists()) {
@@ -1296,14 +1297,38 @@ fun DateDiffScreen(
                             } else null
                         }
 
+                        val isCheckInCard = cardData.eventName.contains("打卡")
+                        var realMapBitmap by remember(cardData.eventName) { mutableStateOf<android.graphics.Bitmap?>(null) }
+
+                        if (isCheckInCard && cardData.photoPath.isNullOrBlank()) {
+                            LaunchedEffect(cardData.eventName) {
+                                val coords = WeatherUtils.getCityCoordinates(uiState.currentCityName)
+                                val bmp = me.paco.datecalculator.util.RealMapTileLoader.loadRealMapTile(context, coords.first, coords.second)
+                                if (bmp != null) {
+                                    realMapBitmap = bmp
+                                }
+                            }
+                        }
+
                         if (photoBitmap != null) {
+                            // 照片水印相机拍摄的高清打卡背景图
                             Image(
                                 bitmap = photoBitmap.asImageBitmap(),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.matchParentSize()
                             )
+                        } else if (realMapBitmap != null) {
+                            // 需求 2: 真实调取的在地 OpenStreetMap 地图瓦片 PNG 背景 (大陆内 GCJ-02 火星偏移对齐，大陆外 WGS-84 无偏移)
+                            Image(
+                                bitmap = realMapBitmap!!.asImageBitmap(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                alpha = if (isDark) 0.70f else 0.60f,
+                                modifier = Modifier.matchParentSize()
+                            )
                         } else {
+                            // 3. OpenStreetMap 矢量地图瓦片降级保底图层
                             Image(
                                 painter = painterResource(bgDrawableResId),
                                 contentDescription = null,
