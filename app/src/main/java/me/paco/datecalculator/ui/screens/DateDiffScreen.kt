@@ -249,6 +249,12 @@ private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark:
         region == HolidayRegion.SOUTH_KOREA && (clean.contains("开天节") || clean.contains("개천절") || clean.contains("foundation")) -> R.drawable.bg_korea_hanok
         region == HolidayRegion.SOUTH_KOREA && (clean.contains("显忠日") || clean.contains("현충일") || clean.contains("memorial")) -> R.drawable.bg_memorial
 
+        // 澳大利亚与泰国特定多烟花降级专项精准匹配
+        region == HolidayRegion.AUSTRALIA && (clean.contains("australia") || clean.contains("澳大利亚")) -> R.drawable.bg_summer
+        region == HolidayRegion.AUSTRALIA && (clean.contains("boxing") || clean.contains("节礼")) -> R.drawable.bg_gift
+        region == HolidayRegion.THAILAND && (clean.contains("king") || clean.contains("泰王") || clean.contains("国王")) -> R.drawable.bg_crown
+        region == HolidayRegion.THAILAND && (clean.contains("national") || clean.contains("国庆")) -> R.drawable.bg_thai_lantern
+
         // 台湾地区补全
         region == HolidayRegion.TAIWAN && (clean.contains("和平") || clean.contains("peace")) -> R.drawable.bg_poppy
 
