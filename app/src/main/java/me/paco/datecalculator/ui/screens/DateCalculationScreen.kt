@@ -81,6 +81,7 @@ import me.paco.datecalculator.ui.components.NeumorphicIconButton
 import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
+import me.paco.datecalculator.ui.components.NeumorphicSwitch
 import me.paco.datecalculator.ui.components.NumericCalculatorInput
 import me.paco.datecalculator.ui.components.QuickDateChips
 import me.paco.datecalculator.ui.components.RangeBreakdownCard
@@ -522,12 +523,36 @@ private fun DateCalcRuleSection(
             else -> "计算规则"
         }
 
-        Text(
-            text = calcRuleText,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = NeumorphicTextPrimary
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = calcRuleText,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicTextPrimary
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { viewModel.updateIncludeStartDate(!uiState.includeStartDate) }
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+            ) {
+                NeumorphicSwitch(
+                    checked = uiState.includeStartDate,
+                    onCheckedChange = { viewModel.updateIncludeStartDate(it) }
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = LanguageUtils.getString("include_start_date", lang),
+                    fontSize = 11.sp,
+                    fontWeight = if (uiState.includeStartDate) FontWeight.ExtraBold else FontWeight.Medium,
+                    color = if (uiState.includeStartDate) NeumorphicAccent else NeumorphicTextPrimary.copy(alpha = 0.8f)
+                )
+            }
+        }
 
         WorkdayNaturalSwitch(
             isWorkday = (uiState.dateMode == DateMode.WORKDAY),

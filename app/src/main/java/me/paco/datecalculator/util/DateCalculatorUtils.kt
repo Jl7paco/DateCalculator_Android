@@ -102,16 +102,29 @@ object DateCalculatorUtils {
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
         isCurrentWeekBigWeek: Boolean = true,
-        disableChinaShiftWorkdays: Boolean = false
+        disableChinaShiftWorkdays: Boolean = false,
+        includeStartDate: Boolean = false
     ): LocalDate {
         if (days == 0) return baseDate
 
-        var currentDate = baseDate
-        var step = days
         val isAdd = (type == CalculationType.ADD)
 
         if (!isWorkdayMode) {
-            return if (isAdd) baseDate.plusDays(days.toLong()) else baseDate.minusDays(days.toLong())
+            val effDays = if (includeStartDate && days > 0) days - 1 else days
+            return if (isAdd) baseDate.plusDays(effDays.toLong()) else baseDate.minusDays(effDays.toLong())
+        }
+
+        var currentDate = baseDate
+        var step = days
+
+        if (includeStartDate && days > 0) {
+            val isBaseShift = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(baseDate, holidayRegion)
+            val isBaseStat = enableHolidays && RegionalHolidays.isStatutoryHoliday(baseDate, holidayRegion)
+            val isBaseWeekend = weekendRule.isWeekend(baseDate, isCurrentWeekBigWeek)
+            val isBaseWorking = if (isBaseShift) true else if (isBaseStat) false else !isBaseWeekend
+            if (isBaseWorking) {
+                step--
+            }
         }
 
         while (step > 0) {
@@ -147,16 +160,18 @@ object DateCalculatorUtils {
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
         isCurrentWeekBigWeek: Boolean = true,
-        disableChinaShiftWorkdays: Boolean = false
+        disableChinaShiftWorkdays: Boolean = false,
+        includeStartDate: Boolean = false
     ): Int {
-        if (startDate == targetDate) return 0
+        if (startDate == targetDate) return if (includeStartDate) 1 else 0
         val isAdd = !targetDate.isBefore(startDate)
         if (!isWorkdayMode) {
-            return abs(ChronoUnit.DAYS.between(startDate, targetDate)).toInt()
+            val diff = abs(ChronoUnit.DAYS.between(startDate, targetDate)).toInt()
+            return if (includeStartDate) diff + 1 else diff
         }
 
         var count = 0
-        var curr = if (isAdd) startDate.plusDays(1) else startDate.minusDays(1)
+        var curr = if (includeStartDate) startDate else (if (isAdd) startDate.plusDays(1) else startDate.minusDays(1))
         val limit = if (isAdd) targetDate else startDate.minusDays(1)
 
         while (if (isAdd) !curr.isAfter(limit) else !curr.isBefore(targetDate)) {
@@ -194,7 +209,8 @@ object DateCalculatorUtils {
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
         isCurrentWeekBigWeek: Boolean = true,
-        disableChinaShiftWorkdays: Boolean = false
+        disableChinaShiftWorkdays: Boolean = false,
+        includeStartDate: Boolean = false
     ): Pair<LocalDate, List<StageSegmentResult>> {
         var currentStart = baseDate
         val results = mutableListOf<StageSegmentResult>()
@@ -211,7 +227,8 @@ object DateCalculatorUtils {
                     enableHolidays = enableHolidays,
                     holidayRegion = holidayRegion,
                     isCurrentWeekBigWeek = isCurrentWeekBigWeek,
-                    disableChinaShiftWorkdays = disableChinaShiftWorkdays
+                    disableChinaShiftWorkdays = disableChinaShiftWorkdays,
+                    includeStartDate = if (idx == 0) includeStartDate else false
                 )
 
                 val (_, stat, week) = calculateBreakdown(
@@ -221,10 +238,13 @@ object DateCalculatorUtils {
                     enableHolidays = enableHolidays,
                     holidayRegion = holidayRegion,
                     isCurrentWeekBigWeek = isCurrentWeekBigWeek,
-                    disableChinaShiftWorkdays = disableChinaShiftWorkdays
+                    disableChinaShiftWorkdays = disableChinaShiftWorkdays,
+                    includeStartDate = if (idx == 0) includeStartDate else false
                 )
 
                 val remarkText = stage.remark.ifBlank { "阶段 ${idx + 1}" }
+                val rawNat = abs(naturalDaysBetween(currentStart, segEnd))
+                val totalNat = if (idx == 0 && includeStartDate) rawNat + 1 else rawNat
 
                 results.add(
                     StageSegmentResult(
@@ -234,7 +254,7 @@ object DateCalculatorUtils {
                         daysCount = stage.days,
                         startDate = currentStart,
                         endDate = segEnd,
-                        totalCalendarDays = abs(naturalDaysBetween(currentStart, segEnd)),
+                        totalCalendarDays = totalNat,
                         restDaysCount = stat + week
                     )
                 )
@@ -253,16 +273,17 @@ object DateCalculatorUtils {
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
         isCurrentWeekBigWeek: Boolean = true,
-        disableChinaShiftWorkdays: Boolean = false
+        disableChinaShiftWorkdays: Boolean = false,
+        includeStartDate: Boolean = false
     ): Long {
-        if (startDate == endDate) return 0L
+        if (startDate == endDate) return if (includeStartDate) 1L else 0L
 
         val isForward = startDate.isBefore(endDate)
         val start = if (isForward) startDate else endDate
         val end = if (isForward) endDate else startDate
 
         var workdays = 0L
-        var curr = start.plusDays(1)
+        var curr = if (includeStartDate) start else start.plusDays(1)
 
         while (!curr.isAfter(end)) {
             val isShiftWorkday = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion)
@@ -300,9 +321,11 @@ object DateCalculatorUtils {
         enableHolidays: Boolean = true,
         holidayRegion: HolidayRegion = HolidayRegion.CHINA,
         isCurrentWeekBigWeek: Boolean = true,
-        disableChinaShiftWorkdays: Boolean = false
+        disableChinaShiftWorkdays: Boolean = false,
+        includeStartDate: Boolean = false
     ): Triple<Long, Long, Long> {
-        val totalDays = abs(naturalDaysBetween(startDate, endDate))
+        val rawNat = abs(naturalDaysBetween(startDate, endDate))
+        val totalDays = if (includeStartDate) rawNat + 1 else rawNat
         if (totalDays == 0L) return Triple(0L, 0L, 0L)
 
         val start = if (startDate.isBefore(endDate)) startDate else endDate
@@ -312,7 +335,7 @@ object DateCalculatorUtils {
         var holidays = 0L
         var weekends = 0L
 
-        var curr = start.plusDays(1)
+        var curr = if (includeStartDate) start else start.plusDays(1)
         while (!curr.isAfter(end)) {
             val isShiftWorkday = enableHolidays && !disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(curr, holidayRegion)
             val isStatutoryHoliday = enableHolidays && RegionalHolidays.isStatutoryHoliday(curr, holidayRegion)

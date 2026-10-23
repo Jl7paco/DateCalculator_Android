@@ -32,6 +32,7 @@ object LanguageUtils {
         "diff_natural" to "自然日",
         "diff_workday" to "工作日",
         "calc_rule_title" to "计算规则",
+        "include_start_date" to "包含起始日",
         "mode_forward" to "加减天数",
         "mode_reverse" to "区间拆算",
         "multi_stage_btn" to "多段加减",

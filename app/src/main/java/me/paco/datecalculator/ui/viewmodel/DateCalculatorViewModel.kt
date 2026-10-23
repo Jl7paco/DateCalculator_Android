@@ -131,6 +131,7 @@ data class DateCalculatorUiState(
     val pinnedPresetHolidays: Set<String> = emptySet(),
     val isMultiStageExtensionEnabled: Boolean = false,
     val isAgeModeSelected: Boolean = false,
+    val includeStartDate: Boolean = false,
     val multiStagePlanTitle: String = "",
     val stages: List<CalculationStage> = listOf(
         CalculationStage(type = CalculationType.ADD, daysInput = "", remark = ""),
@@ -343,6 +344,11 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(isAgeModeSelected = selected)
     }
 
+    fun updateIncludeStartDate(include: Boolean) {
+        _uiState.value = _uiState.value.copy(includeStartDate = include, showResult = false)
+        performCalculation()
+    }
+
     fun updateWeekendRule(rule: WeekendRule, context: Context? = null) {
         _uiState.value = _uiState.value.copy(weekendRule = rule, showResult = false)
         context?.let { PreferenceUtils.saveWeekendRule(it, rule) }
@@ -532,7 +538,8 @@ class DateCalculatorViewModel : ViewModel() {
             enableHolidays = state.enableChineseHolidays,
             holidayRegion = state.holidayRegion,
             isCurrentWeekBigWeek = state.isCurrentWeekBigWeek,
-            disableChinaShiftWorkdays = state.disableChinaShiftWorkdays
+            disableChinaShiftWorkdays = state.disableChinaShiftWorkdays,
+            includeStartDate = state.includeStartDate
         )
     }
 
@@ -547,7 +554,8 @@ class DateCalculatorViewModel : ViewModel() {
             enableHolidays = state.enableChineseHolidays,
             holidayRegion = state.holidayRegion,
             isCurrentWeekBigWeek = state.isCurrentWeekBigWeek,
-            disableChinaShiftWorkdays = state.disableChinaShiftWorkdays
+            disableChinaShiftWorkdays = state.disableChinaShiftWorkdays,
+            includeStartDate = state.includeStartDate
         )
         val elapsed = System.currentTimeMillis() - startMs
         if (elapsed > 2) {
@@ -565,13 +573,15 @@ class DateCalculatorViewModel : ViewModel() {
             enableHolidays = state.enableChineseHolidays,
             holidayRegion = state.holidayRegion,
             isCurrentWeekBigWeek = state.isCurrentWeekBigWeek,
-            disableChinaShiftWorkdays = state.disableChinaShiftWorkdays
+            disableChinaShiftWorkdays = state.disableChinaShiftWorkdays,
+            includeStartDate = state.includeStartDate
         )
         val nat = DateCalculatorUtils.naturalDaysBetween(state.baseDate, state.reverseEndDate)
+        val totalNat = if (state.includeStartDate) abs(nat) + 1 else abs(nat)
         return RangeBreakdownResult(
             startDate = state.baseDate,
             endDate = state.reverseEndDate,
-            totalNaturalDays = abs(nat),
+            totalNaturalDays = totalNat,
             workdaysCount = work,
             statutoryHolidaysCount = stat,
             regularWeekendDaysCount = week
