@@ -53,19 +53,19 @@ object RealMapTileLoader {
             val (dispLat, dispLon) = LocationUtils.getDisplayCoordinates(lat, lon)
             val (x, y) = latLonToTile(dispLat, dispLon, zoom)
 
-            val cacheDir = File(context.cacheDir, "real_map_tiles_v2").apply { if (!exists()) mkdirs() }
-            val cacheFile = File(cacheDir, "osm_${zoom}_${x}_${y}.png")
+            val cacheDir = File(context.cacheDir, "real_map_tiles_v3").apply { if (!exists()) mkdirs() }
+            val cacheFile = File(cacheDir, "map_${zoom}_${x}_${y}.png")
 
             if (cacheFile.exists() && cacheFile.length() > 500) {
                 val cachedBmp = BitmapFactory.decodeFile(cacheFile.absolutePath)
                 if (cachedBmp != null) return@withContext cachedBmp
             }
 
-            // Download real map tile from legal OpenStreetMap servers (100% 免费开源，无需 API Key，无水印)
+            // 调取 Esri World Street Map 与开放地图源 (100% 真实高清、无 API Key、无 Access Block、无水印)
             val tileUrls = listOf(
-                "https://tile.openstreetmap.org/$zoom/$x/$y.png",
-                "https://a.tile.opentopomap.org/$zoom/$x/$y.png",
-                "https://tile.openstreetmap.de/$zoom/$x/$y.png"
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$zoom/$y/$x",
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/$zoom/$y/$x",
+                "https://tile.openstreetmap.org/$zoom/$x/$y.png"
             )
 
             for (tileUrlStr in tileUrls) {

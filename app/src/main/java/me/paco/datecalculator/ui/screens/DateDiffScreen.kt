@@ -1264,67 +1264,29 @@ fun DateDiffScreen(
         val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
         val landmarkName = checkInTitleInput.ifBlank { "东海国际中心" }
 
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = {
+        WatermarkCameraScreen(
+            cityName = localizedCity,
+            landmarkName = landmarkName,
+            lang = lang,
+            onPhotoCaptured = { photoPath ->
+                capturedPhotoPath = photoPath
                 showWatermarkCamera = false
                 showCheckInDialog = true
+                Toast.makeText(context, "防伪水印照片捕获成功！", Toast.LENGTH_SHORT).show()
             },
-            properties = androidx.compose.ui.window.DialogProperties(
-                usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false
-            )
-        ) {
-            WatermarkCameraScreen(
-                cityName = localizedCity,
-                landmarkName = landmarkName,
-                lang = lang,
-                onPhotoCaptured = { photoPath ->
-                    capturedPhotoPath = photoPath
-                    showWatermarkCamera = false
-                    showCheckInDialog = true
-                    Toast.makeText(context, "防伪水印照片捕获成功！", Toast.LENGTH_SHORT).show()
-                },
-                onDismiss = {
-                    showWatermarkCamera = false
-                    showCheckInDialog = true
-                }
-            )
-        }
-    }
-
-    if (eventToDelete != null) {
-        val targetEvent = eventToDelete!!
-        AlertDialog(
-            onDismissRequest = { eventToDelete = null },
-            title = { Text(LanguageUtils.getString("confirm_delete_anniversary", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary) },
-            text = { Text("${targetEvent.name}", fontSize = 13.sp, color = NeumorphicTextPrimary) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteCustomEvent(targetEvent, context)
-                        eventToDelete = null
-                    }
-                ) {
-                    Text(LanguageUtils.getString("confirm_delete_btn", lang), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { eventToDelete = null }) {
-                    Text(LanguageUtils.getString("cancel", lang), color = NeumorphicTextPrimary)
-                }
-            },
-            containerColor = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg,
-            shape = RoundedCornerShape(20.dp)
+            onDismiss = {
+                showWatermarkCamera = false
+                showCheckInDialog = true
+            }
         )
-    }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp)
-        ) {
+    } else {
+        Box(modifier = modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(16.dp)
+            ) {
             // 顶栏 (36dp 高度, 15sp 标题)
             Row(
                 modifier = Modifier
@@ -1737,6 +1699,7 @@ fun DateDiffScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
 }
 
 private fun calculateNextSolarDate(baseDate: LocalDate, month: Int, day: Int): LocalDate {
