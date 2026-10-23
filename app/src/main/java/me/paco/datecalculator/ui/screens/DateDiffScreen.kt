@@ -243,6 +243,47 @@ private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark:
         region == HolidayRegion.SOUTH_KOREA && (clean.contains("开天节") || clean.contains("개천절") || clean.contains("foundation")) -> R.drawable.bg_korea_hanok
         region == HolidayRegion.SOUTH_KOREA && (clean.contains("显忠日") || clean.contains("현충일") || clean.contains("memorial")) -> R.drawable.bg_memorial
 
+        // 台湾地区补全
+        region == HolidayRegion.TAIWAN && (clean.contains("和平") || clean.contains("peace")) -> R.drawable.bg_poppy
+
+        // 美国地区补全
+        region == HolidayRegion.UNITED_STATES && (clean.contains("martinluther") || clean.contains("king")) -> R.drawable.bg_memorial
+        region == HolidayRegion.UNITED_STATES && (clean.contains("presidents") || clean.contains("总统日")) -> R.drawable.bg_memorial
+        region == HolidayRegion.UNITED_STATES && (clean.contains("juneteenth") || clean.contains("六月")) -> R.drawable.bg_summer
+        region == HolidayRegion.UNITED_STATES && (clean.contains("columbus") || clean.contains("哥伦布")) -> R.drawable.bg_harvest
+
+        // 日本地区补全
+        region == HolidayRegion.JAPAN && (clean.contains("建国記念") || clean.contains("kenkoku")) -> R.drawable.bg_kimono_fan
+        region == HolidayRegion.JAPAN && (clean.contains("天皇") || clean.contains("tenno") || clean.contains("憲法")) -> R.drawable.bg_kimono_fan
+
+        // 韩国地区补全
+        region == HolidayRegion.SOUTH_KOREA && (clean.contains("삼일절") || clean.contains("samil") || clean.contains("광복절") || clean.contains("gwangbokjeol")) -> R.drawable.bg_korea_hanok
+        region == HolidayRegion.SOUTH_KOREA && (clean.contains("한글날") || clean.contains("hangul")) -> R.drawable.bg_korea_hanok
+
+        // 德国地区补全
+        region == HolidayRegion.GERMANY && (clean.contains("himmelfahrt") || clean.contains("pfingstmontag")) -> R.drawable.bg_spring_rain
+        region == HolidayRegion.GERMANY && clean.contains("reformation") -> R.drawable.bg_harvest
+
+        // 法国地区补全
+        region == HolidayRegion.FRANCE && clean.contains("victoire") -> R.drawable.bg_france_croissant
+        region == HolidayRegion.FRANCE && clean.contains("assomption") -> R.drawable.bg_summer
+
+        // 意大利地区补全
+        region == HolidayRegion.ITALY && (clean.contains("epifania") || clean.contains("santostefano")) -> R.drawable.bg_winter
+        region == HolidayRegion.ITALY && (clean.contains("liberazione") || clean.contains("ferragosto")) -> R.drawable.bg_italy_gondola
+
+        // 越南地区补全
+        region == HolidayRegion.VIETNAM && (clean.contains("hùngvương") || clean.contains("hungvuong")) -> R.drawable.bg_harvest
+        region == HolidayRegion.VIETNAM && (clean.contains("giảiphóng") || clean.contains("giaiphong")) -> R.drawable.bg_vietnam_hat
+
+        // 泰国地区补全
+        region == HolidayRegion.THAILAND && clean.contains("chakri") -> R.drawable.bg_thai_lantern
+        region == HolidayRegion.THAILAND && clean.contains("coronation") -> R.drawable.bg_crown
+
+        // 印度与新西兰地区补全
+        region == HolidayRegion.INDIA && clean.contains("gandhi") -> R.drawable.bg_india_rangoli
+        region == HolidayRegion.NEW_ZEALAND && clean.contains("waitangi") -> R.drawable.bg_water_festival
+
         (region == HolidayRegion.SINGAPORE || region == HolidayRegion.INDONESIA) && (clean.contains("开斋") || clean.contains("eid") || clean.contains("ramadan")) -> R.drawable.bg_ramadan_dates
         region == HolidayRegion.SINGAPORE && (clean.contains("国庆") || clean.contains("nationalday") || clean.contains("singaporegarden")) -> R.drawable.bg_singapore_garden
         region == HolidayRegion.MALAYSIA && (clean.contains("哈芝") || clean.contains("hajj")) -> R.drawable.bg_hajj
