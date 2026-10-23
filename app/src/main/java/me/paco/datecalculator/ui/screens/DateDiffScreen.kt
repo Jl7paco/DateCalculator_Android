@@ -1264,21 +1264,32 @@ fun DateDiffScreen(
         val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
         val landmarkName = checkInTitleInput.ifBlank { "东海国际中心" }
 
-        WatermarkCameraScreen(
-            cityName = localizedCity,
-            landmarkName = landmarkName,
-            lang = lang,
-            onPhotoCaptured = { photoPath ->
-                capturedPhotoPath = photoPath
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = {
                 showWatermarkCamera = false
                 showCheckInDialog = true
-                Toast.makeText(context, "防伪水印照片捕获成功！", Toast.LENGTH_SHORT).show()
             },
-            onDismiss = {
-                showWatermarkCamera = false
-                showCheckInDialog = true
-            }
-        )
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            WatermarkCameraScreen(
+                cityName = localizedCity,
+                landmarkName = landmarkName,
+                lang = lang,
+                onPhotoCaptured = { photoPath ->
+                    capturedPhotoPath = photoPath
+                    showWatermarkCamera = false
+                    showCheckInDialog = true
+                    Toast.makeText(context, "防伪水印照片捕获成功！", Toast.LENGTH_SHORT).show()
+                },
+                onDismiss = {
+                    showWatermarkCamera = false
+                    showCheckInDialog = true
+                }
+            )
+        }
     }
 
     if (eventToDelete != null) {

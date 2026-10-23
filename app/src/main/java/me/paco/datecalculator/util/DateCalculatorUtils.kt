@@ -53,7 +53,7 @@ object RealMapTileLoader {
             val (dispLat, dispLon) = LocationUtils.getDisplayCoordinates(lat, lon)
             val (x, y) = latLonToTile(dispLat, dispLon, zoom)
 
-            val cacheDir = File(context.cacheDir, "real_map_tiles").apply { if (!exists()) mkdirs() }
+            val cacheDir = File(context.cacheDir, "real_map_tiles_v2").apply { if (!exists()) mkdirs() }
             val cacheFile = File(cacheDir, "osm_${zoom}_${x}_${y}.png")
 
             if (cacheFile.exists() && cacheFile.length() > 500) {
@@ -61,11 +61,11 @@ object RealMapTileLoader {
                 if (cachedBmp != null) return@withContext cachedBmp
             }
 
-            // Download real map tile from legal CartoDB Voyager / OpenStreetMap servers
+            // Download real map tile from legal OpenStreetMap servers (100% 免费开源，无需 API Key，无水印)
             val tileUrls = listOf(
-                "https://a.basemaps.cartocdn.com/rastertiles/voyager/$zoom/$x/$y.png",
-                "https://b.basemaps.cartocdn.com/rastertiles/voyager/$zoom/$x/$y.png",
-                "https://tile.openstreetmap.org/$zoom/$x/$y.png"
+                "https://tile.openstreetmap.org/$zoom/$x/$y.png",
+                "https://a.tile.opentopomap.org/$zoom/$x/$y.png",
+                "https://tile.openstreetmap.de/$zoom/$x/$y.png"
             )
 
             for (tileUrlStr in tileUrls) {
