@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="60dp"
+    android:viewportWidth="1200"
+    android:viewportHeight="600">
+    <!-- Map Base Ground (OpenStreetMap Ground #F4F1EA) -->
+    <path android:fillColor="#F4F1EA" android:pathData="M 0 0 h 1200 v 600 h -1200 z"/>
+    <!-- Park Green Area (#D0E6C5) -->
+    <path android:fillColor="#D0E6C5" android:pathData="M 100 80 h 320 v 220 h -320 z M 750 320 h 380 v 200 h -380 z"/>
+    <!-- River Blue Curve (#A5C9EB) -->
+    <path android:fillColor="#A5C9EB" android:pathData="M 0 450 C 300 420 500 520 800 480 C 1000 450 1100 510 1200 490 v 110 h -1200 z"/>
+    <!-- Secondary Roads (#FFFFFF) -->
+    <path android:fillColor="#FFFFFF" android:pathData="M 0 150 h 1200 v 16 h -1200 z M 0 350 h 1200 v 16 h -1200 z M 250 0 v 600 h 16 v -600 z M 600 0 v 600 h 16 v -600 z M 950 0 v 600 h 16 v -600 z"/>
+    <!-- Main Highway Orange (#FDB870) -->
+    <path android:fillColor="#FDB870" android:pathData="M 0 240 C 400 200 800 280 1200 220 v 24 C 800 304 400 224 0 264 z"/>
+</vector>

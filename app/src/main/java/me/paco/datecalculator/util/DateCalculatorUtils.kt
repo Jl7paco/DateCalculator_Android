@@ -1,5 +1,6 @@
 package me.paco.datecalculator.util
 
+import android.os.Build
 import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationStage
 import me.paco.datecalculator.data.CalculationType
@@ -192,6 +193,43 @@ object DateCalculatorUtils {
     /**
      * 判断当前 GPS/城市经纬度坐标下是否处于白昼 (用于 3D 卫星地球背景强制重写浅色/深色主题)
      */
+    data class DeviceLaunchInfo(
+        val deviceName: String,
+        val launchDate: LocalDate
+    )
+
+    fun getDeviceLaunchInfo(): DeviceLaunchInfo {
+        val manufacturer = Build.MANUFACTURER.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        val model = Build.MODEL
+
+        val cleanName = if (model.contains(manufacturer, ignoreCase = true)) {
+            model
+        } else {
+            "$manufacturer $model"
+        }.trim()
+
+        val lowerName = cleanName.lowercase(Locale.getDefault())
+
+        val launchDate = when {
+            lowerName.contains("s24") || lowerName.contains("xiaomi 14") -> LocalDate.of(2024, 1, 17)
+            lowerName.contains("s23") || lowerName.contains("xiaomi 13") || lowerName.contains("pixel 8") -> LocalDate.of(2023, 2, 1)
+            lowerName.contains("s22") || lowerName.contains("xiaomi 12") || lowerName.contains("pixel 7") -> LocalDate.of(2022, 2, 9)
+            lowerName.contains("s21") || lowerName.contains("pixel 6") -> LocalDate.of(2021, 1, 14)
+            lowerName.contains("iphone 15") -> LocalDate.of(2023, 9, 22)
+            lowerName.contains("iphone 14") -> LocalDate.of(2022, 9, 16)
+            lowerName.contains("iphone 13") -> LocalDate.of(2021, 9, 24)
+            else -> when (Build.VERSION.SDK_INT) {
+                Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> LocalDate.of(2023, 10, 4)
+                Build.VERSION_CODES.TIRAMISU -> LocalDate.of(2022, 8, 15)
+                Build.VERSION_CODES.S_V2, Build.VERSION_CODES.S -> LocalDate.of(2021, 10, 4)
+                Build.VERSION_CODES.R -> LocalDate.of(2020, 9, 8)
+                else -> LocalDate.of(2021, 1, 1)
+            }
+        }
+
+        return DeviceLaunchInfo(deviceName = cleanName, launchDate = launchDate)
+    }
+
     fun isDaylightAtLocation(latitude: Double, longitude: Double): Boolean {
         val currentHour = try { java.time.LocalTime.now().hour } catch (_: Exception) { 12 }
         if (latitude == 0.0 && longitude == 0.0) {

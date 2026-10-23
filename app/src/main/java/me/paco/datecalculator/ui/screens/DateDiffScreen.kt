@@ -306,8 +306,30 @@ fun DateDiffScreen(
 
     var currentTargetEventName by remember { mutableStateOf("") }
 
-    // 多卡片推栈倒计时结果数据结构
-    var resultCardList by remember { mutableStateOf<List<CountdownCardData>>(emptyList()) }
+    // 默认提供 2 个 Days Matter 原汁原味倒计时 (1: 下一个星期六; 2: 本机手机型号发布至今)
+    val defaultSaturdayDate = remember {
+        LocalDate.now().with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SATURDAY))
+    }
+    val defaultDeviceInfo = remember { DateCalculatorUtils.getDeviceLaunchInfo() }
+
+    var resultCardList by remember {
+        mutableStateOf(
+            listOf(
+                CountdownCardData(
+                    id = 1001L,
+                    eventName = "下一个星期六",
+                    targetDate = defaultSaturdayDate,
+                    baseDate = LocalDate.now()
+                ),
+                CountdownCardData(
+                    id = 1002L,
+                    eventName = "${defaultDeviceInfo.deviceName} 发布",
+                    targetDate = defaultDeviceInfo.launchDate,
+                    baseDate = LocalDate.now()
+                )
+            )
+        )
+    }
 
     fun addResultCard(eventName: String, targetDate: LocalDate) {
         val name = eventName.ifBlank { LanguageUtils.getString("target_date", lang) }
@@ -315,7 +337,7 @@ fun DateDiffScreen(
             id = System.currentTimeMillis() + resultCardList.size,
             eventName = name,
             targetDate = targetDate,
-            baseDate = uiState.baseDate
+            baseDate = LocalDate.now()
         )
 
         val firstCard = resultCardList.firstOrNull()
@@ -1197,8 +1219,20 @@ fun DateDiffScreen(
                     val localizedCardTitle = LanguageUtils.getLocalizedHolidayName(cardData.eventName, lang)
                         .replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
 
-                    // 需求 4 & 5: Days Matter 倒计时智能描述短语 (例如: "距离下一个中考还有", "高考已经")
-                    val phraseText = if (isPast) {
+                    // 需求 2: 星期六倒计时 (若当天为星期六则直接提醒“今天就是星期六！”)
+                    val isSaturdayCard = cardData.eventName.contains("星期六") || cardData.eventName.contains("Saturday")
+                    val isTodaySaturday = isSaturdayCard && (cardData.baseDate.dayOfWeek == java.time.DayOfWeek.SATURDAY)
+
+                    // 需求 4 & 5: Days Matter 倒计时智能描述短语 (例如: "距离下一个中考还有", "小米 13 发布已经")
+                    val phraseText = if (isTodaySaturday) {
+                        when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "Today is Saturday!"
+                            AppLanguage.TRADITIONAL_CHINESE -> "今天就是星期六！"
+                            AppLanguage.JAPANESE -> "今日は土曜日です！"
+                            AppLanguage.KOREAN -> "오늘이 바로 토요일입니다!"
+                            else -> "今天就是星期六！"
+                        }
+                    } else if (isPast) {
                         when (effectiveLang) {
                             AppLanguage.ENGLISH -> "$localizedCardTitle Has Passed"
                             AppLanguage.TRADITIONAL_CHINESE -> "${localizedCardTitle} 已經"
@@ -1216,7 +1250,9 @@ fun DateDiffScreen(
                         }
                     }
 
-                    val suffixText = if (isPast) {
+                    val suffixText = if (isTodaySaturday) {
+                        ""
+                    } else if (isPast) {
                         when (effectiveLang) {
                             AppLanguage.ENGLISH -> "Days"
                             AppLanguage.TRADITIONAL_CHINESE -> "天了"
@@ -1236,6 +1272,11 @@ fun DateDiffScreen(
 
                     // 根据路径下 Manifest 映射规则获得 VectorDrawable 背景素材与色调
                     val cardPattern = getHolidayThemePattern(cardData.eventName, uiState.holidayRegion, isDark)
+                    val bgDrawableResId = if (cardData.eventName.contains("打卡")) {
+                        R.drawable.bg_open_street_map
+                    } else {
+                        cardPattern.photoResId
+                    }
 
                     val resultCardShape = RoundedCornerShape(22.dp)
                     Box(
@@ -1247,9 +1288,9 @@ fun DateDiffScreen(
                             .border(1.2.dp, cardBorderColor, shape = resultCardShape)
                             .clip(resultCardShape)
                     ) {
-                        // 1. VectorDrawable 背景矢量素材层 (采用 ContentScale.Crop 保持原比例，无纵向拉伸失真贴满卡片)
+                        // 1. VectorDrawable 背景矢量素材层 (需求 3: 打卡卡片采用 100% 免费可商用的 OpenStreetMap Vector Tile 地图矢量贴图!)
                         Image(
-                            painter = painterResource(cardPattern.photoResId),
+                            painter = painterResource(bgDrawableResId),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             alpha = if (isDark) 0.60f else 0.50f,
