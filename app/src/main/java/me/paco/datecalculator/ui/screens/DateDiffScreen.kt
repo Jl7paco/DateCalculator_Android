@@ -52,19 +52,24 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PushPin
 import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import me.paco.datecalculator.util.WeatherUtils
+import java.time.format.DateTimeFormatter
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -277,6 +282,8 @@ fun DateDiffScreen(
     var showPickerForEnd by remember { mutableStateOf(false) }
     var showHistoryDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var showCheckInDialog by remember { mutableStateOf(false) }
+    var checkInTitleInput by remember { mutableStateOf("") }
 
     // Start Date Type: 0 = 公历, 1 = 农历
     var startCalendarType by remember { mutableIntStateOf(0) }
@@ -567,6 +574,105 @@ fun DateDiffScreen(
                 }
             },
             containerColor = dialogBg,
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    // 精准打卡 Dialog
+    if (showCheckInDialog) {
+        val currentCity = uiState.currentCityName
+        val coords = WeatherUtils.getCityCoordinates(currentCity)
+        val nowTimeStr = java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+
+        AlertDialog(
+            onDismissRequest = { showCheckInDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(LanguageUtils.getString("check_in_dialog_title", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(NeumorphicSunkenBg)
+                            .padding(10.dp)
+                    ) {
+                        Column {
+                            val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
+                            Text("📍 定位地点: $localizedCity", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                            Text("GPS 经纬度: (${coords.first}, ${coords.second})", fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
+                            Text("打卡时刻: $nowTimeStr", fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Text("打卡事件名称", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    val checkInTitlePlaceholder = when (effectiveLang) {
+                        AppLanguage.ENGLISH -> "e.g. Arrived in Paris / First Concert"
+                        AppLanguage.TRADITIONAL_CHINESE -> "如: 抵達巴黎 / 首次看演唱會"
+                        AppLanguage.JAPANESE -> "例: パリ到着 / 初コンサート"
+                        AppLanguage.KOREAN -> "예: 파리 도착 / 첫 콘서트"
+                        else -> "例如: 抵达深圳 / 打卡地标 / 首次看演唱会"
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
+                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp))
+                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (checkInTitleInput.isEmpty()) {
+                            Text(
+                                text = checkInTitlePlaceholder,
+                                fontSize = 13.sp,
+                                color = NeumorphicTextPrimary.copy(alpha = 0.40f)
+                            )
+                        }
+                        BasicTextField(
+                            value = checkInTitleInput,
+                            onValueChange = { checkInTitleInput = it },
+                            textStyle = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeumorphicTextPrimary
+                            ),
+                            singleLine = true,
+                            cursorBrush = SolidColor(NeumorphicAccent),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val inputTitle = checkInTitleInput.ifBlank { "打卡事件" }
+                        val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
+                        val checkInEventName = "打卡: $inputTitle ($localizedCity)"
+                        addResultCard(checkInEventName, LocalDate.now())
+                        checkInTitleInput = ""
+                        showCheckInDialog = false
+                        Toast.makeText(context, "打卡成功！", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NeumorphicAccent)
+                ) {
+                    Text("记录打卡", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCheckInDialog = false }) {
+                    Text(LanguageUtils.getString("cancel", lang), color = NeumorphicTextPrimary)
+                }
+            },
+            containerColor = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg,
             shape = RoundedCornerShape(20.dp)
         )
     }
@@ -985,12 +1091,17 @@ fun DateDiffScreen(
                                     modifier = Modifier.matchParentSize()
                                 )
 
-                                // 2. 柔和颜色遮罩，保证文字极佳对比度
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .background(pattern.overlayMaskColor)
-                                )
+                                // 2. 需求 6: 倒计时按钮的高考，中考，端午，五一劳动节完全移除颜色遮罩，展现清爽矢量素材原图！
+                                val cleanTag = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
+                                val isNoMaskHoliday = cleanTag.contains("高考") || cleanTag.contains("中考") || cleanTag.contains("端午") || cleanTag.contains("劳动") || cleanTag.contains("五一") || cleanTag.contains("labor") || cleanTag.contains("labour")
+
+                                if (!isNoMaskHoliday) {
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .background(pattern.overlayMaskColor)
+                                    )
+                                }
 
                                 // 3. 前景层：深色主题色/高对比度文字 (浅色模式下采用深色主题色/ Slate 800 保证 100% 极佳可读性)
                                 Row(
@@ -1023,40 +1134,105 @@ fun DateDiffScreen(
                     }
                 }
 
-                // 自定义添加按键
-                Box(
-                    modifier = Modifier
-                        .height(38.dp)
-                        .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                        .background(NeumorphicBg, shape = CircleShape)
-                        .clip(CircleShape)
-                        .clickable { showAddCustomDialog = true }
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.Center
+                // 需求 2 & 3: “新增倒数日”与“打卡”按钮同列响组合（按钮文本由自定义改为新增倒数日，右侧增加打卡按钮）
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(LanguageUtils.getString("custom_btn", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicAccent)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { showAddCustomDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(LanguageUtils.getString("add_countdown_btn", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = NeumorphicAccent)
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { showCheckInDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(LanguageUtils.getString("check_in_btn", lang), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF10B981))
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. 多卡片推栈倒计时结果展示层 (根据 Manifest 映射规则关联专属 28 款 VectorDrawable 矢量底纹背景)
+            // 4. 多卡片推栈倒计时结果展示层 (需求 1/4/5/7: 参照 Days Matter 智能语法, 包含未来"距离下一个X还有"与过去"X已经", 未来卡片天蓝色遮罩, 过去卡片橙色遮罩)
             if (resultCardList.isNotEmpty()) {
                 resultCardList.forEachIndexed { cardIdx, cardData ->
                     val natDays = DateCalculatorUtils.naturalDaysBetween(cardData.baseDate, cardData.targetDate)
-                    val workDays = DateCalculatorUtils.workdaysBetween(
-                        cardData.baseDate, cardData.targetDate, uiState.weekendRule, uiState.enableChineseHolidays, uiState.holidayRegion, uiState.isCurrentWeekBigWeek, uiState.disableChinaShiftWorkdays
-                    )
                     val isPast = cardData.targetDate.isBefore(cardData.baseDate)
-                    val isCardPinned = uiState.pinnedPresetHolidays.contains(cardData.eventName) || uiState.customEvents.any { (it.name == cardData.eventName || it.name.contains(cardData.eventName)) && it.isPinned }
+                    val absDays = abs(natDays)
+
+                    // 需求 7: 结果卡片颜色遮罩 - 未来的加入浅蓝色遮罩，过去的加入橙色遮罩
+                    val cardMaskColor = if (isPast) {
+                        Color(0xFFEA580C).copy(alpha = if (isDark) 0.35f else 0.22f)
+                    } else {
+                        Color(0xFF0284C7).copy(alpha = if (isDark) 0.35f else 0.22f)
+                    }
+
+                    val cardBorderColor = if (isPast) Color(0xFFEA580C).copy(alpha = 0.45f) else Color(0xFF0284C7).copy(alpha = 0.45f)
 
                     // 动态多语言翻译节假日文本
                     val localizedCardTitle = LanguageUtils.getLocalizedHolidayName(cardData.eventName, lang)
                         .replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
+
+                    // 需求 4 & 5: Days Matter 倒计时智能描述短语 (例如: "距离下一个中考还有", "高考已经")
+                    val phraseText = if (isPast) {
+                        when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "$localizedCardTitle Has Passed"
+                            AppLanguage.TRADITIONAL_CHINESE -> "${localizedCardTitle} 已經"
+                            AppLanguage.JAPANESE -> "${localizedCardTitle} 経過"
+                            AppLanguage.KOREAN -> "${localizedCardTitle} 경과"
+                            else -> "${localizedCardTitle} 已经"
+                        }
+                    } else {
+                        when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "Days Until Next $localizedCardTitle"
+                            AppLanguage.TRADITIONAL_CHINESE -> "距離下一次 ${localizedCardTitle} 還有"
+                            AppLanguage.JAPANESE -> "次なる ${localizedCardTitle} まで"
+                            AppLanguage.KOREAN -> "다음 ${localizedCardTitle} 까지"
+                            else -> "距离下一个 ${localizedCardTitle} 还有"
+                        }
+                    }
+
+                    val suffixText = if (isPast) {
+                        when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "Days"
+                            AppLanguage.TRADITIONAL_CHINESE -> "天了"
+                            AppLanguage.JAPANESE -> "日目"
+                            AppLanguage.KOREAN -> "일 지남"
+                            else -> "天了"
+                        }
+                    } else {
+                        when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "Days"
+                            AppLanguage.TRADITIONAL_CHINESE -> "天"
+                            AppLanguage.JAPANESE -> "日"
+                            AppLanguage.KOREAN -> "일"
+                            else -> "天"
+                        }
+                    }
 
                     // 根据路径下 Manifest 映射规则获得 VectorDrawable 背景素材与色调
                     val cardPattern = getHolidayThemePattern(cardData.eventName, uiState.holidayRegion, isDark)
@@ -1068,7 +1244,7 @@ fun DateDiffScreen(
                             .padding(vertical = 6.dp)
                             .neumorphicExtruded(shape = resultCardShape, elevation = 6.dp)
                             .background(NeumorphicBg, shape = resultCardShape)
-                            .border(1.2.dp, cardPattern.accentColor.copy(alpha = 0.35f), shape = resultCardShape)
+                            .border(1.2.dp, cardBorderColor, shape = resultCardShape)
                             .clip(resultCardShape)
                     ) {
                         // 1. VectorDrawable 背景矢量素材层 (采用 ContentScale.Crop 保持原比例，无纵向拉伸失真贴满卡片)
@@ -1080,130 +1256,54 @@ fun DateDiffScreen(
                             modifier = Modifier.matchParentSize()
                         )
 
-                        // 2. 柔和主题配色遮罩
+                        // 2. 需求 7: 结果卡片颜色遮罩 (未来的加入浅蓝色遮罩，过去的加入橙色遮罩)
                         Box(
                             modifier = Modifier
                                 .matchParentSize()
-                                .background(cardPattern.overlayMaskColor)
+                                .background(cardMaskColor)
                         )
 
-                        // 3. 前景倒计时结果展示层
+                        // 3. 前景倒计时结果展示层 (需求 1: 移除红框标注内容，纯粹聚焦倒计时短语与巨幕数字)
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(18.dp),
+                                .padding(vertical = 18.dp, horizontal = 16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.EventRepeat,
-                                        contentDescription = null,
-                                        tint = if (isDark) Color.White else cardPattern.accentColor
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = localizedCardTitle,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = if (isDark) Color.White else NeumorphicTextPrimary
-                                    )
-                                }
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                                            .background(if (isCardPinned) NeumorphicAccent else NeumorphicBg, shape = CircleShape)
-                                            .clip(CircleShape)
-                                            .clickable {
-                                                val fullName = cardData.eventName
-                                                val foundCustom = uiState.customEvents.find { it.name == fullName || it.name.contains(cardData.eventName) }
-                                                if (foundCustom != null) {
-                                                    viewModel.togglePinCustomEvent(foundCustom, context)
-                                                } else {
-                                                    viewModel.togglePinPresetHoliday(fullName, context)
-                                                }
-                                                val msg = if (isCardPinned) "Unpinned" else "Pinned!"
-                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PushPin,
-                                            contentDescription = "Pin",
-                                            tint = if (isCardPinned) Color.White else NeumorphicAccent,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Close",
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clickable {
-                                                resultCardList = resultCardList.filterNot { it.id == cardData.id }
-                                            }
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
+                            // 需求 4 & 5: Days Matter 极佳主描述短语
                             Text(
-                                text = "${abs(natDays)} ${LanguageUtils.getString("days_unit", lang)}",
-                                fontSize = 38.sp,
+                                text = phraseText,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = if (isDark) Color.White else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
+                                textAlign = TextAlign.Center
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            val chipLabelText = if (isPast) {
-                                when (lang.getEffectiveLanguage()) {
-                                    AppLanguage.SIMPLIFIED_CHINESE, AppLanguage.TRADITIONAL_CHINESE -> "${LanguageUtils.getString("days_passed", lang)} ${abs(natDays)} 天"
-                                    AppLanguage.JAPANESE -> "${abs(natDays)} 日経過"
-                                    AppLanguage.KOREAN -> "${abs(natDays)} 일 지나옴"
-                                    else -> "Passed ${abs(natDays)} days"
-                                }
-                            } else {
-                                "≈ ${abs(workDays)} ${LanguageUtils.getString("workday", lang)}"
+                            // 巨幕 42sp 极速倒计时天数
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "$absDays",
+                                    fontSize = 42.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isDark) Color.White else (if (isPast) Color(0xFFEA580C) else Color(0xFF0284C7))
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = suffixText,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDark) Color.White.copy(alpha = 0.90f) else (if (isPast) Color(0xFFC2410C) else Color(0xFF0369A1)),
+                                    modifier = Modifier.padding(bottom = 6.dp)
+                                )
                             }
-
-                            SuggestionChip(
-                                onClick = {},
-                                shape = CircleShape,
-                                label = {
-                                    Text(
-                                        text = chipLabelText,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.5.sp
-                                    )
-                                }
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Text(
-                                text = "${LanguageUtils.getString("base_date", lang)}: ${DateCalculatorUtils.formatDate(cardData.baseDate, lang)}  ➔  ${LanguageUtils.getString("target_date", lang)}: ${DateCalculatorUtils.formatDate(cardData.targetDate, lang)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontSize = 11.5.sp,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                            )
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
