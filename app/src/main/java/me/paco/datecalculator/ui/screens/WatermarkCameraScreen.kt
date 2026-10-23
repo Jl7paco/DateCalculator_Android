@@ -273,18 +273,33 @@ fun WatermarkCameraScreen(
         }
     }
 
-    // 后置镜头焦段选项
+    // 100% 硬件读取当前手机摄像头真实支持的极值与全焦段 (超广角 0.5x/0.6x、主摄 1x、2x、3x、5x、10x 潜望长焦)
     val zoomOptions = remember(minZoomRatio, maxZoomRatio, lensFacing) {
         if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
             emptyList()
         } else {
             val options = mutableListOf<Float>()
-            if (minZoomRatio < 1.0f) options.add(minZoomRatio)
+
+            // 1. 读取手机硬件超广角最小值 (如 0.5x 或 0.6x)
+            if (minZoomRatio < 1.0f) {
+                options.add((minZoomRatio * 10).toInt() / 10.0f)
+            }
+
+            // 2. 主摄 1.0x 必选基准
             options.add(1.0f)
+
+            // 3. 读取手机硬件支持的中长焦与潜望长焦关键倍率节点
             if (maxZoomRatio >= 2.0f) options.add(2.0f)
             if (maxZoomRatio >= 3.0f) options.add(3.0f)
             if (maxZoomRatio >= 5.0f) options.add(5.0f)
-            options.distinct().sorted()
+            if (maxZoomRatio >= 10.0f) options.add(10.0f)
+
+            // 若最大倍率在 3.0x 与 5.0x 之间，动态补齐手机最大倍率
+            if (maxZoomRatio in 3.1f..4.9f) {
+                options.add((maxZoomRatio * 10).toInt() / 10.0f)
+            }
+
+            options.distinct().sorted().take(6)
         }
     }
 
@@ -302,11 +317,11 @@ fun WatermarkCameraScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. 顶栏控制器 (需求 2: 将 0.5x 1x 等焦段倍率调整移至顶栏红色圈位置，不遮挡取景界面)
+        // 2. 顶栏控制器 (需求 2: 焦段 0.5x 1x 2x 3x 5x 移至顶栏黑透胶囊，不遮挡取景界面)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 40.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 36.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -332,7 +347,7 @@ fun WatermarkCameraScreen(
                 )
             }
 
-            // 需求 2: 焦段选择倍率按钮 (移至顶栏右侧/红圈位置，黑透小胶囊，不遮挡取景画面)
+            // 需求 2: 焦段选择倍率按钮 (移至顶栏右侧，黑透小胶囊，不遮挡取景画面)
             if (zoomOptions.isNotEmpty()) {
                 Box(
                     modifier = Modifier
@@ -346,11 +361,17 @@ fun WatermarkCameraScreen(
                     ) {
                         zoomOptions.forEach { z ->
                             val isSelected = abs(currentZoom - z) < 0.15f
-                            val labelText = if (z == 0.5f) "0.5" else if (z == 1.0f) "1.0" else if (z == 2.0f) "2.0" else if (z == 3.0f) "3.0" else "5.0"
+                            val labelText = if (z < 1.0f) {
+                                String.format(Locale.US, "%.1fx", z)
+                            } else if (z % 1.0f == 0.0f) {
+                                "${z.toInt()}x"
+                            } else {
+                                String.format(Locale.US, "%.1fx", z)
+                            }
 
                             Box(
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(width = 36.dp, height = 28.dp)
                                     .clip(CircleShape)
                                     .background(if (isSelected) NeumorphicAccent else Color.Transparent)
                                     .clickable {
@@ -361,7 +382,7 @@ fun WatermarkCameraScreen(
                             ) {
                                 Text(
                                     text = labelText,
-                                    fontSize = 10.5.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color.White,
                                     modifier = Modifier.graphicsLayer { rotationZ = animatedRotation }
@@ -373,11 +394,11 @@ fun WatermarkCameraScreen(
             }
         }
 
-        // 需求 1: 水印卡片移至绿色框位置 (顶栏下方右侧 top = 92.dp)
+        // 需求 1: 水印卡片精准位于预览界面内部右上角 (红框位置：top = 115.dp, end = 12.dp，横竖屏均绝不上穿/不出界)
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 92.dp, end = 16.dp)
+                .padding(top = 115.dp, end = 12.dp)
         ) {
             WatermarkBadgeOverlay(
                 cityName = liveCity,
@@ -395,7 +416,7 @@ fun WatermarkCameraScreen(
             )
         }
 
-        // 需求 3: 底栏控制 Deck 紧凑缩减高度至橙色线位置
+        // 需求 2: 底栏控制 Deck 降低至绿色线位置 (完美对齐 4:3 预览底部，恰好绝不遮挡取景界面)
         val bottomDeckShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
         Box(
             modifier = Modifier
@@ -404,7 +425,7 @@ fun WatermarkCameraScreen(
                 .neumorphicExtruded(shape = bottomDeckShape, elevation = 6.dp)
                 .background(NeumorphicBg, shape = bottomDeckShape)
                 .clip(bottomDeckShape)
-                .padding(bottom = 12.dp, top = 8.dp, start = 16.dp, end = 16.dp),
+                .padding(bottom = 8.dp, top = 6.dp, start = 12.dp, end = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(

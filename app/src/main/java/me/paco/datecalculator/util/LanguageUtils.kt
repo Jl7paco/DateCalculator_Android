@@ -860,6 +860,51 @@ object LanguageUtils {
         return rawTag
     }
 
+    fun getTimeUnitLabel(unit: String, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> when (unit) {
+                "y" -> "年"; "M" -> "月"; "d" -> "天"; "h" -> "时"; "m" -> "分"; "s" -> "秒"; else -> unit
+            }
+            AppLanguage.TRADITIONAL_CHINESE -> when (unit) {
+                "y" -> "年"; "M" -> "月"; "d" -> "天"; "h" -> "時"; "m" -> "分"; "s" -> "秒"; else -> unit
+            }
+            AppLanguage.ENGLISH -> when (unit) {
+                "y" -> "Year"; "M" -> "Mon"; "d" -> "Day"; "h" -> "Hour"; "m" -> "Min"; "s" -> "Sec"; else -> unit
+            }
+            AppLanguage.JAPANESE -> when (unit) {
+                "y" -> "年"; "M" -> "ヶ月"; "d" -> "日"; "h" -> "時間"; "m" -> "分"; "s" -> "秒"; else -> unit
+            }
+            AppLanguage.KOREAN -> when (unit) {
+                "y" -> "년"; "M" -> "개월"; "d" -> "일"; "h" -> "시간"; "m" -> "분"; "s" -> "초"; else -> unit
+            }
+            else -> when (unit) {
+                "y" -> "年"; "M" -> "月"; "d" -> "天"; "h" -> "时"; "m" -> "分"; "s" -> "秒"; else -> unit
+            }
+        }
+    }
+
+    fun formatTimeExpressionForDisplay(expression: String, language: AppLanguage): String {
+        val unitY = getTimeUnitLabel("y", language)
+        val unitM = getTimeUnitLabel("M", language)
+        val unitD = getTimeUnitLabel("d", language)
+        val unitH = getTimeUnitLabel("h", language)
+        val unitMin = getTimeUnitLabel("m", language)
+        val unitS = getTimeUnitLabel("s", language)
+
+        val eff = language.getEffectiveLanguage()
+        if (eff == AppLanguage.ENGLISH) {
+            return expression
+        }
+
+        return expression
+            .replace("y", unitY)
+            .replace("M", unitM)
+            .replace("d", unitD)
+            .replace("h", unitH)
+            .replace("m", unitMin)
+            .replace("s", unitS)
+    }
+
     fun getLocalizedCityName(rawLocation: String, language: AppLanguage): String {
         val effective = language.getEffectiveLanguage()
         if (effective == AppLanguage.SIMPLIFIED_CHINESE) {

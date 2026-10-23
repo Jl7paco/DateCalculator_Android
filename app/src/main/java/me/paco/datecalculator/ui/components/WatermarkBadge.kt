@@ -195,10 +195,11 @@ object WatermarkBitmapDrawer {
         val badgeH = badgeW * 0.33f
         val margin = (width * 0.03f).coerceAtLeast(24f)
 
+        // 需求 1: 水印放置于右上角，与预览界面位置 100% 保持一致
         val right = width - margin
         val left = right - badgeW
-        val bottom = height - margin
-        val top = bottom - badgeH
+        val top = margin + (height * 0.02f)
+        val bottom = top + badgeH
 
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.argb(216, 30, 41, 59)
