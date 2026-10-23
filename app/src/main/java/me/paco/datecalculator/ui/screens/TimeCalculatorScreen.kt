@@ -63,6 +63,8 @@ import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.HapticUtils
 import me.paco.datecalculator.util.LanguageUtils
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 
 /**
@@ -88,7 +90,7 @@ fun TimeCalculatorScreen(
 
     val scrollState = rememberScrollState()
 
-    // 时间表达式极速计算引擎
+    // 时间与日期表达式极速计算引擎
     fun evaluateExpression() {
         if (expression.isBlank()) {
             resultText = ""
@@ -246,13 +248,13 @@ fun TimeCalculatorScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 2. 单位图例提示 Chip 行 (y = 年, d = 天数, h = 小时, m = 分钟, s = 秒)
+            // 2. 需求 1: 单位图例提示 Chip 行 (含 M = 月, y = 年, d = 天数, h = 小时, m = 分钟, s = 秒)
             val unitHints = when (effectiveLang) {
-                AppLanguage.ENGLISH -> listOf("y = Years", "d = Days", "h = Hours", "m = Mins", "s = Secs")
-                AppLanguage.TRADITIONAL_CHINESE -> listOf("y = 年數", "d = 天數", "h = 小時", "m = 分鐘", "s = 秒")
-                AppLanguage.JAPANESE -> listOf("y = 年", "d = 日", "h = 時間", "m = 分", "s = 秒")
-                AppLanguage.KOREAN -> listOf("y = 년", "d = 일", "h = 시간", "m = 분", "s = 초")
-                else -> listOf("y = 年数", "d = 天数", "h = 小时", "m = 分钟", "s = 秒")
+                AppLanguage.ENGLISH -> listOf("y=Y", "M=M", "d=D", "h=H", "m=M", "s=S")
+                AppLanguage.TRADITIONAL_CHINESE -> listOf("y=年", "M=月", "d=日", "h=時", "m=分", "s=秒")
+                AppLanguage.JAPANESE -> listOf("y=年", "M=月", "d=日", "h=時", "m=分", "s=秒")
+                AppLanguage.KOREAN -> listOf("y=년", "M=월", "d=일", "h=시", "m=분", "s=초")
+                else -> listOf("y=年", "M=月", "d=日", "h=时", "m=分", "s=秒")
             }
 
             Row(
@@ -276,27 +278,27 @@ fun TimeCalculatorScreen(
                 }
             }
 
-            // 需求 1: 键盘网格向下对齐沉降，通过弹性 Spacer(weight(1f)) 推动按键区优雅靠下对齐
             Spacer(modifier = Modifier.weight(1f))
 
-            // 需求 1: 键盘按键区 (括号 `(` 与 `)` 放置在同一行，最右列为 ÷, ×, -, +, =)
+            // 键盘按键区
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Row 0: 全量时间单位按键组 (y, d, h, m, s)
+                // Row 0: 需求 1 - 加入 "M = 月" 的全量时间与日期单位按键组 (y, M, d, h, m, s)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     TimeCalcKeyBtn(label = "y", onClick = { HapticUtils.performCrispClick(context, view); appendToken("y") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = "M", onClick = { HapticUtils.performCrispClick(context, view); appendToken("M") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "d", onClick = { HapticUtils.performCrispClick(context, view); appendToken("d") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "h", onClick = { HapticUtils.performCrispClick(context, view); appendToken("h") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "m", onClick = { HapticUtils.performCrispClick(context, view); appendToken("m") }, modifier = Modifier.weight(1f))
                     TimeCalcKeyBtn(label = "s", onClick = { HapticUtils.performCrispClick(context, view); appendToken("s") }, modifier = Modifier.weight(1f))
                 }
 
-                // Row 1 (需求 1: 括号 `(` 与 `)` 统一放在同一行): Clear, ⌫, (, )
+                // Row 1: 需求：括号 `(` 与 `)` 100% 放在同一行 (Clear, ⌫, (, ))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -401,7 +403,7 @@ private fun TimeCalcKeyBtn(
 
     Box(
         modifier = modifier
-            .height(54.dp)
+            .height(52.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -418,7 +420,7 @@ private fun TimeCalcKeyBtn(
     ) {
         Text(
             text = label,
-            fontSize = 18.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.ExtraBold,
             color = txtColor
         )
@@ -426,13 +428,32 @@ private fun TimeCalcKeyBtn(
 }
 
 /**
- * 时间表达式计算与规范化推算引擎
+ * 智能时间与日期计算推算引擎 (支持 999d -> 2y 8M 29d 自动规范换算, 及 2026y 12M 9d + 20d -> 2026y 12M 29d 日期加减)
  */
 object TimeExpressionEvaluator {
 
+    private data class ParsedDateToken(
+        val year: Int,
+        val month: Int,
+        val day: Int
+    )
+
+    private fun tryParseDate(tokenStr: String): ParsedDateToken? {
+        val yMatch = Regex("(\\d{4})\\s*y").find(tokenStr)?.groupValues?.get(1)?.toIntOrNull()
+        val mMatch = Regex("(\\d{1,2})\\s*M").find(tokenStr)?.groupValues?.get(1)?.toIntOrNull()
+        val dMatch = Regex("(\\d{1,2})\\s*d").find(tokenStr)?.groupValues?.get(1)?.toIntOrNull()
+
+        if (yMatch != null && mMatch != null && dMatch != null) {
+            return try {
+                ParsedDateToken(yMatch, mMatch, dMatch)
+            } catch (_: Exception) { null }
+        }
+        return null
+    }
+
     private fun parseTimeToSeconds(timeStr: String): Double {
         var totalSec = 0.0
-        val regex = Regex("(\\d+(?:\\.\\d+)?)\\s*([dhms])")
+        val regex = Regex("(\\d+(?:\\.\\d+)?)\\s*([yMdhms])")
         val matches = regex.findAll(timeStr)
 
         var foundUnit = false
@@ -441,6 +462,8 @@ object TimeExpressionEvaluator {
             val num = m.groupValues[1].toDoubleOrNull() ?: 0.0
             val unit = m.groupValues[2]
             totalSec += when (unit) {
+                "y" -> num * 365.0 * 86400.0
+                "M" -> num * 30.0 * 86400.0
                 "d" -> num * 86400.0
                 "h" -> num * 3600.0
                 "m" -> num * 60.0
@@ -455,21 +478,30 @@ object TimeExpressionEvaluator {
         return totalSec
     }
 
+    // 需求 1: 999 天自动规范换算成 2y 8M 29d
     fun formatSecondsToHumanReadable(seconds: Double): String {
         if (seconds < 0) {
             return "-" + formatSecondsToHumanReadable(abs(seconds))
         }
 
         var sec = seconds.toLong()
-        val days = sec / 86400
-        sec %= 86400
-        val hours = sec / 3600
-        sec %= 3600
-        val minutes = sec / 60
-        val remSec = sec % 60
+        val totalDays = sec / 86400L
+        val remSecTotal = sec % 86400L
+
+        val years = totalDays / 365L
+        val remDaysAfterYear = totalDays % 365L
+        val months = remDaysAfterYear / 30L
+        val remDays = remDaysAfterYear % 30L
+
+        val hours = remSecTotal / 3600L
+        val remSecHours = remSecTotal % 3600L
+        val minutes = remSecHours / 60L
+        val remSec = remSecHours % 60L
 
         val parts = mutableListOf<String>()
-        if (days > 0) parts.add("${days}d")
+        if (years > 0) parts.add("${years}y")
+        if (months > 0) parts.add("${months}M")
+        if (remDays > 0) parts.add("${remDays}d")
         if (hours > 0) parts.add("${hours}h")
         if (minutes > 0) parts.add("${minutes}m")
         if (remSec > 0 || parts.isEmpty()) parts.add("${remSec}s")
@@ -487,6 +519,31 @@ object TimeExpressionEvaluator {
 
             if (cleanExpr.isBlank()) return ""
 
+            // 需求 1: 检查是否属于日期加减推算 (例如 2026y 12M 9d + 20d)
+            val dateAddSubRegex = Regex("^(\\d{4}y\\d{1,2}M\\d{1,2}d)\\s*([+\\-])\\s*(\\d+(?:\\.\\d+)?[yMdhms])$")
+            val dateMatch = dateAddSubRegex.find(cleanExpr)
+
+            if (dateMatch != null) {
+                val dateStr = dateMatch.groupValues[1]
+                val op = dateMatch.groupValues[2]
+                val durationStr = dateMatch.groupValues[3]
+
+                val parsedDate = tryParseDate(dateStr)
+                if (parsedDate != null) {
+                    val baseLocalDate = LocalDate.of(parsedDate.year, parsedDate.month, parsedDate.day)
+                    val durDays = (parseTimeToSeconds(durationStr) / 86400.0).toLong()
+
+                    val resultLocalDate = if (op == "+") {
+                        baseLocalDate.plusDays(durDays)
+                    } else {
+                        baseLocalDate.minusDays(durDays)
+                    }
+
+                    return "${resultLocalDate.year}y ${resultLocalDate.monthValue}M ${resultLocalDate.dayOfMonth}d"
+                }
+            }
+
+            // 标准时间跨度加减推算
             val tokens = cleanExpr.split(Regex("(?<=[+\\-*/()])|(?=[+\\-*/()])")).map { it.trim() }.filter { it.isNotEmpty() }
             if (tokens.isEmpty()) return ""
 

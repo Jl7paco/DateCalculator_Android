@@ -190,10 +190,10 @@ object WatermarkBitmapDrawer {
         val mutableBitmap = srcBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(mutableBitmap)
 
-        val scale = (width / 1080f).coerceAtLeast(1.0f) * userScaleFactor.coerceIn(0.5f, 1.0f)
-        val badgeW = (width * 0.60f * userScaleFactor.coerceIn(0.5f, 1.0f)).coerceAtMost(width * 0.85f)
-        val badgeH = badgeW * 0.32f
-        val margin = 28f * scale
+        // 需求 3: 水印默认大小设为原面积的 80% (宽度约为画面宽度的 54%)
+        val badgeW = (width * 0.54f * userScaleFactor.coerceIn(0.5f, 1.0f)).coerceAtMost(width * 0.82f)
+        val badgeH = badgeW * 0.33f
+        val margin = (width * 0.03f).coerceAtLeast(24f)
 
         val right = width - margin
         val left = right - badgeW
@@ -205,9 +205,10 @@ object WatermarkBitmapDrawer {
         }
 
         val rect = RectF(left, top, right, bottom)
-        canvas.drawRoundRect(rect, 22f * scale, 22f * scale, bgPaint)
+        val cornerRadius = badgeH * 0.18f
+        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, bgPaint)
 
-        val mapMargin = 10f * scale
+        val mapMargin = badgeH * 0.10f
         val mapSize = badgeH - (mapMargin * 2)
         val mapRect = RectF(left + mapMargin, top + mapMargin, left + mapMargin + mapSize, top + mapMargin + mapSize)
 
@@ -215,31 +216,38 @@ object WatermarkBitmapDrawer {
             canvas.drawBitmap(mapTileBitmap, null, mapRect, null)
         } else {
             val mapBgPaint = Paint().apply { color = android.graphics.Color.parseColor("#0F172A") }
-            canvas.drawRoundRect(mapRect, 12f * scale, 12f * scale, mapBgPaint)
+            canvas.drawRoundRect(mapRect, cornerRadius * 0.6f, cornerRadius * 0.6f, mapBgPaint)
         }
 
-        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        // 需求 2: 照片水印文案字号与水印 Badge 总体尺寸 (badgeH) 按 1:1 比例等比动态缩放
+        val textX = left + mapMargin + mapSize + (badgeH * 0.08f)
+        var textY = top + mapMargin + (badgeH * 0.22f)
+
+        val cityPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.WHITE
-            textSize = 14.5f * scale
+            textSize = badgeH * 0.18f
             isFakeBoldText = true
         }
-
-        val textX = left + mapMargin + mapSize + (10f * scale)
-        var textY = top + mapMargin + (20f * scale)
-
         val cleanCity = if (cityName.isBlank()) "深圳市, 中国" else cityName
-        canvas.drawText(cleanCity, textX, textY, textPaint)
+        canvas.drawText(cleanCity, textX, textY, cityPaint)
 
-        textY += (18f * scale)
-        textPaint.textSize = 13f * scale
+        textY += (badgeH * 0.22f)
+        val landmarkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.WHITE
+            textSize = badgeH * 0.16f
+            isFakeBoldText = true
+        }
         val cleanLandmark = if (landmarkName.isBlank()) "车公庙" else landmarkName
-        canvas.drawText(cleanLandmark, textX, textY, textPaint)
+        canvas.drawText(cleanLandmark, textX, textY, landmarkPaint)
 
-        textY += (18f * scale)
-        textPaint.textSize = 10.5f * scale
-        textPaint.color = android.graphics.Color.parseColor("#CBD5E1")
+        textY += (badgeH * 0.22f)
+        val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#CBD5E1")
+            textSize = badgeH * 0.14f
+            isFakeBoldText = false
+        }
         val cleanTime = if (dateTimeStr.isBlank()) LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 a h:mm", Locale.SIMPLIFIED_CHINESE)) else dateTimeStr
-        canvas.drawText("🕐 $cleanTime", textX, textY, textPaint)
+        canvas.drawText("🕐 $cleanTime", textX, textY, timePaint)
 
         return mutableBitmap
     }

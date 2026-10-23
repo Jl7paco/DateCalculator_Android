@@ -167,9 +167,13 @@ fun WatermarkCameraScreen(
         }
     }
 
-    // 监听陀螺仪旋角
+    // 需求 1: 强制锁屏为 PORTRAIT 竖屏布局，仅在横持手机时将文字与图标做 90/270 度顺滑旋转 (与 iOS/原生相机保持 100% 相同)
     var deviceRotationDeg by remember { mutableIntStateOf(0) }
     DisposableEffect(context) {
+        val activity = (context as? android.app.Activity)
+        val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
         val orientationEventListener = object : android.view.OrientationEventListener(context) {
             override fun onOrientationChanged(orientation: Int) {
                 if (orientation == android.view.OrientationEventListener.ORIENTATION_UNKNOWN) return
@@ -187,11 +191,12 @@ fun WatermarkCameraScreen(
         }
         onDispose {
             orientationEventListener.disable()
+            activity?.requestedOrientation = originalOrientation
         }
     }
 
     val animatedRotation by animateFloatAsState(
-        targetValue = -deviceRotationDeg.toFloat(),
+        targetValue = deviceRotationDeg.toFloat(),
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "DeviceRotation"
     )

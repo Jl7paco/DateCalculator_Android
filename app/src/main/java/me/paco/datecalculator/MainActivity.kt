@@ -31,15 +31,18 @@ class MainActivity : ComponentActivity() {
             val viewModel: DateCalculatorViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsState()
 
+            // 需求 2: 同步读取 SharedPreferences 初始主题设置，杜绝 1-2 秒的主题切换闪烁
+            val initialThemeMode = remember { me.paco.datecalculator.util.PreferenceUtils.getDarkThemeMode(this@MainActivity) }
+            val currentThemeMode = if (uiState.darkThemeMode != DarkThemeMode.SYSTEM) uiState.darkThemeMode else initialThemeMode
+
             val (cityLat, cityLon) = remember(uiState.currentCityName) {
                 WeatherUtils.getCityCoordinates(uiState.currentCityName)
             }
 
             val isDark = if (uiState.homeConfig.backgroundMode == BackgroundMode.EARTH_3D) {
-                // 3D 卫星地球模式：强行重写主题色设置，根据当地实时昼夜判定（白昼浅色，黑夜深色）
                 !DateCalculatorUtils.isDaylightAtLocation(cityLat, cityLon)
             } else {
-                when (uiState.darkThemeMode) {
+                when (currentThemeMode) {
                     DarkThemeMode.SYSTEM -> isSystemInDarkTheme()
                     DarkThemeMode.ON -> true
                     DarkThemeMode.OFF -> false
