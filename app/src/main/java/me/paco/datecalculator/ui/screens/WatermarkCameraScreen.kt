@@ -397,7 +397,7 @@ fun WatermarkCameraScreen(
         }
 
         // 需求 1: 水印卡片精准位于 4:3 取景框内部右上角 (top = 145.dp, end = 12.dp)。
-        // 配合 0°/90°/180°/270° 动态几何偏移 + 右上角锚点 (TransformOrigin(1.0f, 0.0f))，横屏时 100% 绝对落在预览框内部红框区域，绝不出界！
+        // 采用 100% 严密几何推导：横屏旋转时将中心点偏移 (w-h)/2，旋转后右上角边缘 100% 锁死在取景框右上角内，绝不出界！
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -407,12 +407,8 @@ fun WatermarkCameraScreen(
             val cardHeightDp = 76.dp * watermarkScale
             val rot = ((animatedRotation.toInt() % 360) + 360) % 360
 
-            val (rotOffsetX, rotOffsetY) = when (rot) {
-                270 -> Pair(-cardHeightDp, cardWidthDp) // 270度（右横屏）：向左平移卡片厚度(-76dp)保证右边缘平齐12dp，向下平移卡片长度(+235dp)保证顶边缘平齐145dp，100% 完美落入取景框红框内！
-                90  -> Pair(0.dp, 0.dp)                 // 90度（左横屏）：自然向左下旋转扩展，100% 完美居于预览框右上角！
-                180 -> Pair(-cardWidthDp, cardHeightDp)
-                else -> Pair(0.dp, 0.dp)                // 0度（竖屏）
-            }
+            val isLandscape = (rot == 90 || rot == 270)
+            val centerShift = if (isLandscape) (cardWidthDp - cardHeightDp) / 2f else 0.dp
 
             WatermarkBadgeOverlay(
                 cityName = liveCity,
@@ -421,10 +417,10 @@ fun WatermarkCameraScreen(
                 mapTileBitmap = mapTileBitmap,
                 scaleFactor = watermarkScale,
                 modifier = Modifier
-                    .offset(x = rotOffsetX, y = rotOffsetY)
+                    .offset(x = centerShift, y = centerShift)
                     .graphicsLayer {
                         rotationZ = animatedRotation
-                        transformOrigin = TransformOrigin(1.0f, 0.0f)
+                        transformOrigin = TransformOrigin(0.5f, 0.5f)
                     }
                     .pointerInput(Unit) {
                         detectTransformGestures { _, _, zoom, _ ->
