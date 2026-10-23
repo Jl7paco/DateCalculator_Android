@@ -22,6 +22,7 @@ import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
@@ -397,7 +398,7 @@ fun WatermarkCameraScreen(
         }
 
         // 需求 1: 水印卡片精准位于 4:3 取景框内部右上角 (top = 145.dp, end = 12.dp)。
-        // 采用 100% 严密几何推导：横屏旋转时将中心点偏移 (w-h)/2，旋转后右上角边缘 100% 锁死在取景框右上角内，绝不出界！
+        // 使用 animateDpAsState 让平移 offset 与 旋转 rotationZ 保持 1:1 物理弹簧同步连贯过渡，彻底消灭旋转瞬间的跳跃闪烁！
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -405,10 +406,19 @@ fun WatermarkCameraScreen(
         ) {
             val cardWidthDp = 235.dp * watermarkScale
             val cardHeightDp = 76.dp * watermarkScale
-            val rot = ((animatedRotation.toInt() % 360) + 360) % 360
 
-            val isLandscape = (rot == 90 || rot == 270)
-            val centerShift = if (isLandscape) (cardWidthDp - cardHeightDp) / 2f else 0.dp
+            val isTargetLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
+            val targetShift = if (isTargetLandscape) (cardWidthDp - cardHeightDp) / 2f else 0.dp
+
+            val animatedCenterShift by animateDpAsState(
+                targetValue = targetShift,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "WatermarkCenterShift"
+            )
+
+            LaunchedEffect(deviceRotationDeg, animatedRotation, animatedCenterShift) {
+                Log.d("WatermarkPosLog", "DeviceDeg=$deviceRotationDeg, AnimRot=$animatedRotation, Shift=$animatedCenterShift")
+            }
 
             WatermarkBadgeOverlay(
                 cityName = liveCity,
@@ -417,7 +427,7 @@ fun WatermarkCameraScreen(
                 mapTileBitmap = mapTileBitmap,
                 scaleFactor = watermarkScale,
                 modifier = Modifier
-                    .offset(x = centerShift, y = centerShift)
+                    .offset(x = animatedCenterShift, y = animatedCenterShift)
                     .graphicsLayer {
                         rotationZ = animatedRotation
                         transformOrigin = TransformOrigin(0.5f, 0.5f)
