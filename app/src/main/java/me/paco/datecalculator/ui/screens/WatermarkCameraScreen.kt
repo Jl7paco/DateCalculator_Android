@@ -408,10 +408,10 @@ fun WatermarkCameraScreen(
             val rot = ((animatedRotation.toInt() % 360) + 360) % 360
 
             val (rotOffsetX, rotOffsetY) = when (rot) {
-                270 -> Pair(0.dp, cardWidthDp)     // 270度（右横屏）：向下补齐卡片长度，完美居于预览框右侧红框内！
-                90  -> Pair(-cardHeightDp, 0.dp)  // 90度（左横屏）：向左补齐卡片厚度，完美居于预览框右上角！
-                180 -> Pair(0.dp, cardHeightDp)
-                else -> Pair(0.dp, 0.dp)          // 0度（竖屏）
+                270 -> Pair(-cardHeightDp, cardWidthDp) // 270度（右横屏）：向左平移卡片厚度(-76dp)保证右边缘平齐12dp，向下平移卡片长度(+235dp)保证顶边缘平齐145dp，100% 完美落入取景框红框内！
+                90  -> Pair(0.dp, 0.dp)                 // 90度（左横屏）：自然向左下旋转扩展，100% 完美居于预览框右上角！
+                180 -> Pair(-cardWidthDp, cardHeightDp)
+                else -> Pair(0.dp, 0.dp)                // 0度（竖屏）
             }
 
             WatermarkBadgeOverlay(
@@ -434,16 +434,12 @@ fun WatermarkCameraScreen(
             )
         }
 
-        // 需求 2: 底栏控制 Deck 降低至绿色线位置 (完美对齐 4:3 预览底部，恰好绝不遮挡取景界面)
-        val bottomDeckShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+        // 需求: 取消底栏背景二层卡片容器，让快门、闪光灯、翻转与模式 Pills 直接清爽悬浮
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .neumorphicExtruded(shape = bottomDeckShape, elevation = 6.dp)
-                .background(NeumorphicBg, shape = bottomDeckShape)
-                .clip(bottomDeckShape)
-                .padding(bottom = 8.dp, top = 6.dp, start = 12.dp, end = 12.dp),
+                .padding(bottom = 16.dp, top = 6.dp, start = 12.dp, end = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
