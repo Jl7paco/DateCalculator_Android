@@ -300,17 +300,17 @@ fun TimeCalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Row 0: 单位按键组 (y, M, d, h, m, s)
+                // Row 0: 需求 1 - 动态多语言时间单位按键组 (年, 月, 天, 时, 分, 秒 / Y, M, D, H, Min, S)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    TimeCalcKeyBtn(label = "y", onClick = { HapticUtils.performCrispClick(context, view); appendToken("y") }, modifier = Modifier.weight(1f))
-                    TimeCalcKeyBtn(label = "M", onClick = { HapticUtils.performCrispClick(context, view); appendToken("M") }, modifier = Modifier.weight(1f))
-                    TimeCalcKeyBtn(label = "d", onClick = { HapticUtils.performCrispClick(context, view); appendToken("d") }, modifier = Modifier.weight(1f))
-                    TimeCalcKeyBtn(label = "h", onClick = { HapticUtils.performCrispClick(context, view); appendToken("h") }, modifier = Modifier.weight(1f))
-                    TimeCalcKeyBtn(label = "m", onClick = { HapticUtils.performCrispClick(context, view); appendToken("m") }, modifier = Modifier.weight(1f))
-                    TimeCalcKeyBtn(label = "s", onClick = { HapticUtils.performCrispClick(context, view); appendToken("s") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = unitY, onClick = { HapticUtils.performCrispClick(context, view); appendToken("y") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = unitM, onClick = { HapticUtils.performCrispClick(context, view); appendToken("M") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = unitD, onClick = { HapticUtils.performCrispClick(context, view); appendToken("d") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = unitH, onClick = { HapticUtils.performCrispClick(context, view); appendToken("h") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = unitMin, onClick = { HapticUtils.performCrispClick(context, view); appendToken("m") }, modifier = Modifier.weight(1f))
+                    TimeCalcKeyBtn(label = unitS, onClick = { HapticUtils.performCrispClick(context, view); appendToken("s") }, modifier = Modifier.weight(1f))
                 }
 
                 // Row 1: 括号 `(` 与 `)` 100% 同行呈现 (Clear, ⌫, (, ))

@@ -888,11 +888,6 @@ object LanguageUtils {
         val unitMin = getTimeUnitLabel("m", language)
         val unitS = getTimeUnitLabel("s", language)
 
-        val eff = language.getEffectiveLanguage()
-        if (eff == AppLanguage.ENGLISH) {
-            return expression
-        }
-
         return expression
             .replace("y", unitY)
             .replace("M", unitM)

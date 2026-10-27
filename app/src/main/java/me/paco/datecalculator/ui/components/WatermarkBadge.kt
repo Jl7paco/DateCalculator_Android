@@ -57,6 +57,7 @@ fun WatermarkBadgeOverlay(
     Box(
         modifier = modifier
             .graphicsLayer {
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1.0f, 0.0f)
                 scaleX = scaleFactor.coerceIn(0.5f, 1.0f)
                 scaleY = scaleFactor.coerceIn(0.5f, 1.0f)
             }
