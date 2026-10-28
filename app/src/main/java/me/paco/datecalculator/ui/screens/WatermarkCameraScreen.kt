@@ -433,13 +433,22 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 彻底根治 BUG：将水印卡片放置在取景框容器内的右上角 (Alignment.TopEnd)
-            // 锚定 TransformOrigin(1.0f, 0.0f) 右上角顶点，0°, 90°, 180°, 270° 旋转时右上角顶点 100% 永久锁定在取景框右上角，绝不安放/移至中间！
+            // 彻底根治 BUG：横屏时右转 -badgeHeightDp (-72dp) 平移拉回，锚定 TransformOrigin(1.0f, 0.0f)，使旋转后的竖版水印右上角与 4:3 取景框右上角 100% 绝对齐平靠紧，绝不溢出屏幕！
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 100.dp, end = 12.dp)
+                    .padding(top = 110.dp, end = 12.dp)
             ) {
+                val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
+                val badgeHeightDp = 72.dp * watermarkScale
+                val shiftX = if (isLandscape) -badgeHeightDp else 0.dp
+
+                val animatedShiftX by animateDpAsState(
+                    targetValue = shiftX,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftX"
+                )
+
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
                     landmarkName = liveLandmark,
@@ -448,6 +457,7 @@ fun WatermarkCameraScreen(
                     scaleFactor = watermarkScale,
                     lang = lang,
                     modifier = Modifier
+                        .offset(x = animatedShiftX)
                         .graphicsLayer {
                             rotationZ = animatedRotation
                             transformOrigin = TransformOrigin(1.0f, 0.0f)
