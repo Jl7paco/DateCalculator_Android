@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -189,13 +190,17 @@ fun WatermarkCameraScreen(
         val orientationEventListener = object : android.view.OrientationEventListener(context) {
             override fun onOrientationChanged(orientation: Int) {
                 if (orientation == android.view.OrientationEventListener.ORIENTATION_UNKNOWN) return
-                val rotation = when (orientation) {
-                    in 45..134 -> 270
-                    in 135..224 -> 180
-                    in 225..314 -> 90
-                    else -> 0
+                // 防死角死区迟滞，确保平放或竖持手机时 100% 稳定保持 0 度竖屏
+                val newRot = when {
+                    orientation in 60..120 -> 270
+                    orientation in 150..210 -> 180
+                    orientation in 240..300 -> 90
+                    orientation in 0..30 || orientation in 330..360 -> 0
+                    else -> deviceRotationDeg
                 }
-                deviceRotationDeg = rotation
+                if (newRot != deviceRotationDeg) {
+                    deviceRotationDeg = newRot
+                }
             }
         }
         if (orientationEventListener.canDetectOrientation()) {
@@ -409,12 +414,29 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 1 & 2: 水印卡片 100% 精准定位于 4:3 取景框内部右上角，锚定 TransformOrigin(1.0f, 0.0f) 杜绝溢出与偏移
+            // 需求 1 & 2: 水印卡片 100% 位于 4:3 灰色取景框内部右上角 (top = 185.dp)，横屏时施加中心偏移，绝不超出取景框与屏幕边缘
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 90.dp, end = 12.dp)
+                    .padding(top = 185.dp, end = 12.dp)
             ) {
+                val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
+                val badgeWidthDp = 220.dp * watermarkScale
+                val badgeHeightDp = 72.dp * watermarkScale
+                val shiftX = if (isLandscape) -(badgeWidthDp - badgeHeightDp) / 2f else 0.dp
+                val shiftY = if (isLandscape) (badgeWidthDp - badgeHeightDp) / 2f else 0.dp
+
+                val animatedShiftX by animateDpAsState(
+                    targetValue = shiftX,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftX"
+                )
+                val animatedShiftY by animateDpAsState(
+                    targetValue = shiftY,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftY"
+                )
+
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
                     landmarkName = liveLandmark,
@@ -422,9 +444,10 @@ fun WatermarkCameraScreen(
                     mapTileBitmap = mapTileBitmap,
                     scaleFactor = watermarkScale,
                     modifier = Modifier
+                        .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
                             rotationZ = animatedRotation
-                            transformOrigin = TransformOrigin(1.0f, 0.0f)
+                            transformOrigin = if (isLandscape) TransformOrigin(0.5f, 0.5f) else TransformOrigin(1.0f, 0.0f)
                         }
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ ->
@@ -434,12 +457,13 @@ fun WatermarkCameraScreen(
                 )
             }
 
-            // 需求 3: 取消底栏二层卡片容器，底栏控制 UI 自动下移至屏幕极底端
+            // 需求 1 & 2: 底部 3D 新拟物控制板 (bottom = 38.dp + navigationBarsPadding) 确保快门按键 100% 完整露出，绝不切边
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 28.dp, top = 6.dp, start = 12.dp, end = 12.dp),
+                    .navigationBarsPadding()
+                    .padding(bottom = 38.dp, top = 8.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
