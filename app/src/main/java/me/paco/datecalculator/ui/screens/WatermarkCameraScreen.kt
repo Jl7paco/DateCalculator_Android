@@ -414,29 +414,12 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 1 & 2: 水印卡片 100% 位于 4:3 灰色取景框内部右上角 (top = 185.dp)，横屏时施加中心偏移，绝不超出取景框与屏幕边缘
+            // 需求 1 & 2: 整体 UI 向上抬升，水印卡片 (top = 135.dp, end = 12.dp) 锚定 TransformOrigin(1.0f, 0.0f)，竖向与横向均死死锁定在视野右上角
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 185.dp, end = 12.dp)
+                    .padding(top = 135.dp, end = 12.dp)
             ) {
-                val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
-                val badgeWidthDp = 220.dp * watermarkScale
-                val badgeHeightDp = 72.dp * watermarkScale
-                val shiftX = if (isLandscape) -(badgeWidthDp - badgeHeightDp) / 2f else 0.dp
-                val shiftY = if (isLandscape) (badgeWidthDp - badgeHeightDp) / 2f else 0.dp
-
-                val animatedShiftX by animateDpAsState(
-                    targetValue = shiftX,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "WatermarkShiftX"
-                )
-                val animatedShiftY by animateDpAsState(
-                    targetValue = shiftY,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "WatermarkShiftY"
-                )
-
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
                     landmarkName = liveLandmark,
@@ -444,10 +427,9 @@ fun WatermarkCameraScreen(
                     mapTileBitmap = mapTileBitmap,
                     scaleFactor = watermarkScale,
                     modifier = Modifier
-                        .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
                             rotationZ = animatedRotation
-                            transformOrigin = if (isLandscape) TransformOrigin(0.5f, 0.5f) else TransformOrigin(1.0f, 0.0f)
+                            transformOrigin = TransformOrigin(1.0f, 0.0f)
                         }
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ ->
@@ -457,13 +439,13 @@ fun WatermarkCameraScreen(
                 )
             }
 
-            // 需求 1 & 2: 底部 3D 新拟物控制板 (bottom = 38.dp + navigationBarsPadding) 确保快门按键 100% 完整露出，绝不切边
+            // 需求 1: 底部 3D 新拟物控制板整体上移 (bottom = 58.dp + navigationBarsPadding) 布局更舒展，按键高度更符合人体工学
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 38.dp, top = 8.dp, start = 16.dp, end = 16.dp),
+                    .padding(bottom = 58.dp, top = 8.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
