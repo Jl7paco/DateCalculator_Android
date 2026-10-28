@@ -378,6 +378,211 @@ private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark:
 }
 
 @Composable
+private fun DateDiffCheckInDialog(
+    show: Boolean,
+    currentCity: String,
+    lang: AppLanguage,
+    effectiveLang: AppLanguage,
+    isDark: Boolean,
+    checkInTitleInput: String,
+    capturedPhotoPath: String?,
+    checkInLat: Double,
+    checkInLon: Double,
+    context: Context,
+    onTitleChange: (String) -> Unit,
+    onLaunchCamera: () -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (!show) return
+    val coords = WeatherUtils.getCityCoordinates(currentCity)
+    val nowTimeStr = remember { java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(LanguageUtils.getString("check_in_dialog_title", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(NeumorphicSunkenBg)
+                        .padding(10.dp)
+                ) {
+                    Column {
+                        val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
+                        val (dispLat, dispLon) = LocationUtils.getDisplayCoordinates(coords.first, coords.second)
+
+                        val locTxt = when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "📍 Location: $localizedCity"
+                            AppLanguage.TRADITIONAL_CHINESE -> "📍 定位地點: $localizedCity"
+                            AppLanguage.JAPANESE -> "📍 位置: $localizedCity"
+                            AppLanguage.KOREAN -> "📍 위치: $localizedCity"
+                            else -> "📍 定位地点: $localizedCity"
+                        }
+
+                        val gpsTxt = when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "GPS Coords: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                            AppLanguage.TRADITIONAL_CHINESE -> "GPS 經緯度: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                            AppLanguage.JAPANESE -> "GPS 座標: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                            AppLanguage.KOREAN -> "GPS 좌표: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                            else -> "GPS 经纬度: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
+                        }
+
+                        val timeTxt = when (effectiveLang) {
+                            AppLanguage.ENGLISH -> "Time: $nowTimeStr"
+                            AppLanguage.TRADITIONAL_CHINESE -> "打卡時刻: $nowTimeStr"
+                            AppLanguage.JAPANESE -> "時刻: $nowTimeStr"
+                            AppLanguage.KOREAN -> "시간: $nowTimeStr"
+                            else -> "打卡时刻: $nowTimeStr"
+                        }
+
+                        Text(locTxt, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                        Text(gpsTxt, fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
+                        Text(timeTxt, fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                val titleHeaderTxt = when (effectiveLang) {
+                    AppLanguage.ENGLISH -> "Check-In Event Title"
+                    AppLanguage.TRADITIONAL_CHINESE -> "打卡事件名稱"
+                    AppLanguage.JAPANESE -> "チェックインイベント名"
+                    AppLanguage.KOREAN -> "체크인 이벤트 이름"
+                    else -> "打卡事件名称"
+                }
+
+                Text(titleHeaderTxt, fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                val checkInTitlePlaceholder = when (effectiveLang) {
+                    AppLanguage.ENGLISH -> "e.g. Arrived in Paris / First Concert"
+                    AppLanguage.TRADITIONAL_CHINESE -> "如: 抵達巴黎 / 首次看演唱會"
+                    AppLanguage.JAPANESE -> "例: パリ到着 / 初コンサート"
+                    AppLanguage.KOREAN -> "예: 파리 도착 / 첫 콘서트"
+                    else -> "例如: 抵达深圳 / 打卡地标 / 首次看演唱会"
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp))
+                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (checkInTitleInput.isEmpty()) {
+                        Text(
+                            text = checkInTitlePlaceholder,
+                            fontSize = 13.sp,
+                            color = NeumorphicTextPrimary.copy(alpha = 0.40f)
+                        )
+                    }
+                    BasicTextField(
+                        value = checkInTitleInput,
+                        onValueChange = onTitleChange,
+                        textStyle = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NeumorphicTextPrimary
+                        ),
+                        singleLine = true,
+                        cursorBrush = SolidColor(NeumorphicAccent),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                val photoBtnTxt = if (capturedPhotoPath != null) {
+                    when (effectiveLang) {
+                        AppLanguage.ENGLISH -> "Watermark Camera (Photo Saved)"
+                        AppLanguage.TRADITIONAL_CHINESE -> "水印相機 (已拍攝照片)"
+                        AppLanguage.JAPANESE -> "透かしカメラ (撮影済み)"
+                        AppLanguage.KOREAN -> "워터마크 카메라 (촬영 완료)"
+                        else -> "水印相机 (已拍摄照片)"
+                    }
+                } else {
+                    when (effectiveLang) {
+                        AppLanguage.ENGLISH -> "Watermark Camera"
+                        AppLanguage.TRADITIONAL_CHINESE -> "水印相機"
+                        AppLanguage.JAPANESE -> "透かしカメラ"
+                        AppLanguage.KOREAN -> "워터마크 카메라"
+                        else -> "水印相机"
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(42.dp)
+                        .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
+                        .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onLaunchCamera() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = photoBtnTxt,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NeumorphicAccent
+                        )
+                    }
+                }
+
+                if (capturedPhotoPath != null) {
+                    val photoFile = File(capturedPhotoPath)
+                    if (photoFile.exists()) {
+                        val photoBmp = remember(capturedPhotoPath) {
+                            try { BitmapFactory.decodeFile(photoFile.absolutePath) } catch (_: Exception) { null }
+                        }
+                        if (photoBmp != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(110.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.30f), shape = RoundedCornerShape(12.dp))
+                            ) {
+                                Image(
+                                    bitmap = photoBmp.asImageBitmap(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = NeumorphicAccent)
+            ) {
+                Text("记录打卡", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(LanguageUtils.getString("cancel", lang), color = NeumorphicTextPrimary)
+            }
+        },
+        containerColor = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg,
+        shape = RoundedCornerShape(20.dp)
+    )
+}
+
+@Composable
 private fun DateDiffResultCardItem(
     cardData: CountdownCardData,
     uiState: DateCalculatorUiState,
@@ -1042,222 +1247,49 @@ fun DateDiffScreen(
         )
     }
 
-    // 精准打卡 Dialog (支持水印相机照片现场捕捉与 OSM 地图融合)
-    if (showCheckInDialog) {
-        val currentCity = uiState.currentCityName
-        val coords = WeatherUtils.getCityCoordinates(currentCity)
-        val nowTimeStr = java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-
-        AlertDialog(
-            onDismissRequest = { showCheckInDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(LanguageUtils.getString("check_in_dialog_title", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(NeumorphicSunkenBg)
-                            .padding(10.dp)
-                    ) {
-                        Column {
-                            val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
-                            val (dispLat, dispLon) = LocationUtils.getDisplayCoordinates(coords.first, coords.second)
-
-                            val locTxt = when (effectiveLang) {
-                                AppLanguage.ENGLISH -> "📍 Location: $localizedCity"
-                                AppLanguage.TRADITIONAL_CHINESE -> "📍 定位地點: $localizedCity"
-                                AppLanguage.JAPANESE -> "📍 位置: $localizedCity"
-                                AppLanguage.KOREAN -> "📍 위치: $localizedCity"
-                                else -> "📍 定位地点: $localizedCity"
-                            }
-
-                            val gpsTxt = when (effectiveLang) {
-                                AppLanguage.ENGLISH -> "GPS Coords: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
-                                AppLanguage.TRADITIONAL_CHINESE -> "GPS 經緯度: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
-                                AppLanguage.JAPANESE -> "GPS 座標: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
-                                AppLanguage.KOREAN -> "GPS 좌표: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
-                                else -> "GPS 经纬度: (${String.format(Locale.US, "%.3f", dispLat)}°, ${String.format(Locale.US, "%.3f", dispLon)}°)"
-                            }
-
-                            val timeTxt = when (effectiveLang) {
-                                AppLanguage.ENGLISH -> "Time: $nowTimeStr"
-                                AppLanguage.TRADITIONAL_CHINESE -> "打卡時刻: $nowTimeStr"
-                                AppLanguage.JAPANESE -> "時刻: $nowTimeStr"
-                                AppLanguage.KOREAN -> "시간: $nowTimeStr"
-                                else -> "打卡时刻: $nowTimeStr"
-                            }
-
-                            Text(locTxt, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-                            Text(gpsTxt, fontSize = 11.sp, color = NeumorphicTextPrimary.copy(alpha = 0.7f))
-                            Text(timeTxt, fontSize = 11.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    val titleHeaderTxt = when (effectiveLang) {
-                        AppLanguage.ENGLISH -> "Check-In Event Title"
-                        AppLanguage.TRADITIONAL_CHINESE -> "打卡事件名稱"
-                        AppLanguage.JAPANESE -> "チェックインイベント名"
-                        AppLanguage.KOREAN -> "체크인 이벤트 이름"
-                        else -> "打卡事件名称"
-                    }
-
-                    Text(titleHeaderTxt, fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-                    val checkInTitlePlaceholder = when (effectiveLang) {
-                        AppLanguage.ENGLISH -> "e.g. Arrived in Paris / First Concert"
-                        AppLanguage.TRADITIONAL_CHINESE -> "如: 抵達巴黎 / 首次看演唱會"
-                        AppLanguage.JAPANESE -> "例: パリ到着 / 初コンサート"
-                        AppLanguage.KOREAN -> "예: 파리 도착 / 첫 콘서트"
-                        else -> "例如: 抵达深圳 / 打卡地标 / 首次看演唱会"
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
-                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp))
-                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (checkInTitleInput.isEmpty()) {
-                            Text(
-                                text = checkInTitlePlaceholder,
-                                fontSize = 13.sp,
-                                color = NeumorphicTextPrimary.copy(alpha = 0.40f)
-                            )
-                        }
-                        BasicTextField(
-                            value = checkInTitleInput,
-                            onValueChange = { checkInTitleInput = it },
-                            textStyle = TextStyle(
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicTextPrimary
-                            ),
-                            singleLine = true,
-                            cursorBrush = SolidColor(NeumorphicAccent),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    // 需求 1 & 2: 移除 emoji，文案修改为 "水印相机"
-                    val photoBtnTxt = if (capturedPhotoPath != null) {
-                        when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "Watermark Camera (Photo Saved)"
-                            AppLanguage.TRADITIONAL_CHINESE -> "水印相機 (已拍攝照片)"
-                            AppLanguage.JAPANESE -> "透かしカメラ (撮影済み)"
-                            AppLanguage.KOREAN -> "워터마크 카메라 (촬영 완료)"
-                            else -> "水印相机 (已拍摄照片)"
-                        }
-                    } else {
-                        when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "Watermark Camera"
-                            AppLanguage.TRADITIONAL_CHINESE -> "水印相機"
-                            AppLanguage.JAPANESE -> "透かしカメラ"
-                            AppLanguage.KOREAN -> "워터마크 카메라"
-                            else -> "水印相机"
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(42.dp)
-                            .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
-                            .background(NeumorphicBg, shape = RoundedCornerShape(12.dp))
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                val hasCamPerm = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                                if (hasCamPerm) {
-                                    showCheckInDialog = false
-                                    showWatermarkCamera = true
-                                } else {
-                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = null, tint = NeumorphicAccent, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = photoBtnTxt,
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicAccent
-                            )
-                        }
-                    }
-
-                    if (capturedPhotoPath != null) {
-                        val photoFile = File(capturedPhotoPath!!)
-                        if (photoFile.exists()) {
-                            val photoBmp = remember(capturedPhotoPath) {
-                                try { BitmapFactory.decodeFile(photoFile.absolutePath) } catch (_: Exception) { null }
-                            }
-                            if (photoBmp != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(110.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.30f), shape = RoundedCornerShape(12.dp))
-                                ) {
-                                    Image(
-                                        bitmap = photoBmp.asImageBitmap(),
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val inputTitle = checkInTitleInput.ifBlank { "打卡事件" }
-                        val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)
-                        val checkInEventName = "打卡: $inputTitle ($localizedCity)"
-                        addResultCard(
-                            eventName = checkInEventName,
-                            targetDate = LocalDate.now(),
-                            photoPath = capturedPhotoPath,
-                            latitude = checkInLat,
-                            longitude = checkInLon
-                        )
-                        checkInTitleInput = ""
-                        capturedPhotoPath = null
-                        showCheckInDialog = false
-                        Toast.makeText(context, "打卡成功！", Toast.LENGTH_SHORT).show()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = NeumorphicAccent)
-                ) {
-                    Text("记录打卡", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showCheckInDialog = false
-                    capturedPhotoPath = null
-                }) {
-                    Text(LanguageUtils.getString("cancel", lang), color = NeumorphicTextPrimary)
-                }
-            },
-            containerColor = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg,
-            shape = RoundedCornerShape(20.dp)
-        )
-    }
+    // 拆分打卡 Dialog 组件
+    DateDiffCheckInDialog(
+        show = showCheckInDialog,
+        currentCity = uiState.currentCityName,
+        lang = lang,
+        effectiveLang = effectiveLang,
+        isDark = isDark,
+        checkInTitleInput = checkInTitleInput,
+        capturedPhotoPath = capturedPhotoPath,
+        checkInLat = checkInLat,
+        checkInLon = checkInLon,
+        context = context,
+        onTitleChange = { checkInTitleInput = it },
+        onLaunchCamera = {
+            val hasCamPerm = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+            if (hasCamPerm) {
+                showCheckInDialog = false
+                showWatermarkCamera = true
+            } else {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        },
+        onConfirm = {
+            val inputTitle = checkInTitleInput.ifBlank { "打卡事件" }
+            val localizedCity = LanguageUtils.getLocalizedCityName(uiState.currentCityName, lang)
+            val checkInEventName = "打卡: $inputTitle ($localizedCity)"
+            addResultCard(
+                eventName = checkInEventName,
+                targetDate = LocalDate.now(),
+                photoPath = capturedPhotoPath,
+                latitude = checkInLat,
+                longitude = checkInLon
+            )
+            checkInTitleInput = ""
+            capturedPhotoPath = null
+            showCheckInDialog = false
+            Toast.makeText(context, "打卡成功！", Toast.LENGTH_SHORT).show()
+        },
+        onDismiss = {
+            showCheckInDialog = false
+            capturedPhotoPath = null
+        }
+    )
 
     if (showWatermarkCamera) {
         val currentCity = uiState.currentCityName
