@@ -323,7 +323,7 @@ fun WatermarkCameraScreen(
         )
     ) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            // 1. 用户指令：整体往下回调下移 250dp (bottom = 130.dp)
+            // 1. 用户指令：取景框保持上抬 130dp (bottom = 130.dp)
             AndroidView(
                 factory = {
                     previewView.apply {
@@ -416,12 +416,23 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 用户指令：水印先不动 (保持原本基准 top = 135.dp, end = 12.dp)
+            // 水印卡片精准定位于 4:3 上抬取景框内部右上角 (top = 110.dp, end = 12.dp)，横竖屏均死死锚定在取景框内
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 135.dp, end = 12.dp)
+                    .padding(top = 110.dp, end = 12.dp)
             ) {
+                val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
+                val badgeWidthDp = 220.dp * watermarkScale
+                val badgeHeightDp = 72.dp * watermarkScale
+                val shiftX = if (isLandscape) -(badgeWidthDp - badgeHeightDp) * 0.40f else 0.dp
+
+                val animatedShiftX by animateDpAsState(
+                    targetValue = shiftX,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftX"
+                )
+
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
                     landmarkName = liveLandmark,
@@ -429,6 +440,7 @@ fun WatermarkCameraScreen(
                     mapTileBitmap = mapTileBitmap,
                     scaleFactor = watermarkScale,
                     modifier = Modifier
+                        .offset(x = animatedShiftX)
                         .graphicsLayer {
                             rotationZ = animatedRotation
                             transformOrigin = TransformOrigin(1.0f, 0.0f)
@@ -441,7 +453,7 @@ fun WatermarkCameraScreen(
                 )
             }
 
-            // 用户指令：底部拍摄 UI 控制 Deck 下移 250dp 回调至最舒适高度 (bottom = 185.dp + navigationBarsPadding)
+            // 用户指令：底部拍摄 UI 保持上抬 130dp (bottom = 185.dp + navigationBarsPadding)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
