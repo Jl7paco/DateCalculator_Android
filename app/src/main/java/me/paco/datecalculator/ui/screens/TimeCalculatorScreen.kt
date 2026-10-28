@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.MoreTime
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -65,12 +66,13 @@ import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.HapticUtils
 import me.paco.datecalculator.util.LanguageUtils
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlin.math.abs
 
 /**
- * 100% 原汁原味还原截图按键位置、支持 Shunting-yard 逆波兰算法与友好错误提示的高级新拟物 UI 风格时间计算器 Screen
+ * 100% 原汁原味还原截图按键位置、支持原始/指定单位切换、按键插入手机当前时间的高级新拟物 UI 风格时间计算器 Screen
  */
 @Composable
 fun TimeCalculatorScreen(
@@ -90,6 +92,9 @@ fun TimeCalculatorScreen(
     var expression by remember { mutableStateOf("") }
     var resultText by remember { mutableStateOf("") }
 
+    // 需求 2 & 3: 单位转换选择状态 (null = 默认原始输入模式, "y", "M", "d", "h", "m", "s" 为指定单位转换)
+    var targetUnitMode by remember { mutableStateOf<String?>(null) }
+
     val scrollState = rememberScrollState()
 
     fun evaluateExpression() {
@@ -97,7 +102,7 @@ fun TimeCalculatorScreen(
             resultText = ""
             return
         }
-        val evaluated = TimeExpressionEvaluator.evaluate(expression, lang)
+        val evaluated = TimeExpressionEvaluator.evaluate(expression, lang, targetUnitMode)
         resultText = evaluated
     }
 
@@ -262,7 +267,7 @@ fun TimeCalculatorScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 2. 单位图例提示 行 (y=年, M=月, d=日, h=时, m=分, s=秒)
+            // 2. 需求 2 & 3: 单位转换与当前时间按钮行 ([ 原始 ] | [ y ] | [ M ] | [ d ] | [ h ] | [ m ] | [ s ] | [ 🕒 当前时间 ])
             val unitY = LanguageUtils.getTimeUnitLabel("y", lang)
             val unitM = LanguageUtils.getTimeUnitLabel("M", lang)
             val unitD = LanguageUtils.getTimeUnitLabel("d", lang)
@@ -270,24 +275,100 @@ fun TimeCalculatorScreen(
             val unitMin = LanguageUtils.getTimeUnitLabel("m", lang)
             val unitS = LanguageUtils.getTimeUnitLabel("s", lang)
 
-            val unitHints = listOf("y=$unitY", "M=$unitM", "d=$unitD", "h=$unitH", "m=$unitMin", "s=$unitS")
+            val rawLabel = when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Raw"
+                AppLanguage.TRADITIONAL_CHINESE -> "原始"
+                AppLanguage.JAPANESE -> "元"
+                AppLanguage.KOREAN -> "원본"
+                else -> "原始"
+            }
+
+            val nowBtnLabel = when (effectiveLang) {
+                AppLanguage.ENGLISH -> "NOW"
+                AppLanguage.TRADITIONAL_CHINESE -> "當前時間"
+                AppLanguage.JAPANESE -> "現在時刻"
+                AppLanguage.KOREAN -> "현재 시간"
+                else -> "当前时间"
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                unitHints.forEach { hint ->
+                // 默认选中的 "原始" 按钮 (按照输入状态显示不转换)
+                val isRawSelected = targetUnitMode == null
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isRawSelected) NeumorphicAccent else NeumorphicSunkenBg)
+                        .clickable {
+                            HapticUtils.performCrispClick(context, view)
+                            targetUnitMode = null
+                            evaluateExpression()
+                        }
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = rawLabel,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isRawSelected) Color.White else NeumorphicTextPrimary.copy(alpha = 0.8f)
+                    )
+                }
+
+                // 各个单位转换按钮 (y, M, d, h, m, s)
+                listOf("y" to unitY, "M" to unitM, "d" to unitD, "h" to unitH, "m" to unitMin, "s" to unitS).forEach { (unitKey, label) ->
+                    val isSel = targetUnitMode == unitKey
                     Box(
                         modifier = Modifier
-                            .neumorphicInset(shape = RoundedCornerShape(8.dp), elevation = 2.dp)
-                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(8.dp))
-                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSel) NeumorphicAccent else NeumorphicSunkenBg)
+                            .clickable {
+                                HapticUtils.performCrispClick(context, view)
+                                targetUnitMode = unitKey
+                                evaluateExpression()
+                            }
+                            .padding(horizontal = 6.dp, vertical = 5.dp)
                     ) {
                         Text(
-                            text = hint,
+                            text = label,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSel) Color.White else NeumorphicTextPrimary.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // 需求 3: [ 🕒 当前时间 ] 按钮，按下一键插入手机实时当前时间 Token (如 2026y 10M 28d 11h 58m)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(NeumorphicAccent.copy(alpha = 0.20f))
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.40f), RoundedCornerShape(8.dp))
+                        .clickable {
+                            HapticUtils.performCrispClick(context, view)
+                            val now = LocalDateTime.now()
+                            val nowToken = "${now.year}y ${now.monthValue}M ${now.dayOfMonth}d ${now.hour}h ${now.minute}m"
+                            appendToken(nowToken)
+                        }
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = "Current Time",
+                            tint = NeumorphicAccent,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = nowBtnLabel,
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = NeumorphicTextPrimary.copy(alpha = 0.75f)
+                            fontWeight = FontWeight.ExtraBold,
+                            color = NeumorphicAccent
                         )
                     }
                 }
@@ -300,7 +381,7 @@ fun TimeCalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Row 0: 需求 1 - 动态多语言时间单位按键组 (年, 月, 天, 时, 分, 秒 / Y, M, D, H, Min, S)
+                // Row 0: 动态多语言时间单位按键组
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -458,13 +539,13 @@ private fun TimeCalcKeyBtn(
 private class CalcException(val msgZh: String, val msgEn: String) : Exception(msgZh)
 
 /**
- * 智能时间与日期计算推算引擎 (支持 Shunting-yard 逆波兰算法、日期加减推算、日期查距与友情错误提示)
+ * 智能时间与日期计算推算引擎 (支持 Shunting-yard 逆波兰算法、按原始输入状态显示、指定单位转换推算、日期加减与当前时间解析)
  */
 object TimeExpressionEvaluator {
 
     private sealed class TimeCalcValue {
         data class Scalar(val value: Double) : TimeCalcValue()
-        data class DurationSec(val seconds: Double) : TimeCalcValue()
+        data class DurationSec(val seconds: Double, val primaryUnit: String? = "s") : TimeCalcValue()
         data class CalendarDate(val date: LocalDate) : TimeCalcValue()
     }
 
@@ -488,11 +569,13 @@ object TimeExpressionEvaluator {
         val matches = unitRegex.findAll(clean)
         var totalSec = 0.0
         var foundUnit = false
+        var firstUnit: String? = null
 
         for (m in matches) {
             foundUnit = true
             val num = m.groupValues[1].toDoubleOrNull() ?: 0.0
             val unit = m.groupValues[2]
+            if (firstUnit == null) firstUnit = unit
             totalSec += when (unit) {
                 "y" -> num * 365.0 * 86400.0
                 "M" -> num * 30.0 * 86400.0
@@ -505,7 +588,7 @@ object TimeExpressionEvaluator {
         }
 
         if (foundUnit) {
-            return TimeCalcValue.DurationSec(totalSec)
+            return TimeCalcValue.DurationSec(totalSec, primaryUnit = firstUnit ?: "s")
         }
 
         val num = clean.toDoubleOrNull()
@@ -519,7 +602,7 @@ object TimeExpressionEvaluator {
     private fun applyOp(op: String, a: TimeCalcValue, b: TimeCalcValue): TimeCalcValue {
         return when (op) {
             "+" -> when {
-                a is TimeCalcValue.DurationSec && b is TimeCalcValue.DurationSec -> TimeCalcValue.DurationSec(a.seconds + b.seconds)
+                a is TimeCalcValue.DurationSec && b is TimeCalcValue.DurationSec -> TimeCalcValue.DurationSec(a.seconds + b.seconds, a.primaryUnit)
                 a is TimeCalcValue.CalendarDate && b is TimeCalcValue.DurationSec -> {
                     val days = (b.seconds / 86400.0).toLong()
                     TimeCalcValue.CalendarDate(a.date.plusDays(days))
@@ -532,21 +615,21 @@ object TimeExpressionEvaluator {
                 else -> throw CalcException("不同单位类型不能直接相加", "Cannot add different value types")
             }
             "-" -> when {
-                a is TimeCalcValue.DurationSec && b is TimeCalcValue.DurationSec -> TimeCalcValue.DurationSec(a.seconds - b.seconds)
+                a is TimeCalcValue.DurationSec && b is TimeCalcValue.DurationSec -> TimeCalcValue.DurationSec(a.seconds - b.seconds, a.primaryUnit)
                 a is TimeCalcValue.CalendarDate && b is TimeCalcValue.DurationSec -> {
                     val days = (b.seconds / 86400.0).toLong()
                     TimeCalcValue.CalendarDate(a.date.minusDays(days))
                 }
                 a is TimeCalcValue.CalendarDate && b is TimeCalcValue.CalendarDate -> {
                     val days = ChronoUnit.DAYS.between(b.date, a.date)
-                    TimeCalcValue.DurationSec(days * 86400.0)
+                    TimeCalcValue.DurationSec(days * 86400.0, primaryUnit = "d")
                 }
                 a is TimeCalcValue.Scalar && b is TimeCalcValue.Scalar -> TimeCalcValue.Scalar(a.value - b.value)
                 else -> throw CalcException("不同单位类型不能直接相减", "Cannot subtract different value types")
             }
             "*" -> when {
-                a is TimeCalcValue.DurationSec && b is TimeCalcValue.Scalar -> TimeCalcValue.DurationSec(a.seconds * b.value)
-                a is TimeCalcValue.Scalar && b is TimeCalcValue.DurationSec -> TimeCalcValue.DurationSec(a.value * b.seconds)
+                a is TimeCalcValue.DurationSec && b is TimeCalcValue.Scalar -> TimeCalcValue.DurationSec(a.seconds * b.value, a.primaryUnit)
+                a is TimeCalcValue.Scalar && b is TimeCalcValue.DurationSec -> TimeCalcValue.DurationSec(a.value * b.seconds, b.primaryUnit)
                 a is TimeCalcValue.Scalar && b is TimeCalcValue.Scalar -> TimeCalcValue.Scalar(a.value * b.value)
                 a is TimeCalcValue.CalendarDate || b is TimeCalcValue.CalendarDate -> throw CalcException("日期不能参与乘法运算", "Dates cannot be multiplied")
                 else -> throw CalcException("时长之间不能直接相乘", "Cannot multiply duration by duration")
@@ -554,7 +637,7 @@ object TimeExpressionEvaluator {
             "/" -> when {
                 b is TimeCalcValue.Scalar && b.value == 0.0 -> throw CalcException("除数不能为0", "Division by zero")
                 b is TimeCalcValue.DurationSec && b.seconds == 0.0 -> throw CalcException("除数不能为0", "Division by zero")
-                a is TimeCalcValue.DurationSec && b is TimeCalcValue.Scalar -> TimeCalcValue.DurationSec(a.seconds / b.value)
+                a is TimeCalcValue.DurationSec && b is TimeCalcValue.Scalar -> TimeCalcValue.DurationSec(a.seconds / b.value, a.primaryUnit)
                 a is TimeCalcValue.DurationSec && b is TimeCalcValue.DurationSec -> TimeCalcValue.Scalar(a.seconds / b.seconds)
                 a is TimeCalcValue.Scalar && b is TimeCalcValue.Scalar -> TimeCalcValue.Scalar(a.value / b.value)
                 a is TimeCalcValue.CalendarDate || b is TimeCalcValue.CalendarDate -> throw CalcException("日期不能参与除法运算", "Dates cannot be divided")
@@ -564,7 +647,7 @@ object TimeExpressionEvaluator {
         }
     }
 
-    private fun formatResult(value: TimeCalcValue, lang: AppLanguage): String {
+    private fun formatResult(value: TimeCalcValue, lang: AppLanguage, targetUnit: String? = null): String {
         return when (value) {
             is TimeCalcValue.Scalar -> {
                 val v = value.value
@@ -578,49 +661,62 @@ object TimeExpressionEvaluator {
                 "${d.year}$uY ${d.monthValue}$uM ${d.dayOfMonth}$uD"
             }
             is TimeCalcValue.DurationSec -> {
-                formatSecondsToHumanReadable(value.seconds, lang)
+                formatSecondsToHumanReadable(value.seconds, lang, targetUnit, value.primaryUnit)
             }
         }
     }
 
-    fun formatSecondsToHumanReadable(seconds: Double, lang: AppLanguage): String {
+    fun formatSecondsToHumanReadable(
+        seconds: Double,
+        lang: AppLanguage,
+        targetUnit: String? = null,
+        primaryUnit: String? = null
+    ): String {
         if (seconds < 0) {
-            return "-" + formatSecondsToHumanReadable(abs(seconds), lang)
+            return "-" + formatSecondsToHumanReadable(abs(seconds), lang, targetUnit, primaryUnit)
         }
 
-        val sec = seconds.toLong()
-        val totalDays = sec / 86400L
-        val remSecTotal = sec % 86400L
+        // 需求 2: 如果点击了指定单位转换按钮 (y, M, d, h, m, s)，将结果精准转换为该单位显示
+        if (targetUnit != null) {
+            val label = LanguageUtils.getTimeUnitLabel(targetUnit, lang)
+            val convertedVal = when (targetUnit) {
+                "y" -> seconds / (365.0 * 86400.0)
+                "M" -> seconds / (30.0 * 86400.0)
+                "d" -> seconds / 86400.0
+                "h" -> seconds / 3600.0
+                "m" -> seconds / 60.0
+                "s" -> seconds
+                else -> seconds
+            }
+            val formattedStr = if (convertedVal == convertedVal.toLong().toDouble()) {
+                convertedVal.toLong().toString()
+            } else {
+                String.format(Locale.US, "%.2f", convertedVal)
+            }
+            return "$formattedStr$label"
+        }
 
-        val years = totalDays / 365L
-        val remDaysAfterYear = totalDays % 365L
-        val months = remDaysAfterYear / 30L
-        val remDays = remDaysAfterYear % 30L
+        // 需求 1: 原始模式 (默认按下原始按钮)，按照输入时的主主要单位展示，不再强行换算多少分多少秒
+        val unitLabel = LanguageUtils.getTimeUnitLabel(primaryUnit ?: "s", lang)
+        val valInPrimary = when (primaryUnit) {
+            "y" -> seconds / (365.0 * 86400.0)
+            "M" -> seconds / (30.0 * 86400.0)
+            "d" -> seconds / 86400.0
+            "h" -> seconds / 3600.0
+            "m" -> seconds / 60.0
+            "s" -> seconds
+            else -> seconds
+        }
 
-        val hours = remSecTotal / 3600L
-        val remSecHours = remSecTotal % 3600L
-        val minutes = remSecHours / 60L
-        val remSec = remSecHours % 60L
-
-        val uY = LanguageUtils.getTimeUnitLabel("y", lang)
-        val uM = LanguageUtils.getTimeUnitLabel("M", lang)
-        val uD = LanguageUtils.getTimeUnitLabel("d", lang)
-        val uH = LanguageUtils.getTimeUnitLabel("h", lang)
-        val uMin = LanguageUtils.getTimeUnitLabel("m", lang)
-        val uS = LanguageUtils.getTimeUnitLabel("s", lang)
-
-        val parts = mutableListOf<String>()
-        if (years > 0) parts.add("${years}$uY")
-        if (months > 0) parts.add("${months}$uM")
-        if (remDays > 0) parts.add("${remDays}$uD")
-        if (hours > 0) parts.add("${hours}$uH")
-        if (minutes > 0) parts.add("${minutes}$uMin")
-        if (remSec > 0 || parts.isEmpty()) parts.add("${remSec}$uS")
-
-        return parts.joinToString(" ")
+        val valStr = if (valInPrimary == valInPrimary.toLong().toDouble()) {
+            valInPrimary.toLong().toString()
+        } else {
+            String.format(Locale.US, "%.2f", valInPrimary)
+        }
+        return "$valStr$unitLabel"
     }
 
-    fun evaluate(expression: String, lang: AppLanguage): String {
+    fun evaluate(expression: String, lang: AppLanguage, targetUnit: String? = null): String {
         try {
             val cleanExpr = expression
                 .replace("×", "*")
@@ -635,7 +731,6 @@ object TimeExpressionEvaluator {
 
             if (rawTokens.isEmpty()) return ""
 
-            // Shunting-yard 逆波兰算法
             val outputQueue = mutableListOf<String>()
             val operatorStack = java.util.Stack<String>()
 
@@ -677,7 +772,6 @@ object TimeExpressionEvaluator {
                 outputQueue.add(top)
             }
 
-            // RPN 求值
             val evalStack = java.util.Stack<TimeCalcValue>()
 
             for (token in outputQueue) {
@@ -694,7 +788,7 @@ object TimeExpressionEvaluator {
 
             if (evalStack.size != 1) throw CalcException("表达式不完整", "Incomplete expression")
 
-            return formatResult(evalStack.pop(), lang)
+            return formatResult(evalStack.pop(), lang, targetUnit)
         } catch (e: CalcException) {
             val errPrefix = "Err"
             val errMsg = if (lang == AppLanguage.ENGLISH) e.msgEn else e.msgZh

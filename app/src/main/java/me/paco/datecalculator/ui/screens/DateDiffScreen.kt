@@ -1736,7 +1736,6 @@ fun DateDiffScreen(
                         }
                     }
                 }
-            }
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -1763,6 +1762,7 @@ fun DateDiffScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
 }
 
 private fun calculateNextSolarDate(baseDate: LocalDate, month: Int, day: Int): LocalDate {
