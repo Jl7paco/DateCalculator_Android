@@ -417,15 +417,30 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 1: 水印卡片严格锚定 TransformOrigin(1.0f, 0.0f) 右上角顶点，横竖屏旋转时均死死固定在取景框内部右上角，绝不安放于中间
+            // 需求 1: 完美几何旋角公式：采用 TransformOrigin(0.5f, 0.5f) 中心旋角，横屏时补偿 +(W-H)/2 X轴右移 与 -(W-H)/2 Y轴上移，确保横竖屏均 100% 精准齐平贴合取景框右上角
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 110.dp, end = 12.dp)
             ) {
-                LaunchedEffect(deviceRotationDeg) {
-                    Log.d("WatermarkCamera", "Watermark Badge Orientation -> deviceRotationDeg: $deviceRotationDeg, animatedRotation: $animatedRotation")
-                }
+                val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
+                val badgeWidthDp = 220.dp * watermarkScale
+                val badgeHeightDp = 72.dp * watermarkScale
+                val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
+
+                val shiftX = if (isLandscape) halfDiff else 0.dp
+                val shiftY = if (isLandscape) -halfDiff else 0.dp
+
+                val animatedShiftX by animateDpAsState(
+                    targetValue = shiftX,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftX"
+                )
+                val animatedShiftY by animateDpAsState(
+                    targetValue = shiftY,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftY"
+                )
 
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
@@ -434,9 +449,10 @@ fun WatermarkCameraScreen(
                     mapTileBitmap = mapTileBitmap,
                     scaleFactor = watermarkScale,
                     modifier = Modifier
+                        .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
                             rotationZ = animatedRotation
-                            transformOrigin = TransformOrigin(1.0f, 0.0f)
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
                         }
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ ->
