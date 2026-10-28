@@ -323,7 +323,7 @@ fun WatermarkCameraScreen(
         )
     ) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            // 1. 全屏不裁剪 Viewfinder
+            // 1. Viewfinder 整体向上抬升 80dp
             AndroidView(
                 factory = {
                     previewView.apply {
@@ -333,7 +333,9 @@ fun WatermarkCameraScreen(
                         )
                     }
                 },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 80.dp)
             )
 
             // 2. 顶栏控制器 (添加 statusBarsPadding 避让刘海/挖孔屏与状态栏)
@@ -414,11 +416,11 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 1 & 2: 整体 UI 向上抬升，水印卡片 (top = 135.dp, end = 12.dp) 锚定 TransformOrigin(1.0f, 0.0f)，竖向与横向均死死锁定在视野右上角
+            // 用户需求：水印卡片 (top = 65.dp, end = 12.dp) 随取景框同步向上抬升 75dp
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 135.dp, end = 12.dp)
+                    .padding(top = 65.dp, end = 12.dp)
             ) {
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
@@ -439,13 +441,13 @@ fun WatermarkCameraScreen(
                 )
             }
 
-            // 需求 1: 底部 3D 新拟物控制板整体上移 (bottom = 58.dp + navigationBarsPadding) 布局更舒展，按键高度更符合人体工学
+            // 用户需求：拍摄按钮与控制 Deck 整体再向上抬升 77dp (bottom = 135.dp + navigationBarsPadding)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 58.dp, top = 8.dp, start = 16.dp, end = 16.dp),
+                    .padding(bottom = 135.dp, top = 8.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
