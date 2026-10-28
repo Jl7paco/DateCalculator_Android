@@ -417,7 +417,7 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 1: 完美几何旋角公式：采用 TransformOrigin(0.5f, 0.5f) 中心旋角，横屏时补偿 +(W-H)/2 X轴右移 与 -(W-H)/2 Y轴上移，确保横竖屏均 100% 精准齐平贴合取景框右上角
+            // 需求 1: 完美几何旋角公式：横屏时矢量平移 -(W-H)/2 X轴左拉 与 +(W-H)/2 Y轴下压，确保 100% 死死固定在取景框内部右上角，绝不溢出！
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -428,8 +428,8 @@ fun WatermarkCameraScreen(
                 val badgeHeightDp = 72.dp * watermarkScale
                 val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
 
-                val shiftX = if (isLandscape) halfDiff else 0.dp
-                val shiftY = if (isLandscape) -halfDiff else 0.dp
+                val shiftX = if (isLandscape) -halfDiff else 0.dp
+                val shiftY = if (isLandscape) halfDiff else 0.dp
 
                 val animatedShiftX by animateDpAsState(
                     targetValue = shiftX,
