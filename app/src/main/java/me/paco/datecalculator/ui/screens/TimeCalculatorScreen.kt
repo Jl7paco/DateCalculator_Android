@@ -132,7 +132,7 @@ fun TimeCalculatorScreen(
         uiState = uiState
     )
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize().background(NeumorphicBg)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
