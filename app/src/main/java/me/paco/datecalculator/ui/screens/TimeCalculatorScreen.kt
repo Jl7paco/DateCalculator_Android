@@ -72,7 +72,7 @@ import java.util.Locale
 import kotlin.math.abs
 
 /**
- * 100% 原汁原味还原截图按键位置、支持原始/指定单位切换、按键插入手机当前时间的高级新拟物 UI 风格时间计算器 Screen
+ * 100% 原汁原味还原截图按键位置、支持加大大屏单位转换按钮、完整当前时间加减与多语言描述的高级新拟物 UI 风格时间计算器 Screen
  */
 @Composable
 fun TimeCalculatorScreen(
@@ -267,7 +267,24 @@ fun TimeCalculatorScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 2. 需求 2 & 3: 单位转换与当前时间按钮行 ([ 原始 ] | [ y ] | [ M ] | [ d ] | [ h ] | [ m ] | [ s ] | [ 🕒 当前时间 ])
+            // 用户需求：增加换算工具栏的描述文案提示
+            val conversionHintText = when (effectiveLang) {
+                AppLanguage.ENGLISH -> "💡 Tap a unit below to convert result:"
+                AppLanguage.TRADITIONAL_CHINESE -> "💡 點擊下方單位，將結果一鍵轉換為對應單位:"
+                AppLanguage.JAPANESE -> "💡 下の単位をタップして結果を変換:"
+                AppLanguage.KOREAN -> "💡 아래 단위를 터치하여 결과를 해당 단위로 변환:"
+                else -> "💡 点击下方单位，将结果一键转换为对应单位:"
+            }
+
+            Text(
+                text = conversionHintText,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicTextPrimary.copy(alpha = 0.70f),
+                modifier = Modifier.padding(start = 2.dp, bottom = 6.dp)
+            )
+
+            // 2. 需求 2 & 3: 单位转换与当前时间按钮行 (加大按钮尺寸，提升友好度)
             val unitY = LanguageUtils.getTimeUnitLabel("y", lang)
             val unitM = LanguageUtils.getTimeUnitLabel("M", lang)
             val unitD = LanguageUtils.getTimeUnitLabel("d", lang)
@@ -296,77 +313,86 @@ fun TimeCalculatorScreen(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 默认选中的 "原始" 按钮 (按照输入状态显示不转换)
+                // 默认选中的 "原始" 按钮
                 val isRawSelected = targetUnitMode == null
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isRawSelected) NeumorphicAccent else NeumorphicSunkenBg)
+                        .height(34.dp)
+                        .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = if (isRawSelected) 1.dp else 3.dp)
+                        .background(if (isRawSelected) NeumorphicAccent else NeumorphicBg, shape = RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .clickable {
                             HapticUtils.performCrispClick(context, view)
                             targetUnitMode = null
                             evaluateExpression()
                         }
-                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                        .padding(horizontal = 9.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = rawLabel,
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isRawSelected) Color.White else NeumorphicTextPrimary.copy(alpha = 0.8f)
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isRawSelected) Color.White else NeumorphicTextPrimary
                     )
                 }
 
-                // 各个单位转换按钮 (y, M, d, h, m, s)
+                // 加大单位转换按钮 (y, M, d, h, m, s)
                 listOf("y" to unitY, "M" to unitM, "d" to unitD, "h" to unitH, "m" to unitMin, "s" to unitS).forEach { (unitKey, label) ->
                     val isSel = targetUnitMode == unitKey
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isSel) NeumorphicAccent else NeumorphicSunkenBg)
+                            .height(34.dp)
+                            .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = if (isSel) 1.dp else 3.dp)
+                            .background(if (isSel) NeumorphicAccent else NeumorphicBg, shape = RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .clickable {
                                 HapticUtils.performCrispClick(context, view)
                                 targetUnitMode = unitKey
                                 evaluateExpression()
                             }
-                            .padding(horizontal = 6.dp, vertical = 5.dp)
+                            .padding(horizontal = 7.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSel) Color.White else NeumorphicTextPrimary.copy(alpha = 0.8f)
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isSel) Color.White else NeumorphicTextPrimary
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // 需求 3: [ 🕒 当前时间 ] 按钮，按下一键插入手机实时当前时间 Token (如 2026y 10M 28d 11h 58m)
+                // 需求 3: [ 🕒 当前时间 ] 按钮 (按下一键插入实时当前时间，完美参与加减推算)
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(NeumorphicAccent.copy(alpha = 0.20f))
-                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.40f), RoundedCornerShape(8.dp))
+                        .height(34.dp)
+                        .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = 3.dp)
+                        .background(NeumorphicAccent.copy(alpha = 0.20f), shape = RoundedCornerShape(10.dp))
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.50f), RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .clickable {
                             HapticUtils.performCrispClick(context, view)
                             val now = LocalDateTime.now()
                             val nowToken = "${now.year}y ${now.monthValue}M ${now.dayOfMonth}d ${now.hour}h ${now.minute}m"
                             appendToken(nowToken)
                         }
-                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = "Current Time",
                             tint = NeumorphicAccent,
-                            modifier = Modifier.size(12.dp)
+                            modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = nowBtnLabel,
-                            fontSize = 10.sp,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = NeumorphicAccent
                         )
@@ -539,32 +565,36 @@ private fun TimeCalcKeyBtn(
 private class CalcException(val msgZh: String, val msgEn: String) : Exception(msgZh)
 
 /**
- * 智能时间与日期计算推算引擎 (支持 Shunting-yard 逆波兰算法、按原始输入状态显示、指定单位转换推算、日期加减与当前时间解析)
+ * 智能时间与日期计算推算引擎 (支持 Shunting-yard 逆波兰算法、按原始输入状态显示、指定单位转换推算、日期时间加减与当前时间解析)
  */
 object TimeExpressionEvaluator {
 
     private sealed class TimeCalcValue {
         data class Scalar(val value: Double) : TimeCalcValue()
         data class DurationSec(val seconds: Double, val primaryUnit: String? = "s") : TimeCalcValue()
-        data class CalendarDate(val date: LocalDate) : TimeCalcValue()
+        data class CalendarDateTime(val dateTime: LocalDateTime) : TimeCalcValue()
     }
 
     private fun parseTokenValue(token: String): TimeCalcValue {
         val clean = token.trim()
 
-        val dateRegex = Regex("^(\\d{4})[y年]\\s*(\\d{1,2})[M月]\\s*(\\d{1,2})[d日天]$")
-        val dateMatch = dateRegex.find(clean)
-        if (dateMatch != null) {
-            val y = dateMatch.groupValues[1].toInt()
-            val m = dateMatch.groupValues[2].toInt()
-            val d = dateMatch.groupValues[3].toInt()
+        // 1. 尝试解析完整日期或日期时间 (如 2026y 10M 28d 或 2026y 10M 28d 11h 58m)
+        val dateTimeRegex = Regex("^(\\d{4})[y年]\\s*(\\d{1,2})[M月]\\s*(\\d{1,2})[d日天](?:\\s*(\\d{1,2})[h时])?(?:\\s*(\\d{1,2})[m分])?$")
+        val dtMatch = dateTimeRegex.find(clean)
+        if (dtMatch != null) {
+            val y = dtMatch.groupValues[1].toInt()
+            val m = dtMatch.groupValues[2].toInt()
+            val d = dtMatch.groupValues[3].toInt()
+            val h = dtMatch.groupValues[4].toIntOrNull() ?: 0
+            val min = dtMatch.groupValues[5].toIntOrNull() ?: 0
             try {
-                return TimeCalcValue.CalendarDate(LocalDate.of(y, m, d))
+                return TimeCalcValue.CalendarDateTime(LocalDateTime.of(y, m, d, h, min))
             } catch (_: Exception) {
-                throw CalcException("日期格式无效 ($y-$m-$d)", "Invalid date ($y-$m-$d)")
+                throw CalcException("日期时间格式无效 ($y-$m-$d $h:$min)", "Invalid date time ($y-$m-$d $h:$min)")
             }
         }
 
+        // 2. 尝试解析时间时长 (如 999d, 2h, 30m)
         val unitRegex = Regex("(\\d+(?:\\.\\d+)?)\\s*([yMdhms])")
         val matches = unitRegex.findAll(clean)
         var totalSec = 0.0
@@ -603,26 +633,26 @@ object TimeExpressionEvaluator {
         return when (op) {
             "+" -> when {
                 a is TimeCalcValue.DurationSec && b is TimeCalcValue.DurationSec -> TimeCalcValue.DurationSec(a.seconds + b.seconds, a.primaryUnit)
-                a is TimeCalcValue.CalendarDate && b is TimeCalcValue.DurationSec -> {
-                    val days = (b.seconds / 86400.0).toLong()
-                    TimeCalcValue.CalendarDate(a.date.plusDays(days))
+                a is TimeCalcValue.CalendarDateTime && b is TimeCalcValue.DurationSec -> {
+                    val sec = b.seconds.toLong()
+                    TimeCalcValue.CalendarDateTime(a.dateTime.plusSeconds(sec))
                 }
-                a is TimeCalcValue.DurationSec && b is TimeCalcValue.CalendarDate -> {
-                    val days = (a.seconds / 86400.0).toLong()
-                    TimeCalcValue.CalendarDate(b.date.plusDays(days))
+                a is TimeCalcValue.DurationSec && b is TimeCalcValue.CalendarDateTime -> {
+                    val sec = a.seconds.toLong()
+                    TimeCalcValue.CalendarDateTime(b.dateTime.plusSeconds(sec))
                 }
                 a is TimeCalcValue.Scalar && b is TimeCalcValue.Scalar -> TimeCalcValue.Scalar(a.value + b.value)
                 else -> throw CalcException("不同单位类型不能直接相加", "Cannot add different value types")
             }
             "-" -> when {
                 a is TimeCalcValue.DurationSec && b is TimeCalcValue.DurationSec -> TimeCalcValue.DurationSec(a.seconds - b.seconds, a.primaryUnit)
-                a is TimeCalcValue.CalendarDate && b is TimeCalcValue.DurationSec -> {
-                    val days = (b.seconds / 86400.0).toLong()
-                    TimeCalcValue.CalendarDate(a.date.minusDays(days))
+                a is TimeCalcValue.CalendarDateTime && b is TimeCalcValue.DurationSec -> {
+                    val sec = b.seconds.toLong()
+                    TimeCalcValue.CalendarDateTime(a.dateTime.minusSeconds(sec))
                 }
-                a is TimeCalcValue.CalendarDate && b is TimeCalcValue.CalendarDate -> {
-                    val days = ChronoUnit.DAYS.between(b.date, a.date)
-                    TimeCalcValue.DurationSec(days * 86400.0, primaryUnit = "d")
+                a is TimeCalcValue.CalendarDateTime && b is TimeCalcValue.CalendarDateTime -> {
+                    val sec = ChronoUnit.SECONDS.between(b.dateTime, a.dateTime)
+                    TimeCalcValue.DurationSec(sec * 1.0, primaryUnit = "d")
                 }
                 a is TimeCalcValue.Scalar && b is TimeCalcValue.Scalar -> TimeCalcValue.Scalar(a.value - b.value)
                 else -> throw CalcException("不同单位类型不能直接相减", "Cannot subtract different value types")
@@ -631,7 +661,7 @@ object TimeExpressionEvaluator {
                 a is TimeCalcValue.DurationSec && b is TimeCalcValue.Scalar -> TimeCalcValue.DurationSec(a.seconds * b.value, a.primaryUnit)
                 a is TimeCalcValue.Scalar && b is TimeCalcValue.DurationSec -> TimeCalcValue.DurationSec(a.value * b.seconds, b.primaryUnit)
                 a is TimeCalcValue.Scalar && b is TimeCalcValue.Scalar -> TimeCalcValue.Scalar(a.value * b.value)
-                a is TimeCalcValue.CalendarDate || b is TimeCalcValue.CalendarDate -> throw CalcException("日期不能参与乘法运算", "Dates cannot be multiplied")
+                a is TimeCalcValue.CalendarDateTime || b is TimeCalcValue.CalendarDateTime -> throw CalcException("日期时间不能参与乘法", "Date times cannot be multiplied")
                 else -> throw CalcException("时长之间不能直接相乘", "Cannot multiply duration by duration")
             }
             "/" -> when {
@@ -640,7 +670,7 @@ object TimeExpressionEvaluator {
                 a is TimeCalcValue.DurationSec && b is TimeCalcValue.Scalar -> TimeCalcValue.DurationSec(a.seconds / b.value, a.primaryUnit)
                 a is TimeCalcValue.DurationSec && b is TimeCalcValue.DurationSec -> TimeCalcValue.Scalar(a.seconds / b.seconds)
                 a is TimeCalcValue.Scalar && b is TimeCalcValue.Scalar -> TimeCalcValue.Scalar(a.value / b.value)
-                a is TimeCalcValue.CalendarDate || b is TimeCalcValue.CalendarDate -> throw CalcException("日期不能参与除法运算", "Dates cannot be divided")
+                a is TimeCalcValue.CalendarDateTime || b is TimeCalcValue.CalendarDateTime -> throw CalcException("日期时间不能参与除法", "Date times cannot be divided")
                 else -> throw CalcException("无法执行此除法运算", "Invalid division")
             }
             else -> throw CalcException("未知运算符: $op", "Unknown operator: $op")
@@ -653,12 +683,19 @@ object TimeExpressionEvaluator {
                 val v = value.value
                 if (v == v.toLong().toDouble()) v.toLong().toString() else String.format(Locale.US, "%.2f", v)
             }
-            is TimeCalcValue.CalendarDate -> {
-                val d = value.date
+            is TimeCalcValue.CalendarDateTime -> {
+                val dt = value.dateTime
                 val uY = LanguageUtils.getTimeUnitLabel("y", lang)
                 val uM = LanguageUtils.getTimeUnitLabel("M", lang)
                 val uD = LanguageUtils.getTimeUnitLabel("d", lang)
-                "${d.year}$uY ${d.monthValue}$uM ${d.dayOfMonth}$uD"
+                val uH = LanguageUtils.getTimeUnitLabel("h", lang)
+                val uMin = LanguageUtils.getTimeUnitLabel("m", lang)
+
+                if (dt.hour == 0 && dt.minute == 0) {
+                    "${dt.year}$uY ${dt.monthValue}$uM ${dt.dayOfMonth}$uD"
+                } else {
+                    "${dt.year}$uY ${dt.monthValue}$uM ${dt.dayOfMonth}$uD ${dt.hour}$uH ${dt.minute}$uMin"
+                }
             }
             is TimeCalcValue.DurationSec -> {
                 formatSecondsToHumanReadable(value.seconds, lang, targetUnit, value.primaryUnit)
@@ -726,7 +763,7 @@ object TimeExpressionEvaluator {
 
             if (cleanExpr.isBlank()) return ""
 
-            val tokenRegex = Regex("(\\d{4}[y年]\\d{1,2}[M月]\\d{1,2}[d日天]|(?:\\d+(?:\\.\\d+)?)[yMdhms]|\\d+(?:\\.\\d+)?|[+\\-*/()])")
+            val tokenRegex = Regex("(\\d{4}[y年]\\d{1,2}[M月]\\d{1,2}[d日天](?:\\d{1,2}[h时])?(?:\\d{1,2}[m分])?|(?:\\d+(?:\\.\\d+)?)[yMdhms]|\\d+(?:\\.\\d+)?|[+\\-*/()])")
             val rawTokens = tokenRegex.findAll(cleanExpr).map { it.value }.toList()
 
             if (rawTokens.isEmpty()) return ""
