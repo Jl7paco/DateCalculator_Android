@@ -433,42 +433,24 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 2: 横屏时矢量平移 -(W-H)/2-12dp X轴左拉 与 +(W-H)/2+10dp Y轴下压，确保 100% 紧贴死死固定在取景框内部右上角，绝对零溢出！
+            // 彻底根治 BUG：将水印卡片放置在取景框容器内的右上角 (Alignment.TopEnd)
+            // 锚定 TransformOrigin(1.0f, 0.0f) 右上角顶点，0°, 90°, 180°, 270° 旋转时右上角顶点 100% 永久锁定在取景框右上角，绝不安放/移至中间！
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 110.dp, end = 12.dp)
+                    .padding(top = 100.dp, end = 12.dp)
             ) {
-                val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
-                val badgeWidthDp = 220.dp * watermarkScale
-                val badgeHeightDp = 72.dp * watermarkScale
-                val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
-
-                val shiftX = if (isLandscape) -halfDiff - 12.dp else 0.dp
-                val shiftY = if (isLandscape) halfDiff + 10.dp else 0.dp
-
-                val animatedShiftX by animateDpAsState(
-                    targetValue = shiftX,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "WatermarkShiftX"
-                )
-                val animatedShiftY by animateDpAsState(
-                    targetValue = shiftY,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "WatermarkShiftY"
-                )
-
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
                     landmarkName = liveLandmark,
                     dateTimeStr = nowTimeStr,
                     mapTileBitmap = mapTileBitmap,
                     scaleFactor = watermarkScale,
+                    lang = lang,
                     modifier = Modifier
-                        .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
                             rotationZ = animatedRotation
-                            transformOrigin = TransformOrigin(0.5f, 0.5f)
+                            transformOrigin = TransformOrigin(1.0f, 0.0f)
                         }
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ ->
@@ -478,7 +460,23 @@ fun WatermarkCameraScreen(
                 )
             }
 
-            // 需求 2: 预览框位置保持不变的前提下，将拍摄按钮、照片/视频切换、翻转与闪光灯底部 UI 控制区整体下移 50dp (bottom = 135.dp + navigationBarsPadding)
+            // 需求 4: 多语言动态翻译模式切换 Pills [ PHOTO | VIDEO ]
+            val photoModePillTxt = when (lang.getEffectiveLanguage()) {
+                AppLanguage.ENGLISH -> "PHOTO"
+                AppLanguage.TRADITIONAL_CHINESE -> "相片"
+                AppLanguage.JAPANESE -> "写真"
+                AppLanguage.KOREAN -> "사진"
+                else -> "照片"
+            }
+
+            val videoModePillTxt = when (lang.getEffectiveLanguage()) {
+                AppLanguage.ENGLISH -> "VIDEO"
+                AppLanguage.TRADITIONAL_CHINESE -> "影片"
+                AppLanguage.JAPANESE -> "動画"
+                AppLanguage.KOREAN -> "비디오"
+                else -> "视频"
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -491,7 +489,7 @@ fun WatermarkCameraScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // 模式 Pills [ 照片 | 视频 ]
+                    // 模式 Pills [ 照片 | 视频 ] (全量多语言动态本地化)
                     val modeSwitchShape = RoundedCornerShape(14.dp)
                     Box(
                         modifier = Modifier
@@ -513,7 +511,7 @@ fun WatermarkCameraScreen(
                                     }
                                     .padding(horizontal = 14.dp, vertical = 4.dp)
                             ) {
-                                Text("照片", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.PHOTO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
+                                Text(photoModePillTxt, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.PHOTO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
                             }
 
                             Box(
@@ -531,7 +529,7 @@ fun WatermarkCameraScreen(
                                     }
                                     .padding(horizontal = 14.dp, vertical = 4.dp)
                             ) {
-                                Text("视频", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.VIDEO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
+                                Text(videoModePillTxt, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (cameraMode == CameraMode.VIDEO) Color.White else NeumorphicTextPrimary, modifier = Modifier.graphicsLayer { rotationZ = animatedRotation })
                             }
                         }
                     }

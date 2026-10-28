@@ -36,6 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.paco.datecalculator.R
+import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.util.LanguageUtils
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -50,9 +52,18 @@ fun WatermarkBadgeOverlay(
     dateTimeStr: String,
     mapTileBitmap: Bitmap? = null,
     scaleFactor: Float = 1.0f,
+    lang: AppLanguage = AppLanguage.SIMPLIFIED_CHINESE,
     modifier: Modifier = Modifier
 ) {
     val badgeShape = RoundedCornerShape(18.dp)
+
+    val mapLabel = when (lang.getEffectiveLanguage()) {
+        AppLanguage.ENGLISH -> "MAP"
+        AppLanguage.TRADITIONAL_CHINESE -> "地圖"
+        AppLanguage.JAPANESE -> "地図"
+        AppLanguage.KOREAN -> "지도"
+        else -> "地图"
+    }
 
     Box(
         modifier = modifier
@@ -116,7 +127,7 @@ fun WatermarkBadgeOverlay(
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Text(
-                            text = "地图",
+                            text = mapLabel,
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White.copy(alpha = 0.9f)
@@ -133,7 +144,7 @@ fun WatermarkBadgeOverlay(
                 modifier = Modifier.width(175.dp)
             ) {
                 Text(
-                    text = cityName.ifBlank { "深圳市, 中国" },
+                    text = cityName.ifBlank { LanguageUtils.getLocalizedCityName("深圳市 · 福田区", lang) },
                     fontSize = 13.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White,
@@ -157,7 +168,14 @@ fun WatermarkBadgeOverlay(
                 val formattedTime = if (dateTimeStr.isNotBlank()) {
                     dateTimeStr
                 } else {
-                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 a h:mm", Locale.SIMPLIFIED_CHINESE))
+                    val now = LocalDateTime.now()
+                    when (lang.getEffectiveLanguage()) {
+                        AppLanguage.ENGLISH -> now.format(DateTimeFormatter.ofPattern("MMM dd, yyyy h:mm a", Locale.US))
+                        AppLanguage.TRADITIONAL_CHINESE -> now.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 a h:mm", Locale.TRADITIONAL_CHINESE))
+                        AppLanguage.JAPANESE -> now.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 a h:mm", Locale.JAPANESE))
+                        AppLanguage.KOREAN -> now.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 a h:mm", Locale.KOREAN))
+                        else -> now.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 a h:mm", Locale.SIMPLIFIED_CHINESE))
+                    }
                 }
 
                 Text(

@@ -838,11 +838,18 @@ private fun DateDiffCheckInDialog(
             }
         },
         confirmButton = {
+            val confirmBtnTxt = when (effectiveLang) {
+                AppLanguage.ENGLISH -> "Save Check-In"
+                AppLanguage.TRADITIONAL_CHINESE -> "記錄打卡"
+                AppLanguage.JAPANESE -> "チェックインを記録"
+                AppLanguage.KOREAN -> "체크인 기록"
+                else -> "记录打卡"
+            }
             Button(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(containerColor = NeumorphicAccent)
             ) {
-                Text("记录打卡", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(confirmBtnTxt, color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
