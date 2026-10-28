@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -228,6 +229,7 @@ fun WatermarkCameraScreen(
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
 
     LaunchedEffect(lensFacing, cameraMode, flashEnabled) {
+        currentZoom = 1.0f // 镜头切换重置倍率为 1.0x，防止跨镜头倍率混乱
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             try {
@@ -264,6 +266,8 @@ fun WatermarkCameraScreen(
                 }
 
                 boundCamera = camera
+                camera.cameraControl.setZoomRatio(1.0f)
+
                 val currentZoomState = camera.cameraInfo.zoomState.value
                 if (currentZoomState != null) {
                     minZoomRatio = currentZoomState.minZoomRatio
@@ -294,28 +298,14 @@ fun WatermarkCameraScreen(
         }
     }
 
-    // 100% 硬件读取当前手机摄像头真实支持的全焦段
+    // 需求 1: 全机型物理焦段兼容策略 (后置镜头动态筛选真实 minZoomRatio..maxZoomRatio 内的有效倍率，前置自动隐去)
     val zoomOptions = remember(minZoomRatio, maxZoomRatio, lensFacing) {
         if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
             emptyList()
         } else {
-            val options = mutableListOf<Float>()
-
-            if (minZoomRatio < 1.0f) {
-                options.add((minZoomRatio * 10).toInt() / 10.0f)
-            } else {
-                options.add(0.5f)
-            }
-
-            options.add(1.0f)
-            options.add(2.0f)
-            options.add(3.0f)
-
-            val effectiveMax = if (maxZoomRatio > 1.0f) maxZoomRatio else 10.0f
-            if (effectiveMax >= 5.0f) options.add(5.0f)
-            if (effectiveMax >= 10.0f) options.add(10.0f)
-
-            options.distinct().sorted().take(6)
+            val ultraWideStep = if (minZoomRatio < 1.0f) minZoomRatio else 0.5f
+            val candidates = listOf(ultraWideStep, 1.0f, 2.0f, 3.0f, 5.0f, 10.0f)
+            candidates.filter { it >= minZoomRatio && it <= maxZoomRatio }.distinct().sorted()
         }
     }
 
@@ -341,11 +331,12 @@ fun WatermarkCameraScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // 2. 顶栏控制器 (焦段 0.5x, 1x 等倍率悬浮黑透胶囊，不遮挡取景界面)
+            // 2. 顶栏控制器 (添加 statusBarsPadding 避让刘海/挖孔屏与状态栏)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 36.dp, start = 16.dp, end = 16.dp),
+                    .statusBarsPadding()
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -418,24 +409,12 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 1: 水印卡片精准位于 4:3 取景框内部右上角 (top = 145.dp, end = 12.dp)
+            // 需求 1 & 2: 水印卡片 100% 精准定位于 4:3 取景框内部右上角，锚定 TransformOrigin(1.0f, 0.0f) 杜绝溢出与偏移
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 145.dp, end = 12.dp)
+                    .padding(top = 90.dp, end = 12.dp)
             ) {
-                val cardWidthDp = 235.dp * watermarkScale
-                val cardHeightDp = 76.dp * watermarkScale
-
-                val isTargetLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
-                val targetShift = if (isTargetLandscape) (cardWidthDp - cardHeightDp) / 2f else 0.dp
-
-                val animatedCenterShift by animateDpAsState(
-                    targetValue = targetShift,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "WatermarkCenterShift"
-                )
-
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
                     landmarkName = liveLandmark,
@@ -443,10 +422,9 @@ fun WatermarkCameraScreen(
                     mapTileBitmap = mapTileBitmap,
                     scaleFactor = watermarkScale,
                     modifier = Modifier
-                        .offset(x = animatedCenterShift, y = animatedCenterShift)
                         .graphicsLayer {
                             rotationZ = animatedRotation
-                            transformOrigin = TransformOrigin(0.5f, 0.5f)
+                            transformOrigin = TransformOrigin(1.0f, 0.0f)
                         }
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ ->
