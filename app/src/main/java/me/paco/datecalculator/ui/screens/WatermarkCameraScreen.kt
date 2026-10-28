@@ -323,7 +323,7 @@ fun WatermarkCameraScreen(
         )
     ) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            // 1. 用户指令：只将取景框整体向上移动 200dp (bottom = 380.dp)
+            // 1. 用户指令：整体往下回调下移 250dp (bottom = 130.dp)
             AndroidView(
                 factory = {
                     previewView.apply {
@@ -335,7 +335,7 @@ fun WatermarkCameraScreen(
                 },
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 380.dp)
+                    .padding(bottom = 130.dp)
             )
 
             // 2. 顶栏控制器 (添加 statusBarsPadding 避让刘海/挖孔屏与状态栏)
@@ -441,13 +441,13 @@ fun WatermarkCameraScreen(
                 )
             }
 
-            // 用户指令：只将底部拍摄 UI 区往上移动 200dp (bottom = 435.dp + navigationBarsPadding)
+            // 用户指令：底部拍摄 UI 控制 Deck 下移 250dp 回调至最舒适高度 (bottom = 185.dp + navigationBarsPadding)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 435.dp, top = 8.dp, start = 16.dp, end = 16.dp),
+                    .padding(bottom = 185.dp, top = 8.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
