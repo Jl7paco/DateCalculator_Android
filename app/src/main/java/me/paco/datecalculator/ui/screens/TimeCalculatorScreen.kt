@@ -313,51 +313,51 @@ fun TimeCalculatorScreen(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 默认选中的 "原始" 按钮
+                // 需求 1: 默认选中的 "原始" 按钮 (进一步加大尺寸: height = 38.dp, fontSize = 12.5.sp)
                 val isRawSelected = targetUnitMode == null
                 Box(
                     modifier = Modifier
-                        .height(34.dp)
-                        .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = if (isRawSelected) 1.dp else 3.dp)
-                        .background(if (isRawSelected) NeumorphicAccent else NeumorphicBg, shape = RoundedCornerShape(10.dp))
-                        .clip(RoundedCornerShape(10.dp))
+                        .height(38.dp)
+                        .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = if (isRawSelected) 1.dp else 4.dp)
+                        .background(if (isRawSelected) NeumorphicAccent else NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable {
                             HapticUtils.performCrispClick(context, view)
                             targetUnitMode = null
                             evaluateExpression()
                         }
-                        .padding(horizontal = 9.dp),
+                        .padding(horizontal = 11.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = rawLabel,
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Black,
                         color = if (isRawSelected) Color.White else NeumorphicTextPrimary
                     )
                 }
 
-                // 加大单位转换按钮 (y, M, d, h, m, s)
+                // 需求 1: 进一步加大的单位转换按钮 (y, M, d, h, m, s)
                 listOf("y" to unitY, "M" to unitM, "d" to unitD, "h" to unitH, "m" to unitMin, "s" to unitS).forEach { (unitKey, label) ->
                     val isSel = targetUnitMode == unitKey
                     Box(
                         modifier = Modifier
-                            .height(34.dp)
-                            .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = if (isSel) 1.dp else 3.dp)
-                            .background(if (isSel) NeumorphicAccent else NeumorphicBg, shape = RoundedCornerShape(10.dp))
-                            .clip(RoundedCornerShape(10.dp))
+                            .height(38.dp)
+                            .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = if (isSel) 1.dp else 4.dp)
+                            .background(if (isSel) NeumorphicAccent else NeumorphicBg, shape = RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 HapticUtils.performCrispClick(context, view)
                                 targetUnitMode = unitKey
                                 evaluateExpression()
                             }
-                            .padding(horizontal = 7.dp),
+                            .padding(horizontal = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label,
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Black,
                             color = if (isSel) Color.White else NeumorphicTextPrimary
                         )
                     }
@@ -365,21 +365,21 @@ fun TimeCalculatorScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // 需求 3: [ 🕒 当前时间 ] 按钮 (按下一键插入实时当前时间，完美参与加减推算)
+                // [ 🕒 当前时间 ] 按钮 (height = 38.dp)
                 Box(
                     modifier = Modifier
-                        .height(34.dp)
-                        .neumorphicExtruded(shape = RoundedCornerShape(10.dp), elevation = 3.dp)
-                        .background(NeumorphicAccent.copy(alpha = 0.20f), shape = RoundedCornerShape(10.dp))
-                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.50f), RoundedCornerShape(10.dp))
-                        .clip(RoundedCornerShape(10.dp))
+                        .height(38.dp)
+                        .neumorphicExtruded(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
+                        .background(NeumorphicAccent.copy(alpha = 0.20f), shape = RoundedCornerShape(12.dp))
+                        .border(1.2.dp, NeumorphicAccent.copy(alpha = 0.50f), RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable {
                             HapticUtils.performCrispClick(context, view)
                             val now = LocalDateTime.now()
                             val nowToken = "${now.year}y ${now.monthValue}M ${now.dayOfMonth}d ${now.hour}h ${now.minute}m"
                             appendToken(nowToken)
                         }
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -387,12 +387,12 @@ fun TimeCalculatorScreen(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = "Current Time",
                             tint = NeumorphicAccent,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(3.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = nowBtnLabel,
-                            fontSize = 10.5.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = NeumorphicAccent
                         )

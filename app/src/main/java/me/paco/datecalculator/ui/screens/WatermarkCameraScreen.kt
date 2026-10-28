@@ -433,7 +433,7 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 1: 完美几何 2D 旋转矩阵推导：横屏时平移矢量设为 +halfDiff X轴 与 +halfDiff Y轴，使旋转后的竖版水印右上角与 4:3 取景框右上角 100% 绝对齐平靠紧！
+            // 需求 2: 横屏时矢量平移 -(W-H)/2-12dp X轴左拉 与 +(W-H)/2+10dp Y轴下压，确保 100% 紧贴死死固定在取景框内部右上角，绝对零溢出！
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -444,8 +444,8 @@ fun WatermarkCameraScreen(
                 val badgeHeightDp = 72.dp * watermarkScale
                 val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
 
-                val shiftX = if (isLandscape) halfDiff else 0.dp
-                val shiftY = if (isLandscape) halfDiff else 0.dp
+                val shiftX = if (isLandscape) -halfDiff - 12.dp else 0.dp
+                val shiftY = if (isLandscape) halfDiff + 10.dp else 0.dp
 
                 val animatedShiftX by animateDpAsState(
                     targetValue = shiftX,
