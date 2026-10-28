@@ -377,6 +377,279 @@ private fun getHolidayThemePattern(label: String, region: HolidayRegion, isDark:
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DateDiffAddCustomDialog(
+    show: Boolean,
+    lang: AppLanguage,
+    effectiveLang: AppLanguage,
+    isDark: Boolean,
+    context: Context,
+    viewModel: DateCalculatorViewModel,
+    onConfirm: (String, LocalDate, String, EventRepeatMode) -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (!show) return
+    var customNameInput by remember { mutableStateOf("") }
+    var customDateInput by remember { mutableStateOf(LocalDate.now().plusDays(10)) }
+    var showCustomDatePicker by remember { mutableStateOf(false) }
+    var selectedEmoji by remember { mutableStateOf("🎂") }
+    var selectedRepeatMode by remember { mutableStateOf(EventRepeatMode.NONE) }
+
+    if (showCustomDatePicker) {
+        DatePickerModal(
+            selectedDate = customDateInput,
+            onDateSelected = { d ->
+                customDateInput = d
+                showCustomDatePicker = false
+            },
+            onDismiss = { showCustomDatePicker = false }
+        )
+    }
+
+    val dialogBg = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg
+    val customTitlePlaceholder = when (effectiveLang) {
+        AppLanguage.ENGLISH -> "e.g. Exam / Concert / Vacation"
+        AppLanguage.JAPANESE -> "例: 試験 / コンサート / 旅行"
+        AppLanguage.KOREAN -> "예: 시험 / 콘서트 / 휴가"
+        AppLanguage.TRADITIONAL_CHINESE -> "如: 考研倒數 / 演唱會 / 假期"
+        else -> "例如: 考研倒计时 / 看演唱会 / 毕业旅行"
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(LanguageUtils.getString("add_countdown", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Emoji Icon", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                val emojiOptions = listOf("🎂", "🎉", "✈️", "💍", "🎓", "🎮", "🚗", "🏠", "📚", "❤️", "🏆", "📌")
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    emojiOptions.forEach { emoji ->
+                        val isSelected = selectedEmoji == emoji
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(if (isSelected) NeumorphicAccent else Color.Transparent)
+                                .clickable { selectedEmoji = emoji },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(emoji, fontSize = 18.sp)
+                        }
+                    }
+                }
+
+                Text(LanguageUtils.getString("anniversary_name", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp))
+                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (customNameInput.isEmpty()) {
+                        Text(
+                            text = customTitlePlaceholder,
+                            fontSize = 13.sp,
+                            color = NeumorphicTextPrimary.copy(alpha = 0.40f)
+                        )
+                    }
+                    BasicTextField(
+                        value = customNameInput,
+                        onValueChange = { customNameInput = it },
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                        cursorBrush = SolidColor(NeumorphicAccent),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Text(LanguageUtils.getString("target_date", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
+                val inputShape14 = RoundedCornerShape(14.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .neumorphicExtruded(shape = inputShape14, elevation = 4.dp)
+                        .background(NeumorphicBg, shape = inputShape14)
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape14)
+                        .clip(inputShape14)
+                        .clickable { showCustomDatePicker = true }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = NeumorphicAccent,
+                                modifier = Modifier.padding(end = 8.dp).size(18.dp)
+                            )
+                            Text(
+                                text = DateCalculatorUtils.formatDateWithWeek(customDateInput, lang),
+                                fontSize = 14.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeumorphicTextPrimary
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.EditCalendar,
+                            contentDescription = "Select Date",
+                            tint = NeumorphicAccent.copy(alpha = 0.8f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    EventRepeatMode.entries.forEach { mode ->
+                        val isSel = selectedRepeatMode == mode
+                        val modeLabel = mode.getLocalizedName(lang)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSel) NeumorphicAccent else NeumorphicSunkenBg)
+                                .clickable { selectedRepeatMode = mode },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(modeLabel, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (isSel) Color.White else NeumorphicTextPrimary)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (customNameInput.isNotBlank()) {
+                        val fullName = "$selectedEmoji $customNameInput"
+                        onConfirm(fullName, customDateInput, selectedEmoji, selectedRepeatMode)
+                        customNameInput = ""
+                    }
+                }
+            ) {
+                Text(LanguageUtils.getString("confirm", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(LanguageUtils.getString("cancel", lang), color = NeumorphicTextPrimary.copy(alpha = 0.7f))
+            }
+        },
+        containerColor = dialogBg,
+        shape = RoundedCornerShape(20.dp)
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun DateDiffPresetGrid(
+    presetCountdowns: List<Pair<String, LocalDate>>,
+    uiState: DateCalculatorUiState,
+    resultCardList: List<CountdownCardData>,
+    lang: AppLanguage,
+    isDark: Boolean,
+    context: Context,
+    viewModel: DateCalculatorViewModel,
+    onSelectPreset: (String, LocalDate) -> Unit
+) {
+    val chipShape14 = RoundedCornerShape(14.dp)
+    val rows = presetCountdowns.chunked(3)
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        rows.forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                rowItems.forEach { (label, targetDate) ->
+                    val isPinned = uiState.pinnedPresetHolidays.contains(label)
+                    val isSelected = resultCardList.firstOrNull()?.eventName == label
+
+                    val rawLocalized = LanguageUtils.getLocalizedHolidayName(label, lang)
+                    val cleanName = rawLocalized.replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
+
+                    val pattern = getHolidayThemePattern(label, uiState.holidayRegion, isDark)
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .neumorphicExtruded(shape = chipShape14, elevation = 4.dp)
+                            .background(NeumorphicBg, shape = chipShape14)
+                            .border(
+                                width = if (isSelected) 1.8.dp else 1.dp,
+                                color = if (isSelected) pattern.accentColor else pattern.accentColor.copy(alpha = 0.30f),
+                                shape = chipShape14
+                            )
+                            .clip(chipShape14)
+                            .combinedClickable(
+                                onClick = { onSelectPreset(cleanName, targetDate) },
+                                onLongClick = {
+                                    viewModel.togglePinPresetHoliday(label, context)
+                                    val msg = if (isPinned) "Unpinned" else "Pinned!"
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(pattern.photoResId),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            alpha = if (isDark) 0.55f else 0.45f,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(pattern.overlayMaskColor)
+                        )
+
+                        Text(
+                            text = cleanName,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isDark) Color.White else NeumorphicTextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                    }
+                }
+
+                if (rowItems.size < 3) {
+                    repeat(3 - rowItems.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun DateDiffCheckInDialog(
     show: Boolean,
@@ -1061,191 +1334,33 @@ fun DateDiffScreen(
         uiState = uiState
     )
 
-    // 添加自定义倒数日 Dialog
+    // 添加自定义倒数日 Dialog (拆分抽离组件)
     var showAddCustomDialog by remember { mutableStateOf(false) }
-    var customNameInput by remember { mutableStateOf("") }
-    var customDateInput by remember { mutableStateOf(LocalDate.now().plusDays(10)) }
-    var showCustomDatePicker by remember { mutableStateOf(false) }
-    var selectedEmoji by remember { mutableStateOf("🎂") }
-    var selectedRepeatMode by remember { mutableStateOf(EventRepeatMode.NONE) }
     var eventToDelete by remember { mutableStateOf<CustomEventItem?>(null) }
 
-    if (showCustomDatePicker) {
-        DatePickerModal(
-            selectedDate = customDateInput,
-            onDateSelected = { d ->
-                customDateInput = d
-                showCustomDatePicker = false
-            },
-            onDismiss = { showCustomDatePicker = false }
-        )
-    }
-
-    if (showAddCustomDialog) {
-        val dialogBg = if (isDark) MaterialTheme.colorScheme.surface else NeumorphicBg
-        val customTitlePlaceholder = when (effectiveLang) {
-            AppLanguage.ENGLISH -> "e.g. Exam / Concert / Vacation"
-            AppLanguage.JAPANESE -> "例: 試験 / コンサート / 旅行"
-            AppLanguage.KOREAN -> "예: 시험 / 콘서트 / 휴가"
-            AppLanguage.TRADITIONAL_CHINESE -> "如: 考研倒數 / 演唱會 / 假期"
-            else -> "例如: 考研倒计时 / 看演唱会 / 毕业旅行"
-        }
-
-        AlertDialog(
-            onDismissRequest = { showAddCustomDialog = false },
-            title = { Text(LanguageUtils.getString("add_countdown", lang), fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Emoji Icon", fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-                    val emojiOptions = listOf("🎂", "🎉", "✈️", "💍", "🎓", "🎮", "🚗", "🏠", "📚", "❤️", "🏆", "📌")
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        emojiOptions.forEach { emoji ->
-                            val isSelected = selectedEmoji == emoji
-                            Box(
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSelected) NeumorphicAccent else Color.Transparent)
-                                    .clickable { selectedEmoji = emoji },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(emoji, fontSize = 18.sp)
-                            }
-                        }
-                    }
-
-                    // 1. 倒数日名称
-                    Text(LanguageUtils.getString("anniversary_name", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .neumorphicInset(shape = RoundedCornerShape(12.dp), elevation = 3.dp)
-                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp))
-                            .background(NeumorphicSunkenBg, shape = RoundedCornerShape(12.dp))
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (customNameInput.isEmpty()) {
-                            Text(
-                                text = customTitlePlaceholder,
-                                fontSize = 13.sp,
-                                color = NeumorphicTextPrimary.copy(alpha = 0.40f)
-                            )
-                        }
-                        BasicTextField(
-                            value = customNameInput,
-                            onValueChange = { customNameInput = it },
-                            singleLine = true,
-                            textStyle = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
-                            cursorBrush = SolidColor(NeumorphicAccent),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    // 2. 目标日期选择框
-                    Text(LanguageUtils.getString("target_date", lang), fontSize = 12.sp, color = NeumorphicAccent, fontWeight = FontWeight.Bold)
-                    val inputShape14 = RoundedCornerShape(14.dp)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .neumorphicInset(shape = inputShape14, elevation = 3.dp)
-                            .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape14)
-                            .background(NeumorphicBg, shape = inputShape14)
-                            .clip(inputShape14)
-                            .clickable { showCustomDatePicker = true }
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = NeumorphicAccent,
-                                    modifier = Modifier.padding(end = 8.dp).size(18.dp)
-                                )
-                                Text(
-                                    text = DateCalculatorUtils.formatDateWithWeek(customDateInput, lang),
-                                    fontSize = 14.5.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = NeumorphicTextPrimary
-                                )
-                            }
-
-                            Icon(
-                                imageVector = Icons.Default.EditCalendar,
-                                contentDescription = "Select Date",
-                                tint = NeumorphicAccent.copy(alpha = 0.8f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        EventRepeatMode.entries.forEach { mode ->
-                            val isSel = selectedRepeatMode == mode
-                            val modeLabel = mode.getLocalizedName(lang)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSel) NeumorphicAccent else NeumorphicSunkenBg)
-                                    .clickable { selectedRepeatMode = mode },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(modeLabel, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (isSel) Color.White else NeumorphicTextPrimary)
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (customNameInput.isNotBlank()) {
-                            val fullName = "$selectedEmoji $customNameInput"
-                            viewModel.addCustomEvent(
-                                name = fullName,
-                                targetDate = customDateInput,
-                                iconEmoji = selectedEmoji,
-                                repeatMode = selectedRepeatMode,
-                                isPinned = true,
-                                context = context
-                            )
-                            viewModel.updateEndDate(customDateInput)
-                            currentTargetEventName = fullName
-                            addResultCard(fullName, customDateInput)
-
-                            showAddCustomDialog = false
-                            customNameInput = ""
-                        }
-                    }
-                ) {
-                    Text(LanguageUtils.getString("confirm", lang), fontWeight = FontWeight.Bold, color = NeumorphicAccent)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddCustomDialog = false }) {
-                    Text(LanguageUtils.getString("cancel", lang), color = NeumorphicTextPrimary.copy(alpha = 0.7f))
-                }
-            },
-            containerColor = dialogBg,
-            shape = RoundedCornerShape(20.dp)
-        )
-    }
+    DateDiffAddCustomDialog(
+        show = showAddCustomDialog,
+        lang = lang,
+        effectiveLang = effectiveLang,
+        isDark = isDark,
+        context = context,
+        viewModel = viewModel,
+        onConfirm = { fullName, customDate, emoji, repeatMode ->
+            viewModel.addCustomEvent(
+                name = fullName,
+                targetDate = customDate,
+                iconEmoji = emoji,
+                repeatMode = repeatMode,
+                isPinned = true,
+                context = context
+            )
+            viewModel.updateEndDate(customDate)
+            currentTargetEventName = fullName
+            addResultCard(fullName, customDate)
+            showAddCustomDialog = false
+        },
+        onDismiss = { showAddCustomDialog = false }
+    )
 
     // 拆分打卡 Dialog 组件
     DateDiffCheckInDialog(
@@ -1554,7 +1669,7 @@ fun DateDiffScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. 常用倒数日功能区 (3 栏等宽矩阵对齐 + 纯文字取消 Emoji + 节日专属半透明气场背景)
+            // 3. 常用倒数日功能区 (抽离为独立 Top-level Composable，彻底解开 ART 指令限额)
             Text(
                 text = LanguageUtils.getString("common_countdown", lang),
                 style = MaterialTheme.typography.bodyMedium,
@@ -1568,111 +1683,21 @@ fun DateDiffScreen(
                 uiState.disabledPresetHolidays.contains(label)
             }
 
-            val chipShape14 = RoundedCornerShape(14.dp)
-            val isDark = LocalDarkTheme.current
-
-            // 矩阵排版：每行 3 个 100% 相同高宽按键 (3 栏等宽矩阵，取消 Emoji，带有节日专属半透明气场背景)
-            val rows = presetCountdowns.chunked(3)
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                rows.forEach { rowItems ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        rowItems.forEach { (label, targetDate) ->
-                            val isPinned = uiState.pinnedPresetHolidays.contains(label)
-                            val isSelected = resultCardList.firstOrNull()?.eventName == label
-
-                            // 100% 彻底清洗全量 Emoji，纯粹地道文字
-                            val rawLocalized = LanguageUtils.getLocalizedHolidayName(label, lang)
-                            val cleanName = rawLocalized.replace(Regex("[\\x{1F300}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}\\x{1F600}-\\x{1F64F}\\x{1F680}-\\x{1F6FF}\\x{1F1E6}-\\x{1F1FF}\\u2600-\\u27BF]"), "").trim()
-
-                            val pattern = getHolidayThemePattern(label, uiState.holidayRegion, isDark)
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
-                                    .neumorphicExtruded(shape = chipShape14, elevation = 4.dp)
-                                    .background(NeumorphicBg, shape = chipShape14)
-                                    .border(
-                                        width = if (isSelected) 1.8.dp else 1.dp,
-                                        color = if (isSelected) pattern.accentColor else pattern.accentColor.copy(alpha = 0.30f),
-                                        shape = chipShape14
-                                    )
-                                    .clip(chipShape14)
-                                    .combinedClickable(
-                                        onClick = {
-                                            targetCalendarType = 0
-                                            viewModel.updateEndDate(targetDate)
-                                            currentTargetEventName = cleanName
-                                            addResultCard(cleanName, targetDate)
-                                        },
-                                        onLongClick = {
-                                            viewModel.togglePinPresetHoliday(label, context)
-                                            val msg = if (isPinned) "Unpinned" else "Pinned!"
-                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                        }
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                // 1. 矢量/插画素材背景 (采用 ContentScale.Crop 保持原比例，无失真切合按键)
-                                Image(
-                                    painter = painterResource(pattern.photoResId),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    alpha = if (isDark) 0.65f else 0.55f,
-                                    modifier = Modifier.matchParentSize()
-                                )
-
-                                // 2. 需求 6: 倒计时按钮的高考，中考，端午，五一劳动节完全移除颜色遮罩，展现清爽矢量素材原图！
-                                val cleanTag = label.replace(Regex("[^\\u4e00-\\u9fa5a-zA-Z]"), "").lowercase()
-                                val isNoMaskHoliday = cleanTag.contains("高考") || cleanTag.contains("中考") || cleanTag.contains("端午") || cleanTag.contains("劳动") || cleanTag.contains("五一") || cleanTag.contains("labor") || cleanTag.contains("labour")
-
-                                if (!isNoMaskHoliday) {
-                                    Box(
-                                        modifier = Modifier
-                                            .matchParentSize()
-                                            .background(pattern.overlayMaskColor)
-                                    )
-                                }
-
-                                // 3. 前景层：深色主题色/高对比度文字 (浅色模式下采用深色主题色/ Slate 800 保证 100% 极佳可读性)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.padding(horizontal = 4.dp)
-                                ) {
-                                    Text(
-                                        text = cleanName,
-                                        color = if (isDark) Color.White else (if (isSelected) pattern.accentColor else NeumorphicTextPrimary),
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = if (lang.isChineseLocale) 12.sp else 10.5.sp,
-                                        textAlign = TextAlign.Center,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    if (isPinned) {
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text("📌", fontSize = 9.sp)
-                                    }
-                                }
-                            }
-                        }
-
-                        // 若最后一行不足 3 项：补充等宽空位，保持所有卡片尺寸 100% 绝对统一！
-                        repeat(3 - rowItems.size) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
+            DateDiffPresetGrid(
+                presetCountdowns = presetCountdowns,
+                uiState = uiState,
+                resultCardList = resultCardList,
+                lang = lang,
+                isDark = isDark,
+                context = context,
+                viewModel = viewModel,
+                onSelectPreset = { cleanName, targetDate ->
+                    targetCalendarType = 0
+                    viewModel.updateEndDate(targetDate)
+                    currentTargetEventName = cleanName
+                    addResultCard(cleanName, targetDate)
                 }
-
-                // 需求 2 & 3: “新增倒数日”与“打卡”按钮同列响组合（按钮文本由自定义改为新增倒数日，右侧增加打卡按钮）
+            )   // 需求 2 & 3: “新增倒数日”与“打卡”按钮同列响组合（按钮文本由自定义改为新增倒数日，右侧增加打卡按钮）
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -1738,7 +1763,6 @@ fun DateDiffScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}
 }
 
 private fun calculateNextSolarDate(baseDate: LocalDate, month: Int, day: Int): LocalDate {

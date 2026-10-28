@@ -199,6 +199,7 @@ fun WatermarkCameraScreen(
                     else -> deviceRotationDeg
                 }
                 if (newRot != deviceRotationDeg) {
+                    Log.d("WatermarkCamera", "Gyroscope orientation changed: $orientation -> deviceRotationDeg: $newRot")
                     deviceRotationDeg = newRot
                 }
             }
@@ -416,7 +417,7 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 水印卡片精准定位于 4:3 上抬取景框内部右上角 (top = 110.dp, end = 12.dp)，横竖屏均死死锚定在取景框内
+            // 需求 1: 解决水印横屏跑到屏幕外问题，以 TransformOrigin(0.5f, 0.5f) 为中心旋角，并施加 (W-H)/2 矢量平移修正，确保 100% 紧贴取景框内
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -425,12 +426,18 @@ fun WatermarkCameraScreen(
                 val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
                 val badgeWidthDp = 220.dp * watermarkScale
                 val badgeHeightDp = 72.dp * watermarkScale
-                val shiftX = if (isLandscape) -(badgeWidthDp - badgeHeightDp) * 0.40f else 0.dp
+                val shiftX = if (isLandscape) -(badgeWidthDp - badgeHeightDp) / 2f else 0.dp
+                val shiftY = if (isLandscape) (badgeWidthDp - badgeHeightDp) / 2f else 0.dp
 
                 val animatedShiftX by animateDpAsState(
                     targetValue = shiftX,
                     animationSpec = spring(stiffness = Spring.StiffnessMedium),
                     label = "WatermarkShiftX"
+                )
+                val animatedShiftY by animateDpAsState(
+                    targetValue = shiftY,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftY"
                 )
 
                 WatermarkBadgeOverlay(
@@ -440,10 +447,10 @@ fun WatermarkCameraScreen(
                     mapTileBitmap = mapTileBitmap,
                     scaleFactor = watermarkScale,
                     modifier = Modifier
-                        .offset(x = animatedShiftX)
+                        .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
                             rotationZ = animatedRotation
-                            transformOrigin = TransformOrigin(1.0f, 0.0f)
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
                         }
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ ->
@@ -453,13 +460,13 @@ fun WatermarkCameraScreen(
                 )
             }
 
-            // 用户指令：底部拍摄 UI 保持上抬 130dp (bottom = 185.dp + navigationBarsPadding)
+            // 需求 2: 预览框位置保持不变的前提下，将拍摄按钮、照片/视频切换、翻转与闪光灯底部 UI 控制区整体下移 50dp (bottom = 135.dp + navigationBarsPadding)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 185.dp, top = 8.dp, start = 16.dp, end = 16.dp),
+                    .padding(bottom = 135.dp, top = 8.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
