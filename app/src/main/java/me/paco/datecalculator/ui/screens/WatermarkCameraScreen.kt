@@ -175,9 +175,13 @@ fun WatermarkCameraScreen(
     }
 
     LaunchedEffect(latitude, longitude) {
-        val bmp = RealMapTileLoader.loadRealMapTile(context, latitude, longitude)
-        if (bmp != null) {
-            mapTileBitmap = bmp
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val bmp = RealMapTileLoader.loadRealMapTile(context, latitude, longitude)
+            if (bmp != null) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    mapTileBitmap = bmp
+                }
+            }
         }
     }
 
@@ -433,7 +437,7 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 彻底根治 BUG：横屏时右转 -badgeHeightDp (-72dp) 平移拉回，锚定 TransformOrigin(1.0f, 0.0f)，使旋转后的竖版水印右上角与 4:3 取景框右上角 100% 绝对齐平靠紧，绝不溢出屏幕！
+            // 需求 3: 横屏旋转下推，右边缘保持 12dp 侧距，Top 边距下沉 badgeHeightDp，使竖版水印 100% 精准嵌在 4:3 取景框右上角！
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -441,12 +445,19 @@ fun WatermarkCameraScreen(
             ) {
                 val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
                 val badgeHeightDp = 72.dp * watermarkScale
-                val shiftX = if (isLandscape) -badgeHeightDp else 0.dp
+
+                val shiftX = 0.dp
+                val shiftY = if (isLandscape) badgeHeightDp else 0.dp
 
                 val animatedShiftX by animateDpAsState(
                     targetValue = shiftX,
                     animationSpec = spring(stiffness = Spring.StiffnessMedium),
                     label = "WatermarkShiftX"
+                )
+                val animatedShiftY by animateDpAsState(
+                    targetValue = shiftY,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftY"
                 )
 
                 WatermarkBadgeOverlay(
@@ -457,7 +468,7 @@ fun WatermarkCameraScreen(
                     scaleFactor = watermarkScale,
                     lang = lang,
                     modifier = Modifier
-                        .offset(x = animatedShiftX)
+                        .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
                             rotationZ = animatedRotation
                             transformOrigin = TransformOrigin(1.0f, 0.0f)
@@ -743,195 +754,6 @@ fun WatermarkCameraScreen(
                 }
             }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // 快门与手势控制行
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Flash Button
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                                .background(NeumorphicBg, shape = CircleShape)
-                                .clip(CircleShape)
-                                .clickable { flashEnabled = !flashEnabled },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (flashEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                                contentDescription = "Flash",
-                                tint = if (flashEnabled) NeumorphicAccent else NeumorphicTextPrimary,
-                                modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = animatedRotation }
-                            )
-                        }
-
-                        // 快门按钮
-                        val interactionSource = remember { MutableInteractionSource() }
-                        val isPressed by interactionSource.collectIsPressedAsState()
-                        val shutterScale by animateFloatAsState(
-                            targetValue = if (isPressed || isCapturing) 0.88f else 1.0f,
-                            animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                            label = "ShutterScale"
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .graphicsLayer {
-                                    scaleX = shutterScale
-                                    scaleY = shutterScale
-                                }
-                                .neumorphicExtruded(shape = CircleShape, elevation = 5.dp)
-                                .background(NeumorphicBg, shape = CircleShape)
-                                .clip(CircleShape)
-                                .border(3.dp, if (cameraMode == CameraMode.VIDEO) Color.Red else NeumorphicAccent, CircleShape)
-                                .clickable(
-                                    interactionSource = interactionSource,
-                                    indication = null
-                                ) {
-                                    HapticUtils.performCrispClick(context, view)
-
-                                    if (cameraMode == CameraMode.PHOTO) {
-                                        if (isCapturing) return@clickable
-                                        isCapturing = true
-
-                                        imageCapture.takePicture(
-                                            cameraExecutor,
-                                            object : ImageCapture.OnImageCapturedCallback() {
-                                                override fun onCaptureSuccess(image: ImageProxy) {
-                                                    val rotationDeg = image.imageInfo.rotationDegrees
-                                                    val buffer = image.planes[0].buffer
-                                                    val bytes = ByteArray(buffer.capacity())
-                                                    buffer.get(bytes)
-                                                    val rawBmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                                    image.close()
-
-                                                    scope.launch(Dispatchers.Default) {
-                                                        if (rawBmp != null) {
-                                                            val srcBmp = if (rotationDeg != 0) {
-                                                                val matrix = Matrix().apply { postRotate(rotationDeg.toFloat()) }
-                                                                Bitmap.createBitmap(rawBmp, 0, 0, rawBmp.width, rawBmp.height, matrix, true)
-                                                            } else rawBmp
-
-                                                            val watermarkedBmp = WatermarkBitmapDrawer.drawWatermarkBadgeOnBitmap(
-                                                                srcBitmap = srcBmp,
-                                                                cityName = liveCity,
-                                                                landmarkName = liveLandmark,
-                                                                dateTimeStr = nowTimeStr,
-                                                                mapTileBitmap = mapTileBitmap,
-                                                                userScaleFactor = watermarkScale
-                                                            )
-
-                                                            val dir = File(context.filesDir, "checkin_photos").apply { if (!exists()) mkdirs() }
-                                                            val photoFile = File(dir, "photo_${System.currentTimeMillis()}.jpg")
-                                                            FileOutputStream(photoFile).use { out ->
-                                                                watermarkedBmp.compress(Bitmap.CompressFormat.JPEG, 92, out)
-                                                            }
-
-                                                            withContext(Dispatchers.Main) {
-                                                                isCapturing = false
-                                                                pendingPhotoPath = photoFile.absolutePath
-                                                                pendingPhotoBmp = watermarkedBmp
-                                                            }
-                                                        }
-                                                    }
-                                                }
-
-                                                override fun onError(exception: ImageCaptureException) {
-                                                    Log.e("WatermarkCamera", "Photo capture failed", exception)
-                                                    scope.launch(Dispatchers.Main) { isCapturing = false }
-                                                }
-                                            }
-                                        )
-                                    } else {
-                                        // 视频模式
-                                        if (isRecording) {
-                                            activeRecording?.stop()
-                                            isRecording = false
-                                        } else {
-                                            val dir = File(context.filesDir, "checkin_videos").apply { if (!exists()) mkdirs() }
-                                            val videoFile = File(dir, "video_${System.currentTimeMillis()}.mp4")
-                                            val outputOptions = FileOutputOptions.Builder(videoFile).build()
-
-                                            val hasAudioPerm = ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                                            var pendingRecording = videoCapture.output.prepareRecording(context, outputOptions)
-                                            if (hasAudioPerm) {
-                                                @Suppress("MissingPermission")
-                                                pendingRecording = pendingRecording.withAudioEnabled()
-                                            }
-
-                                            val recording = pendingRecording.start(ContextCompat.getMainExecutor(context)) { recordEvent ->
-                                                when (recordEvent) {
-                                                    is VideoRecordEvent.Start -> {
-                                                        isRecording = true
-                                                    }
-                                                    is VideoRecordEvent.Finalize -> {
-                                                        isRecording = false
-                                                        scope.launch(Dispatchers.Default) {
-                                                            val videoBmp = DateCalculatorUtils.getVideoThumbnailBitmap(videoFile.absolutePath)
-                                                            val watermarkedBmp = if (videoBmp != null) {
-                                                                WatermarkBitmapDrawer.drawWatermarkBadgeOnBitmap(
-                                                                    srcBitmap = videoBmp,
-                                                                    cityName = liveCity,
-                                                                    landmarkName = liveLandmark,
-                                                                    dateTimeStr = nowTimeStr,
-                                                                    mapTileBitmap = mapTileBitmap,
-                                                                    userScaleFactor = watermarkScale
-                                                                )
-                                                            } else null
-
-                                                            withContext(Dispatchers.Main) {
-                                                                pendingPhotoPath = videoFile.absolutePath
-                                                                pendingPhotoBmp = watermarkedBmp
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            activeRecording = recording
-                                        }
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(if (isRecording) 20.dp else 44.dp)
-                                    .clip(if (isRecording) RoundedCornerShape(6.dp) else CircleShape)
-                                    .background(if (cameraMode == CameraMode.VIDEO) Color.Red else NeumorphicAccent)
-                            )
-                        }
-
-                        // 翻转按钮
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                                .background(NeumorphicBg, shape = CircleShape)
-                                .clip(CircleShape)
-                                .clickable {
-                                    if (!isRecording) {
-                                        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FlipCameraAndroid,
-                                contentDescription = "Flip Camera",
-                                tint = NeumorphicTextPrimary,
-                                modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = animatedRotation }
-                            )
-                        }
-                    }
-                }
-            }
-
             // 需求 1 & 2: 拍完照/录完视频后的全屏 [↺ 重拍] 与 [✔ 满意/使用] 预览确认弹层
             // (1. 视频使用 VideoView 循环播放 2. 按钮为纯图标圆形按钮，无文字，完美匹配标注图)
             if (pendingPhotoPath != null) {
@@ -1046,3 +868,5 @@ fun WatermarkCameraScreen(
                 }
             }
         }
+    }
+}
