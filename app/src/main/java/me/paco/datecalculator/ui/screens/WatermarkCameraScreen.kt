@@ -181,7 +181,23 @@ fun WatermarkCameraScreen(
         }
     }
 
-    var deviceRotationDeg by remember { mutableIntStateOf(0) }
+    // 需求 2: 进入相机时立刻智能识别真机当前的物理显示旋转角，解决横屏状态下进入相机画面跳变/加载异常 BUG
+    val initialRotation = remember(context) {
+        val displayRot = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            context.display?.rotation ?: android.view.Surface.ROTATION_0
+        } else {
+            @Suppress("DEPRECATION")
+            (context.getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager)?.defaultDisplay?.rotation ?: android.view.Surface.ROTATION_0
+        }
+        when (displayRot) {
+            android.view.Surface.ROTATION_90 -> 270
+            android.view.Surface.ROTATION_270 -> 90
+            android.view.Surface.ROTATION_180 -> 180
+            else -> 0
+        }
+    }
+    var deviceRotationDeg by remember { mutableIntStateOf(initialRotation) }
+
     DisposableEffect(context) {
         val activity = (context as? android.app.Activity)
         val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED

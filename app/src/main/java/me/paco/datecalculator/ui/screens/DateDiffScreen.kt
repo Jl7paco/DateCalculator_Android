@@ -1697,11 +1697,15 @@ fun DateDiffScreen(
                     currentTargetEventName = cleanName
                     addResultCard(cleanName, targetDate)
                 }
-            )   // 需求 2 & 3: “新增倒数日”与“打卡”按钮同列响组合（按钮文本由自定义改为新增倒数日，右侧增加打卡按钮）
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 需求 2 & 3: “新增倒数日”与“打卡”按钮组合
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
