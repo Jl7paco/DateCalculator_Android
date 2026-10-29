@@ -437,29 +437,54 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 3: 横屏旋转下推，右边缘保持 12dp 侧距，Top 边距下沉 badgeHeightDp，使竖版水印 100% 精准嵌在 4:3 取景框右上角！
+            // 100% 1:1 严格对齐用户手绘示意图的 3 态几何定位：
+            // 1. 竖屏 (0°): 水印位于 4:3 取景框内部右上角 (Alignment.TopEnd)
+            // 2. 横置左 (270°/← 上): 水印位于 4:3 取景框内部左上角 (Alignment.TopStart，草图 2)
+            // 3. 横置右 (90°/→ 上): 水印位于 4:3 取景框内部右下角 (Alignment.BottomEnd，草图 3)
+            val badgeAlignment = when (deviceRotationDeg) {
+                270 -> Alignment.TopStart  // 横置 ← 上 (草图 2)
+                90 -> Alignment.BottomEnd  // 横置 → 上 (草图 3)
+                else -> Alignment.TopEnd   // 竖屏 (草图 1)
+            }
+
+            val badgePadding = when (deviceRotationDeg) {
+                270 -> Modifier.padding(top = 110.dp, start = 12.dp)
+                90 -> Modifier.padding(bottom = 110.dp, end = 12.dp)
+                else -> Modifier.padding(top = 110.dp, end = 12.dp)
+            }
+
+            val badgeWidthDp = 220.dp * watermarkScale
+            val badgeHeightDp = 72.dp * watermarkScale
+            val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
+
+            val shiftX = when (deviceRotationDeg) {
+                270 -> halfDiff
+                90 -> -halfDiff
+                else -> 0.dp
+            }
+
+            val shiftY = when (deviceRotationDeg) {
+                270 -> halfDiff
+                90 -> -halfDiff
+                else -> 0.dp
+            }
+
+            val animatedShiftX by animateDpAsState(
+                targetValue = shiftX,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "WatermarkShiftX"
+            )
+            val animatedShiftY by animateDpAsState(
+                targetValue = shiftY,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "WatermarkShiftY"
+            )
+
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 110.dp, end = 12.dp)
+                    .align(badgeAlignment)
+                    .then(badgePadding)
             ) {
-                val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
-                val badgeHeightDp = 72.dp * watermarkScale
-
-                val shiftX = 0.dp
-                val shiftY = if (isLandscape) badgeHeightDp else 0.dp
-
-                val animatedShiftX by animateDpAsState(
-                    targetValue = shiftX,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "WatermarkShiftX"
-                )
-                val animatedShiftY by animateDpAsState(
-                    targetValue = shiftY,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "WatermarkShiftY"
-                )
-
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
                     landmarkName = liveLandmark,
@@ -471,7 +496,7 @@ fun WatermarkCameraScreen(
                         .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
                             rotationZ = animatedRotation
-                            transformOrigin = TransformOrigin(1.0f, 0.0f)
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
                         }
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ ->
