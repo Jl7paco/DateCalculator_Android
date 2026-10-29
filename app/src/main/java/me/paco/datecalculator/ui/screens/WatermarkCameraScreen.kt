@@ -437,14 +437,27 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 100% 1:1 严格对齐用户手绘示意图的 3 态几何定位：
+            // 100% 1:1 完美数学校准手绘示意图 3 态几何选择公式与旋角映射：
             // 1. 竖屏 (0°): 水印位于 4:3 取景框内部右上角 (Alignment.TopEnd)
-            // 2. 横置左 (270°/← 上): 水印位于 4:3 取景框内部左上角 (Alignment.TopStart，草图 2)
-            // 3. 横置右 (90°/→ 上): 水印位于 4:3 取景框内部右下角 (Alignment.BottomEnd，草图 3)
+            // 2. 横置左 (270°/← 上): 旋角 +90°，位于左上角 (Alignment.TopStart，平移 +halfDiff X轴 与 -halfDiff Y轴)
+            // 3. 横置右 (90°/→ 上): 旋角 -90°，位于右下角 (Alignment.BottomEnd，平移 -halfDiff X轴 与 +halfDiff Y轴)
+            val targetRotationZ = when (deviceRotationDeg) {
+                270 -> 90f   // 横置 ← 上 (草图 2)：顺时针 90 度，使文字在横屏视角正向可读
+                90 -> -90f   // 横置 → 上 (草图 3)：逆时针 90 度，使文字在横屏视角正向可读
+                180 -> 180f  // 倒持竖屏
+                else -> 0f   // 正向竖屏 (草图 1)
+            }
+
+            val animatedBadgeRotation by animateFloatAsState(
+                targetValue = targetRotationZ,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "BadgeRotation"
+            )
+
             val badgeAlignment = when (deviceRotationDeg) {
-                270 -> Alignment.TopStart  // 横置 ← 上 (草图 2)
-                90 -> Alignment.BottomEnd  // 横置 → 上 (草图 3)
-                else -> Alignment.TopEnd   // 竖屏 (草图 1)
+                270 -> Alignment.TopStart  // 横置 ← 上 (草图 2：左上角)
+                90 -> Alignment.BottomEnd  // 横置 → 上 (草图 3：右下角)
+                else -> Alignment.TopEnd   // 竖屏 (草图 1：右上角)
             }
 
             val badgePadding = when (deviceRotationDeg) {
@@ -464,8 +477,8 @@ fun WatermarkCameraScreen(
             }
 
             val shiftY = when (deviceRotationDeg) {
-                270 -> halfDiff
-                90 -> -halfDiff
+                270 -> -halfDiff
+                90 -> halfDiff
                 else -> 0.dp
             }
 
@@ -495,7 +508,7 @@ fun WatermarkCameraScreen(
                     modifier = Modifier
                         .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
-                            rotationZ = animatedRotation
+                            rotationZ = animatedBadgeRotation
                             transformOrigin = TransformOrigin(0.5f, 0.5f)
                         }
                         .pointerInput(Unit) {
