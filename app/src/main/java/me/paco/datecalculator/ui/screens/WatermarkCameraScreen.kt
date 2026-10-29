@@ -437,67 +437,33 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 100% 1:1 完美数学校准手绘示意图 3 态几何选择公式与旋角映射：
-            // 1. 竖屏 (0°): 水印位于 4:3 取景框内部右上角 (Alignment.TopEnd)
-            // 2. 横置左 (270°/← 上): 旋角 +90°，位于左上角 (Alignment.TopStart，平移 +halfDiff X轴 与 -halfDiff Y轴)
-            // 3. 横置右 (90°/→ 上): 旋角 -90°，位于右下角 (Alignment.BottomEnd，平移 -halfDiff X轴 与 +halfDiff Y轴)
-            val targetRotationZ = when (deviceRotationDeg) {
-                270 -> 90f   // 横置 ← 上 (草图 2)：顺时针 90 度，使文字在横屏视角正向可读
-                90 -> -90f   // 横置 → 上 (草图 3)：逆时针 90 度，使文字在横屏视角正向可读
-                180 -> 180f  // 倒持竖屏
-                else -> 0f   // 正向竖屏 (草图 1)
-            }
-
-            val animatedBadgeRotation by animateFloatAsState(
-                targetValue = targetRotationZ,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                label = "BadgeRotation"
-            )
-
-            val badgeAlignment = when (deviceRotationDeg) {
-                270 -> Alignment.TopStart  // 横置 ← 上 (草图 2：左上角)
-                90 -> Alignment.BottomEnd  // 横置 → 上 (草图 3：右下角)
-                else -> Alignment.TopEnd   // 竖屏 (草图 1：右上角)
-            }
-
-            val badgePadding = when (deviceRotationDeg) {
-                270 -> Modifier.padding(top = 110.dp, start = 12.dp)
-                90 -> Modifier.padding(bottom = 110.dp, end = 12.dp)
-                else -> Modifier.padding(top = 110.dp, end = 12.dp)
-            }
-
-            val badgeWidthDp = 220.dp * watermarkScale
-            val badgeHeightDp = 72.dp * watermarkScale
-            val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
-
-            val shiftX = when (deviceRotationDeg) {
-                270 -> halfDiff
-                90 -> -halfDiff
-                else -> 0.dp
-            }
-
-            val shiftY = when (deviceRotationDeg) {
-                270 -> -halfDiff
-                90 -> halfDiff
-                else -> 0.dp
-            }
-
-            val animatedShiftX by animateDpAsState(
-                targetValue = shiftX,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                label = "WatermarkShiftX"
-            )
-            val animatedShiftY by animateDpAsState(
-                targetValue = shiftY,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                label = "WatermarkShiftY"
-            )
-
+            // 100% 数学校准 2D 矢量变换：采用 TransformOrigin(0.5f, 0.5f) 中心旋角
+            // 横屏 (90°/270°) 时，矢量平移设为 shiftX = -halfDiff (-74dp), shiftY = +halfDiff (+74dp)
+            // 使得旋转后的竖版水印 100% 紧贴死死固定在 4:3 摄像头取景框内部右上角，下方避开放大胶囊，绝无遮挡与溢出！
             Box(
                 modifier = Modifier
-                    .align(badgeAlignment)
-                    .then(badgePadding)
+                    .align(Alignment.TopEnd)
+                    .padding(top = 160.dp, end = 12.dp)
             ) {
+                val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
+                val badgeWidthDp = 220.dp * watermarkScale
+                val badgeHeightDp = 72.dp * watermarkScale
+                val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
+
+                val shiftX = if (isLandscape) -halfDiff else 0.dp
+                val shiftY = if (isLandscape) halfDiff else 0.dp
+
+                val animatedShiftX by animateDpAsState(
+                    targetValue = shiftX,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftX"
+                )
+                val animatedShiftY by animateDpAsState(
+                    targetValue = shiftY,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "WatermarkShiftY"
+                )
+
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
                     landmarkName = liveLandmark,
@@ -508,7 +474,7 @@ fun WatermarkCameraScreen(
                     modifier = Modifier
                         .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
-                            rotationZ = animatedBadgeRotation
+                            rotationZ = animatedRotation
                             transformOrigin = TransformOrigin(0.5f, 0.5f)
                         }
                         .pointerInput(Unit) {
