@@ -36,6 +36,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -339,179 +340,110 @@ fun WatermarkCameraScreen(
         )
     ) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            // 1. 用户指令：取景框保持上抬 130dp (bottom = 130.dp)
-            AndroidView(
-                factory = {
-                    previewView.apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 130.dp)
-            )
-
-            // 2. 顶栏控制器 (添加 statusBarsPadding 避让刘海/挖孔屏与状态栏)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(top = 16.dp, start = 16.dp, end = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 左侧退出 X 按钮
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.50f))
-                        .clickable {
-                            HapticUtils.performCrispClick(context, view)
-                            scope.launch(Dispatchers.Default) {
-                                try { activeRecording?.stop() } catch (_: Exception) {}
-                            }
-                            onDismiss()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                if (zoomOptions.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.50f))
-                            .padding(horizontal = 6.dp, vertical = 4.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            zoomOptions.forEach { z ->
-                                val isSelected = abs(currentZoom - z) < 0.15f
-                                val labelText = if (z < 1.0f) {
-                                    String.format(Locale.US, "%.1fx", z)
-                                } else if (z % 1.0f == 0.0f) {
-                                    "${z.toInt()}x"
-                                } else {
-                                    String.format(Locale.US, "%.1fx", z)
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(width = 36.dp, height = 28.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isSelected) NeumorphicAccent else Color.Transparent)
-                                        .clickable {
-                                            boundCamera?.cameraControl?.setZoomRatio(z)
-                                            currentZoom = z
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = labelText,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White,
-                                        modifier = Modifier.graphicsLayer { rotationZ = animatedRotation }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 100% 人眼视效与几何 2D 矩阵校准：
-            // 1. 竖屏 (0°/↑ 上): 旋角 0°，位于取景框内部右上角 (top = 110.dp, end = 12.dp 紧贴右上角)
-            // 2. 横置左 (270°/← 上, 草图 2): 旋角 -90°，使文字在人眼横屏视角 100% 正向水平可读！位于左上角 (top = 110.dp, start = 12.dp)，平移 -halfDiff X轴 与 -halfDiff Y轴
-            // 3. 横置右 (90°/→ 上, 草图 3): 旋角 +90°，使文字在人眼横屏视角 100% 正向水平可读！位于右下角 (top = 370.dp, end = 12.dp)，平移 +halfDiff X轴 与 -halfDiff Y轴
-            val targetRotationZ = when (deviceRotationDeg) {
-                270 -> -90f  // 横置 ← 上 (草图 2)：逆时针 90 度，使文字在人眼视角正向水平可读
-                90 -> 90f    // 横置 → 上 (草图 3)：顺时针 90 度，使文字在人眼视角正向水平可读
-                180 -> 180f  // 倒持竖屏
-                else -> 0f   // 正向竖屏 (草图 1)
-            }
-
-            val animatedBadgeRotation by animateFloatAsState(
-                targetValue = targetRotationZ,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                label = "BadgeRotation"
-            )
-
-            val badgeAlignment = when (deviceRotationDeg) {
-                270 -> Alignment.TopStart  // 横置 ← 上 (草图 2：左上角)
-                90 -> Alignment.TopEnd     // 横置 → 上 (草图 3：右下角，顶边距设为 370.dp 嵌在 4:3 取景框底部)
-                else -> Alignment.TopEnd   // 竖屏 (草图 1：右上角)
-            }
-
-            val badgePadding = when (deviceRotationDeg) {
-                270 -> Modifier.padding(top = 110.dp, start = 12.dp)
-                90 -> Modifier.padding(top = 370.dp, end = 12.dp)
-                else -> Modifier.padding(top = 110.dp, end = 12.dp)
-            }
-
-            val badgeWidthDp = 220.dp * watermarkScale
-            val badgeHeightDp = 72.dp * watermarkScale
-            val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
-
-            val shiftX = when (deviceRotationDeg) {
-                270 -> -halfDiff
-                90 -> halfDiff
-                else -> 0.dp
-            }
-
-            val shiftY = when (deviceRotationDeg) {
-                270 -> -halfDiff
-                90 -> -halfDiff
-                else -> 0.dp
-            }
-
-            val animatedShiftX by animateDpAsState(
-                targetValue = shiftX,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                label = "WatermarkShiftX"
-            )
-            val animatedShiftY by animateDpAsState(
-                targetValue = shiftY,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                label = "WatermarkShiftY"
-            )
-
+            // 1. 严格 4:3 摄像头取景框容器 (彻底根治水印脱离取景框或溢出到黑边的顽固 BUG)
             Box(
                 modifier = Modifier
-                    .align(badgeAlignment)
-                    .then(badgePadding)
+                    .fillMaxSize()
+                    .padding(bottom = 100.dp),
+                contentAlignment = Alignment.Center
             ) {
-                WatermarkBadgeOverlay(
-                    cityName = liveCity,
-                    landmarkName = liveLandmark,
-                    dateTimeStr = nowTimeStr,
-                    mapTileBitmap = mapTileBitmap,
-                    scaleFactor = watermarkScale,
-                    lang = lang,
-                    modifier = Modifier
-                        .offset(x = animatedShiftX, y = animatedShiftY)
-                        .graphicsLayer {
-                            rotationZ = animatedBadgeRotation
-                            transformOrigin = TransformOrigin(0.5f, 0.5f)
-                        }
-                        .pointerInput(Unit) {
-                            detectTransformGestures { _, _, zoom, _ ->
-                                watermarkScale = (watermarkScale * zoom).coerceIn(0.5f, 1.0f)
+                Box(
+                    modifier = Modifier.aspectRatio(3f / 4f)
+                ) {
+                    // 相机 Preview
+                    AndroidView(
+                        factory = {
+                            previewView.apply {
+                                layoutParams = ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                )
                             }
-                        }
-                )
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // 100% 1:1 数学校准最新手绘示意图 (草图 1, 2, 3)：
+                    // 在所有 3 态方向下，水印在人眼视角中均精准定位于 4:3 摄像头取景框内部右上角，且文字正向水平可读！
+                    // 1. 竖屏 (0°/↑ 上, 草图 1): 旋角 0°，位于 4:3 取景框内部右上角 (Alignment.TopEnd)
+                    // 2. 前摄靠左 (270°/← 上, 草图 2): 旋角 -90°，位于人眼视角的右上角，平移 -halfDiff X轴 与 +halfDiff Y轴
+                    // 3. 前摄靠右 (90°/→ 上, 草图 3): 旋角 +90°，位于人眼视角的右上角 (Alignment.TopStart)，平移 +halfDiff X轴 与 -halfDiff Y轴
+                    val targetRotationZ = when (deviceRotationDeg) {
+                        270 -> -90f  // 前摄靠左 (草图 2)：逆时针 90° 旋转，使文字在人眼视角 100% 正向水平可读
+                        90 -> 90f    // 前摄靠右 (草图 3)：顺时针 90° 旋转，使文字在人眼视角 100% 正向水平可读
+                        180 -> 180f  // 倒持竖屏
+                        else -> 0f   // 正向竖屏 (草图 1)
+                    }
+
+                    val animatedBadgeRotation by animateFloatAsState(
+                        targetValue = targetRotationZ,
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                        label = "BadgeRotation"
+                    )
+
+                    val badgeAlignment = when (deviceRotationDeg) {
+                        90 -> Alignment.TopStart   // 前摄靠右 (草图 3：人眼视角右上角 = 手机 TopStart)
+                        else -> Alignment.TopEnd   // 竖屏 (草图 1) & 前摄靠左 (草图 2)
+                    }
+
+                    val badgePadding = when (deviceRotationDeg) {
+                        90 -> Modifier.padding(top = 12.dp, start = 12.dp)
+                        else -> Modifier.padding(top = 12.dp, end = 12.dp)
+                    }
+
+                    val badgeWidthDp = 220.dp * watermarkScale
+                    val badgeHeightDp = 72.dp * watermarkScale
+                    val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
+
+                    val shiftX = when (deviceRotationDeg) {
+                        270 -> -halfDiff  // 前摄靠左 (草图 2)：-74dp 左拉，使竖版水印嵌在人眼视角右上角
+                        90 -> halfDiff    // 前摄靠右 (草图 3)：+74dp 右推，使竖版水印嵌在人眼视角右上角
+                        else -> 0.dp
+                    }
+
+                    val shiftY = when (deviceRotationDeg) {
+                        270 -> halfDiff   // 前摄靠左 (草图 2)：+74dp 下压，避开顶部黑条
+                        90 -> -halfDiff   // 前摄靠右 (草图 3)：-74dp 上拉，避开顶部黑条
+                        else -> 0.dp
+                    }
+
+                    val animatedShiftX by animateDpAsState(
+                        targetValue = shiftX,
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                        label = "WatermarkShiftX"
+                    )
+                    val animatedShiftY by animateDpAsState(
+                        targetValue = shiftY,
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                        label = "WatermarkShiftY"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .align(badgeAlignment)
+                            .then(badgePadding)
+                    ) {
+                        WatermarkBadgeOverlay(
+                            cityName = liveCity,
+                            landmarkName = liveLandmark,
+                            dateTimeStr = nowTimeStr,
+                            mapTileBitmap = mapTileBitmap,
+                            scaleFactor = watermarkScale,
+                            lang = lang,
+                            modifier = Modifier
+                                .offset(x = animatedShiftX, y = animatedShiftY)
+                                .graphicsLayer {
+                                    rotationZ = animatedBadgeRotation
+                                    transformOrigin = TransformOrigin(0.5f, 0.5f)
+                                }
+                                .pointerInput(Unit) {
+                                    detectTransformGestures { _, _, zoom, _ ->
+                                        watermarkScale = (watermarkScale * zoom).coerceIn(0.5f, 1.0f)
+                                    }
+                                }
+                        )
+                    }
+                }
             }
 
             // 需求 4: 多语言动态翻译模式切换 Pills [ PHOTO | VIDEO ]
