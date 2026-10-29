@@ -203,14 +203,10 @@ fun WatermarkCameraScreen(
     var deviceRotationDeg by remember { mutableIntStateOf(initialRotation) }
 
     DisposableEffect(context) {
-        val activity = (context as? android.app.Activity)
-        val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-
         val orientationEventListener = object : android.view.OrientationEventListener(context) {
             override fun onOrientationChanged(orientation: Int) {
                 if (orientation == android.view.OrientationEventListener.ORIENTATION_UNKNOWN) return
-                // 防死角死区迟滞 (20度门限)，确保平放或竖持手机时 100% 稳定保持 0 度竖屏，绝不频繁跳变
+                // 防死区迟滞门限，确保平放或持握时稳定不跳变
                 val newRot = when {
                     orientation in 65..115 -> 270
                     orientation in 155..205 -> 180
@@ -229,7 +225,6 @@ fun WatermarkCameraScreen(
         }
         onDispose {
             orientationEventListener.disable()
-            activity?.requestedOrientation = originalOrientation
         }
     }
 
@@ -437,33 +432,67 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 100% 数学校准 2D 矢量变换：采用 TransformOrigin(0.5f, 0.5f) 中心旋角
-            // 横屏 (90°/270°) 时，矢量平移设为 shiftX = -halfDiff (-74dp), shiftY = +halfDiff (+74dp)
-            // 使得旋转后的竖版水印 100% 紧贴死死固定在 4:3 摄像头取景框内部右上角，下方避开放大胶囊，绝无遮挡与溢出！
+            // 100% 人眼视效与几何 2D 矩阵校准：
+            // 1. 竖屏 (0°/↑ 上): 旋角 0°，位于取景框内部右上角 (top = 110.dp, end = 12.dp 紧贴右上角)
+            // 2. 横置左 (270°/← 上, 草图 2): 旋角 -90°，使文字在人眼横屏视角 100% 正向水平可读！位于左上角 (top = 110.dp, start = 12.dp)，平移 -halfDiff X轴 与 -halfDiff Y轴
+            // 3. 横置右 (90°/→ 上, 草图 3): 旋角 +90°，使文字在人眼横屏视角 100% 正向水平可读！位于右下角 (top = 370.dp, end = 12.dp)，平移 +halfDiff X轴 与 -halfDiff Y轴
+            val targetRotationZ = when (deviceRotationDeg) {
+                270 -> -90f  // 横置 ← 上 (草图 2)：逆时针 90 度，使文字在人眼视角正向水平可读
+                90 -> 90f    // 横置 → 上 (草图 3)：顺时针 90 度，使文字在人眼视角正向水平可读
+                180 -> 180f  // 倒持竖屏
+                else -> 0f   // 正向竖屏 (草图 1)
+            }
+
+            val animatedBadgeRotation by animateFloatAsState(
+                targetValue = targetRotationZ,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "BadgeRotation"
+            )
+
+            val badgeAlignment = when (deviceRotationDeg) {
+                270 -> Alignment.TopStart  // 横置 ← 上 (草图 2：左上角)
+                90 -> Alignment.TopEnd     // 横置 → 上 (草图 3：右下角，顶边距设为 370.dp 嵌在 4:3 取景框底部)
+                else -> Alignment.TopEnd   // 竖屏 (草图 1：右上角)
+            }
+
+            val badgePadding = when (deviceRotationDeg) {
+                270 -> Modifier.padding(top = 110.dp, start = 12.dp)
+                90 -> Modifier.padding(top = 370.dp, end = 12.dp)
+                else -> Modifier.padding(top = 110.dp, end = 12.dp)
+            }
+
+            val badgeWidthDp = 220.dp * watermarkScale
+            val badgeHeightDp = 72.dp * watermarkScale
+            val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
+
+            val shiftX = when (deviceRotationDeg) {
+                270 -> -halfDiff
+                90 -> halfDiff
+                else -> 0.dp
+            }
+
+            val shiftY = when (deviceRotationDeg) {
+                270 -> -halfDiff
+                90 -> -halfDiff
+                else -> 0.dp
+            }
+
+            val animatedShiftX by animateDpAsState(
+                targetValue = shiftX,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "WatermarkShiftX"
+            )
+            val animatedShiftY by animateDpAsState(
+                targetValue = shiftY,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "WatermarkShiftY"
+            )
+
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 160.dp, end = 12.dp)
+                    .align(badgeAlignment)
+                    .then(badgePadding)
             ) {
-                val isLandscape = (deviceRotationDeg == 90 || deviceRotationDeg == 270)
-                val badgeWidthDp = 220.dp * watermarkScale
-                val badgeHeightDp = 72.dp * watermarkScale
-                val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
-
-                val shiftX = if (isLandscape) -halfDiff else 0.dp
-                val shiftY = if (isLandscape) halfDiff else 0.dp
-
-                val animatedShiftX by animateDpAsState(
-                    targetValue = shiftX,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "WatermarkShiftX"
-                )
-                val animatedShiftY by animateDpAsState(
-                    targetValue = shiftY,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "WatermarkShiftY"
-                )
-
                 WatermarkBadgeOverlay(
                     cityName = liveCity,
                     landmarkName = liveLandmark,
@@ -474,7 +503,7 @@ fun WatermarkCameraScreen(
                     modifier = Modifier
                         .offset(x = animatedShiftX, y = animatedShiftY)
                         .graphicsLayer {
-                            rotationZ = animatedRotation
+                            rotationZ = animatedBadgeRotation
                             transformOrigin = TransformOrigin(0.5f, 0.5f)
                         }
                         .pointerInput(Unit) {
