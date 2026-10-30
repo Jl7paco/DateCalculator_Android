@@ -394,9 +394,10 @@ fun WatermarkCameraScreen(
                         else -> 0.dp
                     }
 
+                    // 100% 2D 几何矩阵定理：在所有横屏模式下 (90° 与 270°)，Y 轴平移矢量统一设为 +halfDiff (+74dp) 下压！
+                    // 抵消旋转后的 110dp 上伸高度，使竖版水印顶边 100% 绝对限定在 4:3 摄像头取景框内部（距顶边 12dp），绝不重叠/遮挡放大倍率胶囊！
                     val shiftY = when (deviceRotationDeg) {
-                        270 -> halfDiff   // 前摄靠左 (草图 2)：+74dp 下压
-                        90 -> -halfDiff   // 前摄靠右 (草图 3)：-74dp 上拉
+                        270, 90 -> halfDiff
                         else -> 0.dp
                     }
 
