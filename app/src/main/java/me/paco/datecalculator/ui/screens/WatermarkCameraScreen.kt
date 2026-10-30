@@ -402,16 +402,15 @@ fun WatermarkCameraScreen(
                     val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
 
                     val shiftX = when {
-                        isWindowLandscape -> 0.dp
                         deviceRotationDeg == 270 -> -halfDiff  // 前摄靠左 (草图 2)：-74dp 左拉
                         deviceRotationDeg == 90 -> halfDiff    // 前摄靠右 (草图 3)：+74dp 右推
                         else -> 0.dp
                     }
 
+                    // 核心 2D 矩阵几何定理：在所有横屏模式下 (90°, 270° 或横屏 Window)，均必须施加 +halfDiff (+74dp) 下压补偿！
+                    // 彻底下拉顶部边距，使 220dp 长的旋转竖版水印顶边 100% 绝对嵌在 4:3 摄像头取景框内部，绝无半点溢出或遮挡放大胶囊！
                     val shiftY = when {
-                        isWindowLandscape -> 0.dp
-                        deviceRotationDeg == 270 -> halfDiff   // 前摄靠左 (草图 2)：+74dp 下压
-                        deviceRotationDeg == 90 -> -halfDiff   // 前摄靠右 (草图 3)：-74dp 上拉
+                        deviceRotationDeg == 90 || deviceRotationDeg == 270 || isWindowLandscape -> halfDiff
                         else -> 0.dp
                     }
 
