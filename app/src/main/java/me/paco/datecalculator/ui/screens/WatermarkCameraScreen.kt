@@ -331,6 +331,10 @@ fun WatermarkCameraScreen(
         }
     }
 
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isWindowLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+    val viewfinderAspectRatio = if (isWindowLandscape) 4f / 3f else 3f / 4f
+
     // 需求 3: 全屏 Window Dialog 覆盖模式，进入相机时自动隐藏底栏 NavigationBar，拍照按钮自动下滑至最底端
     Dialog(
         onDismissRequest = onDismiss,
@@ -340,15 +344,15 @@ fun WatermarkCameraScreen(
         )
     ) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            // 1. 4:3 摄像头取景框容器 (居中于屏幕上下黑条之间)
+            // 1. 自适应 4:3 摄像头取景框容器 (横屏窗口 4:3 展开，竖屏窗口 3:4 呈现，彻底根治取景框变窄与水印溢出问题)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 40.dp),
+                    .padding(bottom = if (isWindowLandscape) 0.dp else 40.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
-                    modifier = Modifier.aspectRatio(3f / 4f)
+                    modifier = Modifier.aspectRatio(viewfinderAspectRatio)
                 ) {
                     // 相机 Preview
                     AndroidView(
@@ -381,13 +385,15 @@ fun WatermarkCameraScreen(
                         label = "BadgeRotation"
                     )
 
-                    val badgeAlignment = when (deviceRotationDeg) {
-                        90 -> Alignment.TopStart   // 前摄靠右 (草图 3：人眼视角右上角 = 手机 TopStart)
+                    val badgeAlignment = when {
+                        isWindowLandscape -> Alignment.TopEnd
+                        deviceRotationDeg == 90 -> Alignment.TopStart   // 前摄靠右 (草图 3：人眼视角右上角 = 手机 TopStart)
                         else -> Alignment.TopEnd   // 竖屏 (草图 1) & 前摄靠左 (草图 2)
                     }
 
-                    val badgePadding = when (deviceRotationDeg) {
-                        90 -> Modifier.padding(top = 12.dp, start = 12.dp)
+                    val badgePadding = when {
+                        isWindowLandscape -> Modifier.padding(top = 16.dp, end = 16.dp)
+                        deviceRotationDeg == 90 -> Modifier.padding(top = 12.dp, start = 12.dp)
                         else -> Modifier.padding(top = 12.dp, end = 12.dp)
                     }
 
@@ -395,15 +401,17 @@ fun WatermarkCameraScreen(
                     val badgeHeightDp = 72.dp * watermarkScale
                     val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
 
-                    val shiftX = when (deviceRotationDeg) {
-                        270 -> -halfDiff  // 前摄靠左 (草图 2)：-74dp 左拉，使竖版水印嵌在人眼视角右上角
-                        90 -> halfDiff    // 前摄靠右 (草图 3)：+74dp 右推，使竖版水印嵌在人眼视角右上角
+                    val shiftX = when {
+                        isWindowLandscape -> 0.dp
+                        deviceRotationDeg == 270 -> -halfDiff  // 前摄靠左 (草图 2)：-74dp 左拉
+                        deviceRotationDeg == 90 -> halfDiff    // 前摄靠右 (草图 3)：+74dp 右推
                         else -> 0.dp
                     }
 
-                    val shiftY = when (deviceRotationDeg) {
-                        270 -> halfDiff   // 前摄靠左 (草图 2)：+74dp 下压，避开顶部黑条
-                        90 -> -halfDiff   // 前摄靠右 (草图 3)：-74dp 上拉，避开顶部黑条
+                    val shiftY = when {
+                        isWindowLandscape -> 0.dp
+                        deviceRotationDeg == 270 -> halfDiff   // 前摄靠左 (草图 2)：+74dp 下压
+                        deviceRotationDeg == 90 -> -halfDiff   // 前摄靠右 (草图 3)：-74dp 上拉
                         else -> 0.dp
                     }
 
