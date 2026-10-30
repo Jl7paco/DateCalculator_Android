@@ -340,11 +340,11 @@ fun WatermarkCameraScreen(
         )
     ) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            // 1. 严格 4:3 摄像头取景框容器 (彻底根治水印脱离取景框或溢出到黑边的顽固 BUG)
+            // 1. 4:3 摄像头取景框容器 (居中于屏幕上下黑条之间)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 100.dp),
+                    .padding(bottom = 40.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
