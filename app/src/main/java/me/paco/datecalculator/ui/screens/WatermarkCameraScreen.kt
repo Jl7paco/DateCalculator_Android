@@ -188,7 +188,23 @@ fun WatermarkCameraScreen(
         }
     }
 
-    var deviceRotationDeg by remember { mutableIntStateOf(0) }
+    // 智能识别进入相机时的物理显示旋转角，确保直接横屏进入与竖屏切横屏的 UI 状态 100% 绝对完全一致
+    val initialRotation = remember(context) {
+        val displayRot = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            context.display?.rotation ?: android.view.Surface.ROTATION_0
+        } else {
+            @Suppress("DEPRECATION")
+            (context.getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager)?.defaultDisplay?.rotation ?: android.view.Surface.ROTATION_0
+        }
+        when (displayRot) {
+            android.view.Surface.ROTATION_90 -> 270
+            android.view.Surface.ROTATION_270 -> 90
+            android.view.Surface.ROTATION_180 -> 180
+            else -> 0
+        }
+    }
+
+    var deviceRotationDeg by remember { mutableIntStateOf(initialRotation) }
 
     DisposableEffect(context) {
         val activity = (context as? android.app.Activity)
@@ -321,10 +337,11 @@ fun WatermarkCameraScreen(
     ) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             // 1. 严格 3:4 摄像头取景框容器 (垂直居中于全屏)
+            // 需求 1: 取景框与水印整体向上平移 20dp (padding bottom = 80.dp)，避开底部快门按键
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 40.dp),
+                    .padding(bottom = 80.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
@@ -773,47 +790,61 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 拍完照/录完视频后的全屏 [↺ 重拍] 与 [✔ 满意/使用] 预览确认弹层
+            // 需求 2: 拍完照/录完视频后的全屏 [↺ 重拍] 与 [✔ 满意/使用] 预览确认弹层
+            // (1. 预览框与实时相机 4:3 取景框 100% 绝对像素级对齐，零跳变 2. 重拍与确认按钮向上抬升至 bottom = 85.dp)
             if (pendingPhotoPath != null) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black)
                 ) {
-                    if (pendingPhotoPath?.endsWith(".mp4") == true) {
-                        AndroidView(
-                            factory = { ctx ->
-                                VideoView(ctx).apply {
-                                    setVideoPath(pendingPhotoPath)
-                                    setOnPreparedListener { mp ->
-                                        mp.isLooping = true
-                                        start()
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else if (pendingPhotoBmp != null) {
-                        Image(
-                            bitmap = pendingPhotoBmp!!.asImageBitmap(),
-                            contentDescription = "Preview",
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                    // 与实时 Camera Preview 100% 相同位置、相同边距的 4:3 图片/视频预览框
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 80.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier.aspectRatio(3f / 4f)
+                        ) {
+                            if (pendingPhotoPath?.endsWith(".mp4") == true) {
+                                AndroidView(
+                                    factory = { ctx ->
+                                        VideoView(ctx).apply {
+                                            setVideoPath(pendingPhotoPath)
+                                            setOnPreparedListener { mp ->
+                                                mp.isLooping = true
+                                                start()
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else if (pendingPhotoBmp != null) {
+                                Image(
+                                    bitmap = pendingPhotoBmp!!.asImageBitmap(),
+                                    contentDescription = "Preview",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
                     }
 
+                    // 需求 2: 重拍 [↺] 与 确认 [✔] 按钮向上抬升 (bottom = 85.dp + navigationBarsPadding)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.BottomCenter)
-                            .background(Color.Black.copy(alpha = 0.85f))
-                            .padding(bottom = 36.dp, top = 20.dp, start = 48.dp, end = 48.dp),
+                            .navigationBarsPadding()
+                            .padding(bottom = 85.dp, top = 16.dp, start = 48.dp, end = 48.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(56.dp)
+                                .size(58.dp)
                                 .clip(CircleShape)
                                 .background(Color.DarkGray.copy(alpha = 0.85f))
                                 .clickable {
@@ -834,7 +865,7 @@ fun WatermarkCameraScreen(
 
                         Box(
                             modifier = Modifier
-                                .size(56.dp)
+                                .size(58.dp)
                                 .clip(CircleShape)
                                 .background(NeumorphicAccent)
                                 .clickable {
