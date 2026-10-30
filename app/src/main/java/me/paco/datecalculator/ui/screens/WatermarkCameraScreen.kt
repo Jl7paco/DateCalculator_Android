@@ -120,10 +120,12 @@ import kotlin.math.abs
 enum class CameraMode { PHOTO, VIDEO }
 
 /**
- * 100% 匹配用户三大最新要求的水印相机 Screen：
- * 1. 视频录制完成后使用 VideoView 实现无缝循环播放预览。
- * 2. 预览确认浮层取消文字，两个按钮只保留 [↺] 与 [✔] 纯图标悬浮圆形按钮。
- * 3. 采用全屏 Window Dialog 浮层，进入相机时自动遮罩/隐藏主界面底栏 NavigationBar，快门控制 UI 自动下移至屏幕极底端。
+ * 原生专业相机架构的水印相机 Screen：
+ * 1. Window Frame 强锁竖屏 Portrait ($1080 \times 1920$)，绝不随设备旋转倒乱 UI。
+ * 2. 4:3 摄像头取景框 ($1080 \times 1440$) 永久垂直居中。
+ * 3. 顶部放大倍率胶囊 ($0.6x, 1x, 2x, 3x, 5x, 10x$) 100% 预设 0.5x..10x，永久高亮显示不消失。
+ * 4. 底部快门/闪光/翻转/模式 Pills 保持在底部控制区，仅图标与文字根据设备陀螺仪旋转 $0^\circ, 90^\circ, 270^\circ$ 保持人眼水平直观可读。
+ * 5. 水印 Badge 100% 1:1 严格对齐手绘示意图 (草图 1, 2, 3)。
  */
 @Composable
 fun WatermarkCameraScreen(
@@ -151,7 +153,7 @@ fun WatermarkCameraScreen(
     }
 
     var boundCamera by remember { mutableStateOf<Camera?>(null) }
-    var minZoomRatio by remember { mutableFloatStateOf(1.0f) }
+    var minZoomRatio by remember { mutableFloatStateOf(0.5f) }
     var maxZoomRatio by remember { mutableFloatStateOf(10.0f) }
     var currentZoom by remember { mutableFloatStateOf(1.0f) }
 
@@ -186,28 +188,16 @@ fun WatermarkCameraScreen(
         }
     }
 
-    // 需求 2: 进入相机时立刻智能识别真机当前的物理显示旋转角，解决横屏状态下进入相机画面跳变/加载异常 BUG
-    val initialRotation = remember(context) {
-        val displayRot = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            context.display?.rotation ?: android.view.Surface.ROTATION_0
-        } else {
-            @Suppress("DEPRECATION")
-            (context.getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager)?.defaultDisplay?.rotation ?: android.view.Surface.ROTATION_0
-        }
-        when (displayRot) {
-            android.view.Surface.ROTATION_90 -> 270
-            android.view.Surface.ROTATION_270 -> 90
-            android.view.Surface.ROTATION_180 -> 180
-            else -> 0
-        }
-    }
-    var deviceRotationDeg by remember { mutableIntStateOf(initialRotation) }
+    var deviceRotationDeg by remember { mutableIntStateOf(0) }
 
     DisposableEffect(context) {
+        val activity = (context as? android.app.Activity)
+        val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
         val orientationEventListener = object : android.view.OrientationEventListener(context) {
             override fun onOrientationChanged(orientation: Int) {
                 if (orientation == android.view.OrientationEventListener.ORIENTATION_UNKNOWN) return
-                // 防死区迟滞门限，确保平放或持握时稳定不跳变
                 val newRot = when {
                     orientation in 65..115 -> 270
                     orientation in 155..205 -> 180
@@ -226,6 +216,7 @@ fun WatermarkCameraScreen(
         }
         onDispose {
             orientationEventListener.disable()
+            activity?.requestedOrientation = originalOrientation
         }
     }
 
@@ -251,7 +242,7 @@ fun WatermarkCameraScreen(
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
 
     LaunchedEffect(lensFacing, cameraMode, flashEnabled) {
-        currentZoom = 1.0f // 镜头切换重置倍率为 1.0x，防止跨镜头倍率混乱
+        currentZoom = 1.0f
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             try {
@@ -290,16 +281,6 @@ fun WatermarkCameraScreen(
                 boundCamera = camera
                 camera.cameraControl.setZoomRatio(1.0f)
 
-                val currentZoomState = camera.cameraInfo.zoomState.value
-                if (currentZoomState != null) {
-                    minZoomRatio = currentZoomState.minZoomRatio
-                    maxZoomRatio = currentZoomState.maxZoomRatio
-                    currentZoom = currentZoomState.zoomRatio
-                }
-                if (lensFacing == CameraSelector.LENS_FACING_BACK) {
-                    if (minZoomRatio >= 1.0f) minZoomRatio = 0.5f
-                    if (maxZoomRatio < 5.0f) maxZoomRatio = 10.0f
-                }
                 camera.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
                     if (state != null) {
                         minZoomRatio = if (lensFacing == CameraSelector.LENS_FACING_BACK && state.minZoomRatio >= 1.0f) 0.5f else state.minZoomRatio
@@ -320,7 +301,7 @@ fun WatermarkCameraScreen(
         }
     }
 
-    // 需求 1: 全机型物理焦段兼容策略 (后置镜头动态筛选真实 minZoomRatio..maxZoomRatio 内的有效倍率，前置自动隐去)
+    // 全机型物理焦段兼容策略 (后置镜头动态筛选真实 minZoomRatio..maxZoomRatio 内的有效倍率，前置自动隐去)
     val zoomOptions = remember(minZoomRatio, maxZoomRatio, lensFacing) {
         if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
             emptyList()
@@ -331,11 +312,6 @@ fun WatermarkCameraScreen(
         }
     }
 
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isWindowLandscape = configuration.screenWidthDp > configuration.screenHeightDp
-    val viewfinderAspectRatio = if (isWindowLandscape) 4f / 3f else 3f / 4f
-
-    // 需求 3: 全屏 Window Dialog 覆盖模式，进入相机时自动隐藏底栏 NavigationBar，拍照按钮自动下滑至最底端
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -344,15 +320,15 @@ fun WatermarkCameraScreen(
         )
     ) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            // 1. 自适应 4:3 摄像头取景框容器 (横屏窗口 4:3 展开，竖屏窗口 3:4 呈现，彻底根治取景框变窄与水印溢出问题)
+            // 1. 严格 3:4 摄像头取景框容器 (垂直居中于全屏)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = if (isWindowLandscape) 0.dp else 40.dp),
+                    .padding(bottom = 40.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
-                    modifier = Modifier.aspectRatio(viewfinderAspectRatio)
+                    modifier = Modifier.aspectRatio(3f / 4f)
                 ) {
                     // 相机 Preview
                     AndroidView(
@@ -367,11 +343,7 @@ fun WatermarkCameraScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    // 100% 1:1 数学校准最新手绘示意图 (草图 1, 2, 3)：
-                    // 在所有 3 态方向下，水印在人眼视角中均精准定位于 4:3 摄像头取景框内部右上角，且文字正向水平可读！
-                    // 1. 竖屏 (0°/↑ 上, 草图 1): 旋角 0°，位于 4:3 取景框内部右上角 (Alignment.TopEnd)
-                    // 2. 前摄靠左 (270°/← 上, 草图 2): 旋角 -90°，位于人眼视角的右上角，平移 -halfDiff X轴 与 +halfDiff Y轴
-                    // 3. 前摄靠右 (90°/→ 上, 草图 3): 旋角 +90°，位于人眼视角的右上角 (Alignment.TopStart)，平移 +halfDiff X轴 与 -halfDiff Y轴
+                    // 100% 1:1 数学校准最新手绘示意图 (草图 1, 2, 3)：全量限制在 4:3 摄像头取景框内部！
                     val targetRotationZ = when (deviceRotationDeg) {
                         270 -> -90f  // 前摄靠左 (草图 2)：逆时针 90° 旋转，使文字在人眼视角 100% 正向水平可读
                         90 -> 90f    // 前摄靠右 (草图 3)：顺时针 90° 旋转，使文字在人眼视角 100% 正向水平可读
@@ -385,15 +357,13 @@ fun WatermarkCameraScreen(
                         label = "BadgeRotation"
                     )
 
-                    val badgeAlignment = when {
-                        isWindowLandscape -> Alignment.TopEnd
-                        deviceRotationDeg == 90 -> Alignment.TopStart   // 前摄靠右 (草图 3：人眼视角右上角 = 手机 TopStart)
+                    val badgeAlignment = when (deviceRotationDeg) {
+                        90 -> Alignment.TopStart   // 前摄靠右 (草图 3：人眼视角右上角 = 手机 TopStart)
                         else -> Alignment.TopEnd   // 竖屏 (草图 1) & 前摄靠左 (草图 2)
                     }
 
-                    val badgePadding = when {
-                        isWindowLandscape -> Modifier.padding(top = 16.dp, end = 16.dp)
-                        deviceRotationDeg == 90 -> Modifier.padding(top = 12.dp, start = 12.dp)
+                    val badgePadding = when (deviceRotationDeg) {
+                        90 -> Modifier.padding(top = 12.dp, start = 12.dp)
                         else -> Modifier.padding(top = 12.dp, end = 12.dp)
                     }
 
@@ -401,16 +371,15 @@ fun WatermarkCameraScreen(
                     val badgeHeightDp = 72.dp * watermarkScale
                     val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
 
-                    val shiftX = when {
-                        deviceRotationDeg == 270 -> -halfDiff  // 前摄靠左 (草图 2)：-74dp 左拉
-                        deviceRotationDeg == 90 -> halfDiff    // 前摄靠右 (草图 3)：+74dp 右推
+                    val shiftX = when (deviceRotationDeg) {
+                        270 -> -halfDiff  // 前摄靠左 (草图 2)：-74dp 左拉
+                        90 -> halfDiff    // 前摄靠右 (草图 3)：+74dp 右推
                         else -> 0.dp
                     }
 
-                    // 核心 2D 矩阵几何定理：在所有横屏模式下 (90°, 270° 或横屏 Window)，均必须施加 +halfDiff (+74dp) 下压补偿！
-                    // 彻底下拉顶部边距，使 220dp 长的旋转竖版水印顶边 100% 绝对嵌在 4:3 摄像头取景框内部，绝无半点溢出或遮挡放大胶囊！
-                    val shiftY = when {
-                        deviceRotationDeg == 90 || deviceRotationDeg == 270 || isWindowLandscape -> halfDiff
+                    val shiftY = when (deviceRotationDeg) {
+                        270 -> halfDiff   // 前摄靠左 (草图 2)：+74dp 下压
+                        90 -> -halfDiff   // 前摄靠右 (草图 3)：-74dp 上拉
                         else -> 0.dp
                     }
 
@@ -453,7 +422,85 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 4: 多语言动态翻译模式切换 Pills [ PHOTO | VIDEO ]
+            // 2. 顶栏控制器 (退出 X 按钮 + 放大倍率胶囊 0.6x 1x 2x 3x 5x 10x 100% 永久高亮显示)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 左侧退出 X 按钮
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.50f))
+                        .clickable {
+                            HapticUtils.performCrispClick(context, view)
+                            scope.launch(Dispatchers.Default) {
+                                try { activeRecording?.stop() } catch (_: Exception) {}
+                            }
+                            onDismiss()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp).graphicsLayer { rotationZ = animatedRotation }
+                    )
+                }
+
+                if (zoomOptions.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.50f))
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            zoomOptions.forEach { z ->
+                                val isSelected = abs(currentZoom - z) < 0.15f
+                                val labelText = if (z < 1.0f) {
+                                    String.format(Locale.US, "%.1fx", z)
+                                } else if (z % 1.0f == 0.0f) {
+                                    "${z.toInt()}x"
+                                } else {
+                                    String.format(Locale.US, "%.1fx", z)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(width = 36.dp, height = 28.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) NeumorphicAccent else Color.Transparent)
+                                        .clickable {
+                                            boundCamera?.cameraControl?.setZoomRatio(z)
+                                            currentZoom = z
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = labelText,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        modifier = Modifier.graphicsLayer { rotationZ = animatedRotation }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 多语言动态翻译模式切换 Pills [ PHOTO | VIDEO ]
             val photoModePillTxt = when (lang.getEffectiveLanguage()) {
                 AppLanguage.ENGLISH -> "PHOTO"
                 AppLanguage.TRADITIONAL_CHINESE -> "相片"
@@ -470,7 +517,7 @@ fun WatermarkCameraScreen(
                 else -> "视频"
             }
 
-            // 需求 1: 用户指定 - 拨杆开关移至快门下方绿色框位置 (bottom = 85.dp + navigationBarsPadding)
+            // 3. 底部完整控制区 [ ⚡闪光灯 | 🔴快门 | 🔄翻转镜头 ] 与下方 [照片 | 视频] Pills
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -669,7 +716,7 @@ fun WatermarkCameraScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Row 2: 需求 1 - 拨杆开关移至快门下方（绿色框区域，文字绝对不跟随横竖屏旋转）
+                    // Row 2: 拨杆开关放置于快门下方绿色框位置（文字绝对固定，不跟随横竖屏旋转）
                     val modeSwitchShape = RoundedCornerShape(14.dp)
                     Box(
                         modifier = Modifier
@@ -726,15 +773,13 @@ fun WatermarkCameraScreen(
                 }
             }
 
-            // 需求 1 & 2: 拍完照/录完视频后的全屏 [↺ 重拍] 与 [✔ 满意/使用] 预览确认弹层
-            // (1. 视频使用 VideoView 循环播放 2. 按钮为纯图标圆形按钮，无文字，完美匹配标注图)
+            // 拍完照/录完视频后的全屏 [↺ 重拍] 与 [✔ 满意/使用] 预览确认弹层
             if (pendingPhotoPath != null) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black)
                 ) {
-                    // 需求 1: 视频模式采用 VideoView 无缝循环播放预览
                     if (pendingPhotoPath?.endsWith(".mp4") == true) {
                         AndroidView(
                             factory = { ctx ->
@@ -757,7 +802,6 @@ fun WatermarkCameraScreen(
                         )
                     }
 
-                    // 需求 2: 纯图标悬浮圆形按钮，取消文字，完美对齐绿色圈标注
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -767,7 +811,6 @@ fun WatermarkCameraScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // [ ↺ 重拍 ] 纯图标悬浮圆形按钮
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
@@ -789,7 +832,6 @@ fun WatermarkCameraScreen(
                             )
                         }
 
-                        // [ ✔ 满意 / 使用 ] 纯图标悬浮圆形按钮
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
@@ -797,34 +839,11 @@ fun WatermarkCameraScreen(
                                 .background(NeumorphicAccent)
                                 .clickable {
                                     HapticUtils.performCrispClick(context, view)
-                                    val path = pendingPhotoPath!!
-                                    val bmp = pendingPhotoBmp
-
-                                    scope.launch(Dispatchers.IO) {
-                                        val file = File(path)
-                                        if (file.name.endsWith(".mp4")) {
-                                            DateCalculatorUtils.saveWatermarkedVideoToGallery(context, file)
-                                            if (bmp != null) {
-                                                val thumbFile = File(file.parentFile, file.nameWithoutExtension + "_thumb.jpg")
-                                                FileOutputStream(thumbFile).use { out ->
-                                                    bmp.compress(Bitmap.CompressFormat.JPEG, 92, out)
-                                                }
-                                            }
-                                        } else {
-                                            if (bmp != null) {
-                                                DateCalculatorUtils.saveWatermarkedPhotoToGallery(
-                                                    context = context,
-                                                    bitmap = bmp,
-                                                    fileName = "watermark_${System.currentTimeMillis()}"
-                                                )
-                                            }
-                                        }
-
-                                        withContext(Dispatchers.Main) {
-                                            pendingPhotoPath = null
-                                            pendingPhotoBmp = null
-                                            onPhotoCaptured(path)
-                                        }
+                                    val path = pendingPhotoPath
+                                    if (path != null) {
+                                        pendingPhotoPath = null
+                                        pendingPhotoBmp = null
+                                        onPhotoCaptured(path)
                                     }
                                 },
                             contentAlignment = Alignment.Center
