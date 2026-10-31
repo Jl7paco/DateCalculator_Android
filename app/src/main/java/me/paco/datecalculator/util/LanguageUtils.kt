@@ -857,6 +857,33 @@ object LanguageUtils {
         return rawTag
     }
 
+    fun getLocalizedLunarMonthName(month: Int, language: AppLanguage): String {
+        val m = month.coerceIn(1, 12)
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.SIMPLIFIED_CHINESE -> {
+                val names = listOf("正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊")
+                "${names[m - 1]}月"
+            }
+            AppLanguage.TRADITIONAL_CHINESE -> {
+                val names = listOf("正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "臘")
+                "${names[m - 1]}月"
+            }
+            AppLanguage.JAPANESE -> "${m}月"
+            AppLanguage.KOREAN -> "${m}월"
+            else -> "Month $m"
+        }
+    }
+
+    fun getDeviceReleaseTitle(deviceName: String, language: AppLanguage): String {
+        return when (language.getEffectiveLanguage()) {
+            AppLanguage.ENGLISH -> "$deviceName Released"
+            AppLanguage.JAPANESE -> "$deviceName 発売日"
+            AppLanguage.KOREAN -> "$deviceName 출시"
+            AppLanguage.TRADITIONAL_CHINESE -> "$deviceName 發布"
+            else -> "$deviceName 发布"
+        }
+    }
+
     fun getTimeUnitLabel(unit: String, language: AppLanguage): String {
         return when (language.getEffectiveLanguage()) {
             AppLanguage.SIMPLIFIED_CHINESE -> when (unit) {

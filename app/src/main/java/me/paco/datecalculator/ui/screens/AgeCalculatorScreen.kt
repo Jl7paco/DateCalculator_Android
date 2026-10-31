@@ -318,7 +318,7 @@ fun AgeCalculatorScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("农历年份", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
+                                Text(LanguageUtils.getString("lunar_date_title", lang), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicAccent)
 
                                 OutlinedTextField(
                                     value = birthLunarYearInput,
@@ -350,9 +350,8 @@ fun AgeCalculatorScreen(
 
                                     Spacer(modifier = Modifier.width(12.dp))
 
-                                    val monthNames = listOf("正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊")
-                                    val monthName = monthNames.getOrElse(birthLunarMonth - 1) { "$birthLunarMonth" }
-                                    Text("$monthName 月", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
+                                    val monthNameStr = LanguageUtils.getLocalizedLunarMonthName(birthLunarMonth, lang)
+                                    Text(monthNameStr, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary)
 
                                     Spacer(modifier = Modifier.width(12.dp))
 
@@ -414,7 +413,14 @@ fun AgeCalculatorScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("是否闰月", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+                                val leapLabel = when (lang.getEffectiveLanguage()) {
+                                    AppLanguage.ENGLISH -> "Leap Month"
+                                    AppLanguage.JAPANESE -> "閏月"
+                                    AppLanguage.KOREAN -> "윤달"
+                                    AppLanguage.TRADITIONAL_CHINESE -> "是否閏月"
+                                    else -> "是否闰月"
+                                }
+                                Text(leapLabel, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
 
                                 NeumorphicSwitch(
                                     checked = birthIsLeapMonth,

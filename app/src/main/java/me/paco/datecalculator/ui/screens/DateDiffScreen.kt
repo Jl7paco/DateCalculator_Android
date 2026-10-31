@@ -1241,18 +1241,28 @@ fun DateDiffScreen(
     }
     val defaultDeviceInfo = remember { DateCalculatorUtils.getDeviceLaunchInfo() }
 
+    val defaultSaturdayTitle = when (lang.getEffectiveLanguage()) {
+        AppLanguage.ENGLISH -> "Next Saturday"
+        AppLanguage.JAPANESE -> "次の土曜日"
+        AppLanguage.KOREAN -> "다음 토요일"
+        AppLanguage.TRADITIONAL_CHINESE -> "下一個星期六"
+        else -> "下一个星期六"
+    }
+
+    val defaultDeviceTitle = LanguageUtils.getDeviceReleaseTitle(defaultDeviceInfo.deviceName, lang)
+
     var resultCardList by remember {
         mutableStateOf(
             listOf(
                 CountdownCardData(
                     id = 1001L,
-                    eventName = "下一个星期六",
+                    eventName = defaultSaturdayTitle,
                     targetDate = defaultSaturdayDate,
                     baseDate = LocalDate.now()
                 ),
                 CountdownCardData(
                     id = 1002L,
-                    eventName = "${defaultDeviceInfo.deviceName} 发布",
+                    eventName = defaultDeviceTitle,
                     targetDate = defaultDeviceInfo.launchDate,
                     baseDate = LocalDate.now()
                 )
