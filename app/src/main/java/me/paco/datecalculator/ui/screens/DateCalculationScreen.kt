@@ -8,6 +8,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,11 +33,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Calculate
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
+import me.paco.datecalculator.util.HapticUtils
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.History
-import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
@@ -47,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,7 +60,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
@@ -669,6 +676,11 @@ private fun DateCalcMultiStageSection(
     val cardShape22 = RoundedCornerShape(22.dp)
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
+    val view = LocalView.current
+
+    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
 
     val stageDaysFocusRequesters = remember(uiState.stages.size) {
         List(uiState.stages.size) { FocusRequester() }
@@ -740,26 +752,64 @@ private fun DateCalcMultiStageSection(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 多阶段列表
+            // 多阶段列表 (120Hz 极速跟手平滑拖拽排序)
             uiState.stages.forEachIndexed { index, stage ->
+                val isBeingDragged = (draggedIndex == index)
+                val offsetY = if (isBeingDragged) dragOffsetY else 0f
+                val zIdx = if (isBeingDragged) 10f else 1f
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .zIndex(zIdx)
+                        .graphicsLayer {
+                            translationY = offsetY
+                        }
                         .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Menu,
                         contentDescription = "Reorder",
-                        tint = NeumorphicAccent,
+                        tint = if (isBeingDragged) Color(0xFF3B82F6) else NeumorphicAccent,
                         modifier = Modifier
                             .size(22.dp)
                             .padding(end = 6.dp)
-                            .clickable {
-                                if (uiState.stages.size > 1) {
-                                    val nextIndex = (index + 1) % uiState.stages.size
-                                    viewModel.reorderCalculationStages(index, nextIndex)
-                                }
+                            .pointerInput(uiState.stages.size) {
+                                detectVerticalDragGestures(
+                                    onDragStart = {
+                                        draggedIndex = index
+                                        dragOffsetY = 0f
+                                        HapticUtils.performCrispClick(context, view)
+                                    },
+                                    onDragEnd = {
+                                        draggedIndex = null
+                                        dragOffsetY = 0f
+                                    },
+                                    onDragCancel = {
+                                        draggedIndex = null
+                                        dragOffsetY = 0f
+                                    },
+                                    onVerticalDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffsetY += dragAmount
+
+                                        val itemHeightPx = 48.dp.toPx()
+                                        val threshold = itemHeightPx * 0.5f
+
+                                        if (dragOffsetY > threshold && index < uiState.stages.lastIndex) {
+                                            viewModel.reorderCalculationStages(index, index + 1)
+                                            draggedIndex = index + 1
+                                            dragOffsetY -= itemHeightPx
+                                            HapticUtils.performCrispClick(context, view)
+                                        } else if (dragOffsetY < -threshold && index > 0) {
+                                            viewModel.reorderCalculationStages(index, index - 1)
+                                            draggedIndex = index - 1
+                                            dragOffsetY += itemHeightPx
+                                            HapticUtils.performCrispClick(context, view)
+                                        }
+                                    }
+                                )
                             }
                     )
 

@@ -327,14 +327,7 @@ fun WatermarkCameraScreen(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
-        )
-    ) {
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             // 1. 严格 3:4 摄像头取景框容器 (垂直居中于全屏)
             // 需求 1: 取景框与水印整体向上平移 20dp (padding bottom = 80.dp)，避开底部快门按键
             Box(
@@ -894,5 +887,4 @@ fun WatermarkCameraScreen(
                 }
             }
         }
-    }
 }

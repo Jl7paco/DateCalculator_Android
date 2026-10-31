@@ -132,11 +132,12 @@ fun MainScreen(
     ) {
         Scaffold(
             bottomBar = {
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(NeumorphicBg)
-                        .navigationBarsPadding()
+                if (!uiState.showWatermarkCamera) {
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(NeumorphicBg)
+                            .navigationBarsPadding()
                         .border(
                             1.dp,
                             NeumorphicTextPrimary.copy(alpha = 0.08f),
@@ -262,6 +263,7 @@ fun MainScreen(
                     }
                 }
             }
+        }
         ) { innerPadding ->
             val modifier = Modifier.padding(innerPadding)
 

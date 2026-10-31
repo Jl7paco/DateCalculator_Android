@@ -1423,6 +1423,10 @@ fun DateDiffScreen(
         }
     )
 
+    LaunchedEffect(showWatermarkCamera) {
+        viewModel.setWatermarkCameraVisible(showWatermarkCamera)
+    }
+
     if (showWatermarkCamera) {
         val currentCity = uiState.currentCityName
         val localizedCity = LanguageUtils.getLocalizedCityName(currentCity, lang)

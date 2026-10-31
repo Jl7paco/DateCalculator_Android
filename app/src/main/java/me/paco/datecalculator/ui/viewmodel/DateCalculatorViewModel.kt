@@ -152,7 +152,8 @@ data class DateCalculatorUiState(
     val homeConfig: HomeConfig = HomeConfig(),
     val selectedBirthDate: LocalDate = LocalDate.of(2000, 1, 1),
     val currentCityName: String = "深圳市 · 南山区",
-    val liveWeatherData: RealTimeWeatherData? = null
+    val liveWeatherData: RealTimeWeatherData? = null,
+    val showWatermarkCamera: Boolean = false
 )
 
 class DateCalculatorViewModel : ViewModel() {
@@ -258,6 +259,10 @@ class DateCalculatorViewModel : ViewModel() {
             PreferenceUtils.saveCustomEvents(context, updatedCustomEvents)
             PreferenceUtils.savePinnedPresetHolidays(context, updatedPinnedSet)
         }
+    }
+
+    fun setWatermarkCameraVisible(visible: Boolean) {
+        _uiState.value = _uiState.value.copy(showWatermarkCamera = visible)
     }
 
     fun togglePinAnniversary(itemId: Long, context: Context) {
