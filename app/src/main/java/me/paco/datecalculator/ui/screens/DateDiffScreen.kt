@@ -1472,13 +1472,6 @@ fun DateDiffScreen(
                         size = 28.dp,
                         iconSize = 14.dp
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = LanguageUtils.getString("tab_countdown", lang),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NeumorphicTextPrimary
-                    )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -1,10 +1,10 @@
-# 📅 DateCalculator (万能日期计算器) - Android v3.0.7
+# 📅 DateCalculator (万能日期计算器) - Android v3.0.8
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-blue.svg)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-2024.02-green.svg)](https://developer.android.com)
 [![Material 3](https://img.shields.io/badge/Material%203-Neumorphic-purple.svg)](https://m3.material.io)
 [![Android SDK](https://img.shields.io/badge/API-26%2B%20(Android%208.0%2B)-orange.svg)](https://developer.android.com)
-[![Version](https://img.shields.io/badge/Version-v3.0.7-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v3.0.8-brightgreen.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
 **万能日期计算器** 是一款基于 **Kotlin** 与 **Jetpack Compose** 打造的高颜值、全功能 Android 综合日期与时间算法工具。界面采用新拟物 (Neumorphism) 3D 光影设计，内置工作日计算、多段推算、建除十二神正统老黄历、星体行运每日运势、倒数日推算、防伪水印相机、多语言时间跨度计算器、重要纪念日打卡、农历公历双向转换、年龄精准推算及 **5 款 3D 桌面小组件 (AppWidgets)**。

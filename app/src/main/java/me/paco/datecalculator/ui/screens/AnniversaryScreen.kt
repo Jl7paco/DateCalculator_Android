@@ -552,14 +552,7 @@ fun AnniversaryScreen(
                         imageVector = Icons.Default.Favorite,
                         contentDescription = null,
                         tint = NeumorphicAccent,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "${LanguageUtils.getString("tab_anniversary", lang)} (${list.size})",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NeumorphicTextPrimary
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 

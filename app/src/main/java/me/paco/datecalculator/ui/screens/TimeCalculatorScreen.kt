@@ -158,20 +158,6 @@ fun TimeCalculatorScreen(
                             size = 28.dp,
                             iconSize = 14.dp
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        val titleText = when (effectiveLang) {
-                            AppLanguage.ENGLISH -> "Time Calculator"
-                            AppLanguage.TRADITIONAL_CHINESE -> "時間計算器"
-                            AppLanguage.JAPANESE -> "時間計算機"
-                            AppLanguage.KOREAN -> "시간 계산기"
-                            else -> "时间计算器"
-                        }
-                        Text(
-                            text = titleText,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = NeumorphicTextPrimary
-                        )
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

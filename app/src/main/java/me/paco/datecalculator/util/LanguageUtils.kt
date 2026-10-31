@@ -707,6 +707,26 @@ object LanguageUtils {
 
     fun getLocalizedHolidayName(rawName: String, language: AppLanguage): String {
         val effective = language.getEffectiveLanguage()
+
+        // 1. 动态支持 "XXX 机型 发布" 本地化更变
+        if (rawName.contains("发布") || rawName.contains("發布") || rawName.contains("Released") || rawName.contains("発売日") || rawName.contains("출시")) {
+            val devName = rawName
+                .replace("发布", "").replace("發布", "").replace("Released", "")
+                .replace("発売日", "").replace("출시", "").trim()
+            return getDeviceReleaseTitle(devName, language)
+        }
+
+        // 2. 动态支持 "下一个星期六" 本地化更变
+        if (rawName.contains("下一个星期六") || rawName.contains("下一個星期六") || rawName.contains("Next Saturday") || rawName.contains("次の土曜日") || rawName.contains("다음 토요일")) {
+            return when (effective) {
+                AppLanguage.ENGLISH -> "Next Saturday"
+                AppLanguage.JAPANESE -> "次の土曜日"
+                AppLanguage.KOREAN -> "다음 토요일"
+                AppLanguage.TRADITIONAL_CHINESE -> "下一個星期六"
+                else -> "下一个星期六"
+            }
+        }
+
         if (effective == AppLanguage.SIMPLIFIED_CHINESE || effective == AppLanguage.TRADITIONAL_CHINESE) {
             return rawName
         }
