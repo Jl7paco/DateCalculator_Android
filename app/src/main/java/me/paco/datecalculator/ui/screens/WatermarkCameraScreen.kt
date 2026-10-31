@@ -257,7 +257,8 @@ fun WatermarkCameraScreen(
     val videoCapture = remember { VideoCapture.withOutput(recorder) }
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
 
-    LaunchedEffect(lensFacing, cameraMode, flashEnabled) {
+    // 极速相机管线绑定 (仅在切换镜头 lensFacing 或 拍摄模式 cameraMode 时重发，闪光灯切换 0ms 闪电生效，不解绑管线)
+    LaunchedEffect(lensFacing, cameraMode) {
         currentZoom = 1.0f
         withContext(Dispatchers.IO) {
             try {
@@ -272,8 +273,6 @@ fun WatermarkCameraScreen(
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
 
-                    imageCapture.flashMode = if (flashEnabled) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
-
                     val cameraSelector = CameraSelector.Builder()
                         .requireLensFacing(lensFacing)
                         .build()
@@ -281,6 +280,7 @@ fun WatermarkCameraScreen(
                     cameraProvider.unbindAll()
 
                     val camera = if (cameraMode == CameraMode.PHOTO) {
+                        imageCapture.flashMode = if (flashEnabled) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
                         cameraProvider.bindToLifecycle(
                             lifecycleOwner,
                             cameraSelector,
@@ -297,8 +297,6 @@ fun WatermarkCameraScreen(
                     }
 
                     boundCamera = camera
-                    camera.cameraControl.setZoomRatio(1.0f)
-
                     val currentState = camera.cameraInfo.zoomState.value
                     if (currentState != null) {
                         minZoomRatio = if (lensFacing == CameraSelector.LENS_FACING_BACK && currentState.minZoomRatio >= 1.0f) 0.5f else currentState.minZoomRatio
@@ -555,14 +553,18 @@ fun WatermarkCameraScreen(
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Flash Button
+                        // Flash Button (0ms 闪电切换，不触发表重绑管线)
                         Box(
                             modifier = Modifier
                                 .size(38.dp)
                                 .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
                                 .background(NeumorphicBg, shape = CircleShape)
                                 .clip(CircleShape)
-                                .clickable { flashEnabled = !flashEnabled },
+                                .clickable {
+                                    flashEnabled = !flashEnabled
+                                    imageCapture.flashMode = if (flashEnabled) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
+                                    boundCamera?.cameraControl?.enableTorch(flashEnabled)
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
