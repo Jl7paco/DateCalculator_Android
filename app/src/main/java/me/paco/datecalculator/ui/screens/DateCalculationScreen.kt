@@ -768,7 +768,7 @@ private fun DateCalcMultiStageSection(
             val itemHeightPx = with(density) { 48.dp.toPx() }
             val activeTargetIndex = if (activeDraggedIndex != -1) {
                 val offsetSlot = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
-                (activeDraggedIndex + offsetSlot).coerceIn(0, uiState.stages.lastIndex)
+                (initialDragIndex + offsetSlot).coerceIn(0, uiState.stages.lastIndex)
             } else -1
 
             uiState.stages.forEachIndexed { index, stage ->
@@ -818,9 +818,14 @@ private fun DateCalcMultiStageSection(
                                             HapticUtils.performCrispClick(context, view)
                                         },
                                         onDragEnd = {
-                                            if (activeDraggedIndex != -1 && activeTargetIndex != -1 && activeDraggedIndex != activeTargetIndex) {
-                                                viewModel.reorderCalculationStages(activeDraggedIndex, activeTargetIndex)
-                                                HapticUtils.performCrispClick(context, view)
+                                            val liveDraggedIndex = uiState.stages.indexOfFirst { it.id == stage.id }
+                                            if (liveDraggedIndex != -1) {
+                                                val offsetSlot = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
+                                                val liveTargetIndex = (initialDragIndex + offsetSlot).coerceIn(0, uiState.stages.lastIndex)
+                                                if (liveTargetIndex != liveDraggedIndex) {
+                                                    viewModel.reorderCalculationStages(liveDraggedIndex, liveTargetIndex)
+                                                    HapticUtils.performCrispClick(context, view)
+                                                }
                                             }
                                             draggedStageId = null
                                             dragOffsetY = 0f
