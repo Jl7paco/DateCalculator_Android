@@ -49,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -679,7 +680,7 @@ private fun DateCalcMultiStageSection(
     val context = LocalContext.current
     val view = LocalView.current
 
-    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    var draggedStageId by remember { mutableStateOf<Long?>(null) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
 
     val stageDaysFocusRequesters = remember(uiState.stages.size) {
@@ -752,70 +753,71 @@ private fun DateCalcMultiStageSection(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 多阶段列表 (120Hz 极速跟手平滑拖拽排序)
+            // 多阶段列表 (基于 stage.id 永久唯一识别锁，120Hz 极速跟手平滑无缝调序)
             uiState.stages.forEachIndexed { index, stage ->
-                val isBeingDragged = (draggedIndex == index)
-                val offsetY = if (isBeingDragged) dragOffsetY else 0f
-                val zIdx = if (isBeingDragged) 10f else 1f
+                key(stage.id) {
+                    val isBeingDragged = (draggedStageId == stage.id)
+                    val offsetY = if (isBeingDragged) dragOffsetY else 0f
+                    val zIdx = if (isBeingDragged) 10f else 1f
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .zIndex(zIdx)
-                        .graphicsLayer {
-                            translationY = offsetY
-                        }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Reorder",
-                        tint = if (isBeingDragged) Color(0xFF3B82F6) else NeumorphicAccent,
+                    Row(
                         modifier = Modifier
-                            .size(22.dp)
-                            .padding(end = 6.dp)
-                            .pointerInput(uiState.stages.size) {
-                                detectVerticalDragGestures(
-                                    onDragStart = {
-                                        draggedIndex = index
-                                        dragOffsetY = 0f
-                                        HapticUtils.performCrispClick(context, view)
-                                    },
-                                    onDragEnd = {
-                                        draggedIndex = null
-                                        dragOffsetY = 0f
-                                    },
-                                    onDragCancel = {
-                                        draggedIndex = null
-                                        dragOffsetY = 0f
-                                    },
-                                    onVerticalDrag = { change, dragAmount ->
-                                        change.consume()
-                                        val itemHeightPx = 48.dp.toPx()
-                                        // 随卡片总数量 (lastIndex) 自动动态扩写限位范围，并包含 0.5 倍卡片高度的自由拖拽缓冲空间
-                                        val minOffsetY = -index * itemHeightPx - (itemHeightPx * 0.5f)
-                                        val maxOffsetY = (uiState.stages.lastIndex - index) * itemHeightPx + (itemHeightPx * 0.5f)
-
-                                        dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minOffsetY, maxOffsetY)
-
-                                        val threshold = itemHeightPx * 0.45f
-
-                                        if (dragOffsetY > threshold && index < uiState.stages.lastIndex) {
-                                            viewModel.reorderCalculationStages(index, index + 1)
-                                            draggedIndex = index + 1
-                                            dragOffsetY -= itemHeightPx
-                                            HapticUtils.performCrispClick(context, view)
-                                        } else if (dragOffsetY < -threshold && index > 0) {
-                                            viewModel.reorderCalculationStages(index, index - 1)
-                                            draggedIndex = index - 1
-                                            dragOffsetY += itemHeightPx
-                                            HapticUtils.performCrispClick(context, view)
-                                        }
-                                    }
-                                )
+                            .fillMaxWidth()
+                            .zIndex(zIdx)
+                            .graphicsLayer {
+                                translationY = offsetY
                             }
-                    )
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Reorder",
+                            tint = if (isBeingDragged) Color(0xFF3B82F6) else NeumorphicAccent,
+                            modifier = Modifier
+                                .size(22.dp)
+                                .padding(end = 6.dp)
+                                .pointerInput(stage.id) {
+                                    detectVerticalDragGestures(
+                                        onDragStart = {
+                                            draggedStageId = stage.id
+                                            dragOffsetY = 0f
+                                            HapticUtils.performCrispClick(context, view)
+                                        },
+                                        onDragEnd = {
+                                            draggedStageId = null
+                                            dragOffsetY = 0f
+                                        },
+                                        onDragCancel = {
+                                            draggedStageId = null
+                                            dragOffsetY = 0f
+                                        },
+                                        onVerticalDrag = { change, dragAmount ->
+                                            change.consume()
+                                            val currentIndex = uiState.stages.indexOfFirst { it.id == stage.id }
+                                            if (currentIndex != -1) {
+                                                val itemHeightPx = 48.dp.toPx()
+                                                val minOffsetY = -currentIndex * itemHeightPx - (itemHeightPx * 0.4f)
+                                                val maxOffsetY = (uiState.stages.lastIndex - currentIndex) * itemHeightPx + (itemHeightPx * 0.4f)
+
+                                                dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minOffsetY, maxOffsetY)
+
+                                                val threshold = itemHeightPx * 0.45f
+
+                                                if (dragOffsetY > threshold && currentIndex < uiState.stages.lastIndex) {
+                                                    viewModel.reorderCalculationStages(currentIndex, currentIndex + 1)
+                                                    dragOffsetY -= itemHeightPx
+                                                    HapticUtils.performCrispClick(context, view)
+                                                } else if (dragOffsetY < -threshold && currentIndex > 0) {
+                                                    viewModel.reorderCalculationStages(currentIndex, currentIndex - 1)
+                                                    dragOffsetY += itemHeightPx
+                                                    HapticUtils.performCrispClick(context, view)
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                        )
 
                     Box(
                         modifier = Modifier
@@ -1020,6 +1022,7 @@ private fun DateCalcMultiStageSection(
                     )
                 }
             }
+        }
 
             Spacer(modifier = Modifier.height(10.dp))
 
