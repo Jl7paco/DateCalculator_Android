@@ -1433,8 +1433,7 @@ fun DateDiffScreen(
         val resolvedLandmark = if (checkInTitleInput.isNotBlank()) {
             checkInTitleInput
         } else {
-            LocationUtils.getCurrentLocationWithDistrict(context).districtName
-                .substringAfter("·").trim().ifBlank { "车公庙" }
+            currentCity.substringAfter("·").trim().ifBlank { "车公庙" }
         }
 
         WatermarkCameraScreen(

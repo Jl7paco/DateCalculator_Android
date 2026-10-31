@@ -1,5 +1,7 @@
 package me.paco.datecalculator.ui.screens
 
+import android.util.Log
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -756,7 +758,9 @@ private fun DateCalcMultiStageSection(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 多阶段列表 (基于 stage.id 永久唯一识别锁，120Hz 极速跟手平滑无缝调序)
+            // 多阶段列表 (基于 localStages 内存即时同步，消灭 120Hz 盲重发，120Hz 极速跟手平滑调序)
+            val localStages = remember(uiState.stages) { uiState.stages.toMutableList() }
+
             uiState.stages.forEachIndexed { index, stage ->
                 key(stage.id) {
                     val isBeingDragged = (draggedStageId == stage.id)
@@ -801,28 +805,25 @@ private fun DateCalcMultiStageSection(
                                         },
                                         onVerticalDrag = { change, dragAmount ->
                                             change.consume()
-                                            val currentIndex = uiState.stages.indexOfFirst { it.id == stage.id }
-                                            if (currentIndex != -1) {
+                                            val currentRealIndex = localStages.indexOfFirst { it.id == stage.id }
+                                            if (currentRealIndex != -1) {
                                                 val itemHeightPx = 48.dp.toPx()
                                                 val minAccumulatedY = -initialDragIndex * itemHeightPx
-                                                val maxAccumulatedY = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx
+                                                val maxAccumulatedY = (localStages.lastIndex - initialDragIndex) * itemHeightPx
 
-                                                val prevAccY = accumulatedDragY
                                                 accumulatedDragY = (accumulatedDragY + dragAmount).coerceIn(minAccumulatedY, maxAccumulatedY)
-                                                val allowedDelta = accumulatedDragY - prevAccY
 
-                                                dragOffsetY += allowedDelta
-                                                val threshold = itemHeightPx * 0.40f
+                                                val offsetIndex = kotlin.math.round(accumulatedDragY / itemHeightPx).toInt()
+                                                val targetIndex = (initialDragIndex + offsetIndex).coerceIn(0, localStages.lastIndex)
 
-                                                if (dragOffsetY > threshold && currentIndex < uiState.stages.lastIndex) {
-                                                    viewModel.reorderCalculationStages(currentIndex, currentIndex + 1)
-                                                    dragOffsetY -= itemHeightPx
-                                                    HapticUtils.performCrispClick(context, view)
-                                                } else if (dragOffsetY < -threshold && currentIndex > 0) {
-                                                    viewModel.reorderCalculationStages(currentIndex, currentIndex - 1)
-                                                    dragOffsetY += itemHeightPx
+                                                if (targetIndex != currentRealIndex) {
+                                                    val movedItem = localStages.removeAt(currentRealIndex)
+                                                    localStages.add(targetIndex, movedItem)
+                                                    viewModel.reorderCalculationStages(currentRealIndex, targetIndex)
                                                     HapticUtils.performCrispClick(context, view)
                                                 }
+
+                                                dragOffsetY = accumulatedDragY - (targetIndex - initialDragIndex) * itemHeightPx
                                             }
                                         }
                                     )
