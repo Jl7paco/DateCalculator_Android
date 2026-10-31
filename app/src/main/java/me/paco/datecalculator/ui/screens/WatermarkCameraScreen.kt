@@ -259,55 +259,56 @@ fun WatermarkCameraScreen(
 
     LaunchedEffect(lensFacing, cameraMode, flashEnabled) {
         currentZoom = 1.0f
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-        cameraProviderFuture.addListener({
+        withContext(Dispatchers.IO) {
             try {
+                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
                 val cameraProvider = cameraProviderFuture.get()
-                val preview = Preview.Builder()
-                    .setTargetAspectRatio(AspectRatio.RATIO_4_3)
-                    .build()
-                    .also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
+
+                withContext(Dispatchers.Main) {
+                    val preview = Preview.Builder()
+                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                        .build()
+                        .also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+
+                    imageCapture.flashMode = if (flashEnabled) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
+
+                    val cameraSelector = CameraSelector.Builder()
+                        .requireLensFacing(lensFacing)
+                        .build()
+
+                    cameraProvider.unbindAll()
+
+                    val camera = if (cameraMode == CameraMode.PHOTO) {
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            cameraSelector,
+                            preview,
+                            imageCapture
+                        )
+                    } else {
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            cameraSelector,
+                            preview,
+                            videoCapture
+                        )
                     }
 
-                imageCapture.flashMode = if (flashEnabled) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
+                    boundCamera = camera
+                    camera.cameraControl.setZoomRatio(1.0f)
 
-                val cameraSelector = CameraSelector.Builder()
-                    .requireLensFacing(lensFacing)
-                    .build()
-
-                cameraProvider.unbindAll()
-
-                val camera = if (cameraMode == CameraMode.PHOTO) {
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        cameraSelector,
-                        preview,
-                        imageCapture
-                    )
-                } else {
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        cameraSelector,
-                        preview,
-                        videoCapture
-                    )
-                }
-
-                boundCamera = camera
-                camera.cameraControl.setZoomRatio(1.0f)
-
-                camera.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
-                    if (state != null) {
-                        minZoomRatio = if (lensFacing == CameraSelector.LENS_FACING_BACK && state.minZoomRatio >= 1.0f) 0.5f else state.minZoomRatio
-                        maxZoomRatio = if (lensFacing == CameraSelector.LENS_FACING_BACK && state.maxZoomRatio < 5.0f) 10.0f else state.maxZoomRatio
-                        currentZoom = state.zoomRatio
+                    val currentState = camera.cameraInfo.zoomState.value
+                    if (currentState != null) {
+                        minZoomRatio = if (lensFacing == CameraSelector.LENS_FACING_BACK && currentState.minZoomRatio >= 1.0f) 0.5f else currentState.minZoomRatio
+                        maxZoomRatio = if (lensFacing == CameraSelector.LENS_FACING_BACK && currentState.maxZoomRatio < 5.0f) 10.0f else currentState.maxZoomRatio
                     }
                 }
             } catch (e: Exception) {
                 Log.e("WatermarkCamera", "Camera binding failed", e)
             }
-        }, ContextCompat.getMainExecutor(context))
+        }
     }
 
     DisposableEffect(Unit) {
