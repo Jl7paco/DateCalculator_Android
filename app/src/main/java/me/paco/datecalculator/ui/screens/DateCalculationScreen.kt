@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalFocusManager
@@ -683,9 +684,7 @@ private fun DateCalcMultiStageSection(
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
     val view = LocalView.current
-
-    var draggedStageId by remember { mutableStateOf<Long?>(null) }
-    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
 
     val stageDaysFocusRequesters = remember(uiState.stages.size) {
         List(uiState.stages.size) { FocusRequester() }
@@ -757,13 +756,40 @@ private fun DateCalcMultiStageSection(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 多阶段列表 (基于 SnapshotStateList 本地 120Hz 极速跟手，松手时统一同步 ViewModel，彻底消除并发竞态与卡顿)
-            val workingStages = remember(uiState.stages) { uiState.stages.toMutableStateList() }
+            // 多阶段列表 (纯 GPU 平移层渲染，手势过程中 0 次 List 篡改与 0 次 JIT 编排，拖拽结束统一提交，120Hz 极致丝滑)
+            var draggedStageId by remember { mutableStateOf<Long?>(null) }
+            var dragOffsetY by remember { mutableFloatStateOf(0f) }
+            var initialDragIndex by remember { mutableIntStateOf(0) }
 
-            workingStages.forEachIndexed { index, stage ->
+            val activeDraggedIndex = if (draggedStageId != null) {
+                uiState.stages.indexOfFirst { it.id == draggedStageId }
+            } else -1
+
+            val itemHeightPx = with(density) { 48.dp.toPx() }
+            val activeTargetIndex = if (activeDraggedIndex != -1) {
+                val offsetSlot = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
+                (activeDraggedIndex + offsetSlot).coerceIn(0, uiState.stages.lastIndex)
+            } else -1
+
+            uiState.stages.forEachIndexed { index, stage ->
                 key(stage.id) {
                     val isBeingDragged = (draggedStageId == stage.id)
-                    val offsetY = if (isBeingDragged) dragOffsetY else 0f
+
+                    // 100% 严密 GPU 轴线偏移推导：
+                    // 1. 被拖拽卡片直接按手指位移 translationY = dragOffsetY 平移
+                    // 2. 被波及邻近卡片根据 targetIndex 自动向相反方向移动 1 个卡片高度进行跟手让位
+                    val animOffsetY = when {
+                        isBeingDragged -> dragOffsetY
+                        activeDraggedIndex != -1 && activeTargetIndex != -1 -> {
+                            when {
+                                index > activeDraggedIndex && index <= activeTargetIndex -> -itemHeightPx
+                                index < activeDraggedIndex && index >= activeTargetIndex -> itemHeightPx
+                                else -> 0f
+                            }
+                        }
+                        else -> 0f
+                    }
+
                     val zIdx = if (isBeingDragged) 10f else 1f
 
                     Row(
@@ -771,7 +797,7 @@ private fun DateCalcMultiStageSection(
                             .fillMaxWidth()
                             .zIndex(zIdx)
                             .graphicsLayer {
-                                translationY = offsetY
+                                translationY = animOffsetY
                             }
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -787,42 +813,27 @@ private fun DateCalcMultiStageSection(
                                     detectVerticalDragGestures(
                                         onDragStart = {
                                             draggedStageId = stage.id
+                                            initialDragIndex = index
                                             dragOffsetY = 0f
                                             HapticUtils.performCrispClick(context, view)
                                         },
                                         onDragEnd = {
+                                            if (activeDraggedIndex != -1 && activeTargetIndex != -1 && activeDraggedIndex != activeTargetIndex) {
+                                                viewModel.reorderCalculationStages(activeDraggedIndex, activeTargetIndex)
+                                                HapticUtils.performCrispClick(context, view)
+                                            }
                                             draggedStageId = null
                                             dragOffsetY = 0f
-                                            viewModel.updateAllStages(workingStages)
                                         },
                                         onDragCancel = {
                                             draggedStageId = null
                                             dragOffsetY = 0f
-                                            viewModel.updateAllStages(workingStages)
                                         },
                                         onVerticalDrag = { change, dragAmount ->
                                             change.consume()
-                                            val currentRealIndex = workingStages.indexOfFirst { it.id == stage.id }
-                                            if (currentRealIndex != -1) {
-                                                val itemHeightPx = 48.dp.toPx()
-                                                val minAllowedOffset = -currentRealIndex * itemHeightPx
-                                                val maxAllowedOffset = (workingStages.lastIndex - currentRealIndex) * itemHeightPx
-
-                                                dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
-                                                val threshold = itemHeightPx * 0.50f
-
-                                                if (dragOffsetY > threshold && currentRealIndex < workingStages.lastIndex) {
-                                                    val movedItem = workingStages.removeAt(currentRealIndex)
-                                                    workingStages.add(currentRealIndex + 1, movedItem)
-                                                    dragOffsetY -= itemHeightPx
-                                                    HapticUtils.performCrispClick(context, view)
-                                                } else if (dragOffsetY < -threshold && currentRealIndex > 0) {
-                                                    val movedItem = workingStages.removeAt(currentRealIndex)
-                                                    workingStages.add(currentRealIndex - 1, movedItem)
-                                                    dragOffsetY += itemHeightPx
-                                                    HapticUtils.performCrispClick(context, view)
-                                                }
-                                            }
+                                            val minAllowedOffset = -initialDragIndex * itemHeightPx
+                                            val maxAllowedOffset = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx
+                                            dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
                                         }
                                     )
                                 }
