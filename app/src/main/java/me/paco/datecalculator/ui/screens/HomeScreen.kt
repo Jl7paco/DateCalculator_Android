@@ -162,7 +162,7 @@ fun HomeScreen(
         ) == PackageManager.PERMISSION_GRANTED
 
         if (hasFine || hasCoarse) {
-            viewModel.fetchCurrentGpsLocation(context, force = true)
+            viewModel.fetchCurrentGpsLocation(context, force = false)
         } else {
             locationPermissionLauncher.launch(
                 arrayOf(
