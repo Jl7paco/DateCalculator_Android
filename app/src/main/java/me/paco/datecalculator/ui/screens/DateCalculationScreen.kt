@@ -792,10 +792,14 @@ private fun DateCalcMultiStageSection(
                                     },
                                     onVerticalDrag = { change, dragAmount ->
                                         change.consume()
-                                        dragOffsetY += dragAmount
-
                                         val itemHeightPx = 48.dp.toPx()
-                                        val threshold = itemHeightPx * 0.5f
+                                        // 随卡片总数量 (lastIndex) 自动动态扩写限位范围，并包含 0.5 倍卡片高度的自由拖拽缓冲空间
+                                        val minOffsetY = -index * itemHeightPx - (itemHeightPx * 0.5f)
+                                        val maxOffsetY = (uiState.stages.lastIndex - index) * itemHeightPx + (itemHeightPx * 0.5f)
+
+                                        dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minOffsetY, maxOffsetY)
+
+                                        val threshold = itemHeightPx * 0.45f
 
                                         if (dragOffsetY > threshold && index < uiState.stages.lastIndex) {
                                             viewModel.reorderCalculationStages(index, index + 1)
