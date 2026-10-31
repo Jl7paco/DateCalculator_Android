@@ -51,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -682,6 +683,8 @@ private fun DateCalcMultiStageSection(
 
     var draggedStageId by remember { mutableStateOf<Long?>(null) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    var initialDragIndex by remember { mutableIntStateOf(0) }
+    var accumulatedDragY by remember { mutableFloatStateOf(0f) }
 
     val stageDaysFocusRequesters = remember(uiState.stages.size) {
         List(uiState.stages.size) { FocusRequester() }
@@ -782,27 +785,34 @@ private fun DateCalcMultiStageSection(
                                         onDragStart = {
                                             draggedStageId = stage.id
                                             dragOffsetY = 0f
+                                            accumulatedDragY = 0f
+                                            initialDragIndex = index
                                             HapticUtils.performCrispClick(context, view)
                                         },
                                         onDragEnd = {
                                             draggedStageId = null
                                             dragOffsetY = 0f
+                                            accumulatedDragY = 0f
                                         },
                                         onDragCancel = {
                                             draggedStageId = null
                                             dragOffsetY = 0f
+                                            accumulatedDragY = 0f
                                         },
                                         onVerticalDrag = { change, dragAmount ->
                                             change.consume()
                                             val currentIndex = uiState.stages.indexOfFirst { it.id == stage.id }
                                             if (currentIndex != -1) {
                                                 val itemHeightPx = 48.dp.toPx()
-                                                val minOffsetY = -currentIndex * itemHeightPx - (itemHeightPx * 0.4f)
-                                                val maxOffsetY = (uiState.stages.lastIndex - currentIndex) * itemHeightPx + (itemHeightPx * 0.4f)
+                                                val minAccumulatedY = -initialDragIndex * itemHeightPx
+                                                val maxAccumulatedY = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx
 
-                                                dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minOffsetY, maxOffsetY)
+                                                val prevAccY = accumulatedDragY
+                                                accumulatedDragY = (accumulatedDragY + dragAmount).coerceIn(minAccumulatedY, maxAccumulatedY)
+                                                val allowedDelta = accumulatedDragY - prevAccY
 
-                                                val threshold = itemHeightPx * 0.45f
+                                                dragOffsetY += allowedDelta
+                                                val threshold = itemHeightPx * 0.40f
 
                                                 if (dragOffsetY > threshold && currentIndex < uiState.stages.lastIndex) {
                                                     viewModel.reorderCalculationStages(currentIndex, currentIndex + 1)
