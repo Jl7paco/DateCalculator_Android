@@ -518,6 +518,10 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(stages = updated)
     }
 
+    fun updateAllStages(newStages: List<CalculationStage>) {
+        _uiState.value = _uiState.value.copy(stages = newStages)
+    }
+
     fun reorderCalculationStages(fromIndex: Int, toIndex: Int) {
         val currentStages = _uiState.value.stages.toMutableList()
         if (fromIndex in currentStages.indices && toIndex in currentStages.indices) {

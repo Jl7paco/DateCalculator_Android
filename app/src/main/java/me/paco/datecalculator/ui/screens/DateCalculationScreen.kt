@@ -57,6 +57,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -685,8 +686,6 @@ private fun DateCalcMultiStageSection(
 
     var draggedStageId by remember { mutableStateOf<Long?>(null) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
-    var initialDragIndex by remember { mutableIntStateOf(0) }
-    var accumulatedDragY by remember { mutableFloatStateOf(0f) }
 
     val stageDaysFocusRequesters = remember(uiState.stages.size) {
         List(uiState.stages.size) { FocusRequester() }
@@ -758,10 +757,10 @@ private fun DateCalcMultiStageSection(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 多阶段列表 (基于 localStages 内存即时同步，消灭 120Hz 盲重发，120Hz 极速跟手平滑调序)
-            val localStages = remember(uiState.stages) { uiState.stages.toMutableList() }
+            // 多阶段列表 (基于 SnapshotStateList 本地 120Hz 极速跟手，松手时统一同步 ViewModel，彻底消除并发竞态与卡顿)
+            val workingStages = remember(uiState.stages) { uiState.stages.toMutableStateList() }
 
-            uiState.stages.forEachIndexed { index, stage ->
+            workingStages.forEachIndexed { index, stage ->
                 key(stage.id) {
                     val isBeingDragged = (draggedStageId == stage.id)
                     val offsetY = if (isBeingDragged) dragOffsetY else 0f
@@ -789,41 +788,40 @@ private fun DateCalcMultiStageSection(
                                         onDragStart = {
                                             draggedStageId = stage.id
                                             dragOffsetY = 0f
-                                            accumulatedDragY = 0f
-                                            initialDragIndex = index
                                             HapticUtils.performCrispClick(context, view)
                                         },
                                         onDragEnd = {
                                             draggedStageId = null
                                             dragOffsetY = 0f
-                                            accumulatedDragY = 0f
+                                            viewModel.updateAllStages(workingStages)
                                         },
                                         onDragCancel = {
                                             draggedStageId = null
                                             dragOffsetY = 0f
-                                            accumulatedDragY = 0f
+                                            viewModel.updateAllStages(workingStages)
                                         },
                                         onVerticalDrag = { change, dragAmount ->
                                             change.consume()
-                                            val currentRealIndex = localStages.indexOfFirst { it.id == stage.id }
+                                            val currentRealIndex = workingStages.indexOfFirst { it.id == stage.id }
                                             if (currentRealIndex != -1) {
                                                 val itemHeightPx = 48.dp.toPx()
-                                                val minAccumulatedY = -initialDragIndex * itemHeightPx
-                                                val maxAccumulatedY = (localStages.lastIndex - initialDragIndex) * itemHeightPx
+                                                val minAllowedOffset = -currentRealIndex * itemHeightPx
+                                                val maxAllowedOffset = (workingStages.lastIndex - currentRealIndex) * itemHeightPx
 
-                                                accumulatedDragY = (accumulatedDragY + dragAmount).coerceIn(minAccumulatedY, maxAccumulatedY)
+                                                dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
+                                                val threshold = itemHeightPx * 0.50f
 
-                                                val offsetIndex = kotlin.math.round(accumulatedDragY / itemHeightPx).toInt()
-                                                val targetIndex = (initialDragIndex + offsetIndex).coerceIn(0, localStages.lastIndex)
-
-                                                if (targetIndex != currentRealIndex) {
-                                                    val movedItem = localStages.removeAt(currentRealIndex)
-                                                    localStages.add(targetIndex, movedItem)
-                                                    viewModel.reorderCalculationStages(currentRealIndex, targetIndex)
+                                                if (dragOffsetY > threshold && currentRealIndex < workingStages.lastIndex) {
+                                                    val movedItem = workingStages.removeAt(currentRealIndex)
+                                                    workingStages.add(currentRealIndex + 1, movedItem)
+                                                    dragOffsetY -= itemHeightPx
+                                                    HapticUtils.performCrispClick(context, view)
+                                                } else if (dragOffsetY < -threshold && currentRealIndex > 0) {
+                                                    val movedItem = workingStages.removeAt(currentRealIndex)
+                                                    workingStages.add(currentRealIndex - 1, movedItem)
+                                                    dragOffsetY += itemHeightPx
                                                     HapticUtils.performCrispClick(context, view)
                                                 }
-
-                                                dragOffsetY = accumulatedDragY - (targetIndex - initialDragIndex) * itemHeightPx
                                             }
                                         }
                                     )
