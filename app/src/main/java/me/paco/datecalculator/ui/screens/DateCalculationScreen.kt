@@ -782,8 +782,8 @@ private fun DateCalcMultiStageSection(
                         isBeingDragged -> dragOffsetY
                         activeDraggedIndex != -1 && activeTargetIndex != -1 -> {
                             when {
-                                index > activeDraggedIndex && index <= activeTargetIndex -> -itemHeightPx
-                                index < activeDraggedIndex && index >= activeTargetIndex -> itemHeightPx
+                                index > initialDragIndex && index <= activeTargetIndex -> -itemHeightPx
+                                index < initialDragIndex && index >= activeTargetIndex -> itemHeightPx
                                 else -> 0f
                             }
                         }
@@ -826,10 +826,12 @@ private fun DateCalcMultiStageSection(
                                         }
                                         draggedStageId = null
                                         dragOffsetY = 0f
+                                        initialDragIndex = 0
                                     },
                                     onDragCancel = {
                                         draggedStageId = null
                                         dragOffsetY = 0f
+                                        initialDragIndex = 0
                                     },
                                     onVerticalDrag = { change, dragAmount ->
                                         change.consume()
