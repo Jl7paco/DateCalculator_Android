@@ -765,7 +765,7 @@ private fun DateCalcMultiStageSection(
                 uiState.stages.indexOfFirst { it.id == draggedStageId }
             } else -1
 
-            val itemHeightPx = with(density) { 48.dp.toPx() }
+            val itemHeightPx = with(density) { 52.dp.toPx() }
             val activeTargetIndex = if (activeDraggedIndex != -1) {
                 val offsetSlot = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
                 (initialDragIndex + offsetSlot).coerceIn(0, uiState.stages.lastIndex)
@@ -799,7 +799,7 @@ private fun DateCalcMultiStageSection(
                             .graphicsLayer {
                                 translationY = animOffsetY
                             }
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // 三条杠拖拽手势句柄：扩大触摸响应热区 (40.dp)，防止滑动中途误触脱手 onDragCancel
@@ -818,7 +818,7 @@ private fun DateCalcMultiStageSection(
                                         val fromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
                                         if (fromIdx != -1) {
                                             val offsetSlot = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
-                                            val toIdx = (fromIdx + offsetSlot).coerceIn(0, uiState.stages.lastIndex)
+                                            val toIdx = (initialDragIndex + offsetSlot).coerceIn(0, uiState.stages.lastIndex)
                                             if (fromIdx != toIdx) {
                                                 viewModel.reorderCalculationStages(fromIdx, toIdx)
                                                 HapticUtils.performCrispClick(context, view)
