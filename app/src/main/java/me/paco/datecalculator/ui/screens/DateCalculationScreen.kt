@@ -768,8 +768,15 @@ private fun DateCalcMultiStageSection(
 
             val itemHeightPx = with(density) { 52.dp.toPx() }
             val activeTargetIndex = if (activeDraggedIndex != -1) {
-                val offsetSlot = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
-                (initialDragIndex + offsetSlot).coerceIn(0, uiState.stages.lastIndex)
+                val sign = if (dragOffsetY >= 0) 1 else -1
+                val absOffset = kotlin.math.abs(dragOffsetY)
+                val unitRatio = absOffset / itemHeightPx
+                val slots = if (unitRatio >= 0.30f) {
+                    1 + ((unitRatio - 0.30f)).toInt()
+                } else {
+                    0
+                } * sign
+                (initialDragIndex + slots).coerceIn(0, uiState.stages.lastIndex)
             } else -1
 
             uiState.stages.forEachIndexed { index, stage ->
@@ -825,8 +832,15 @@ private fun DateCalcMultiStageSection(
                                     onDragEnd = {
                                         val fromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
                                         if (fromIdx != -1) {
-                                            val offsetSlot = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
-                                            val toIdx = (initialDragIndex + offsetSlot).coerceIn(0, uiState.stages.lastIndex)
+                                            val sign = if (dragOffsetY >= 0) 1 else -1
+                                            val absOffset = kotlin.math.abs(dragOffsetY)
+                                            val unitRatio = absOffset / itemHeightPx
+                                            val slots = if (unitRatio >= 0.30f) {
+                                                1 + ((unitRatio - 0.30f)).toInt()
+                                            } else {
+                                                0
+                                            } * sign
+                                            val toIdx = (initialDragIndex + slots).coerceIn(0, uiState.stages.lastIndex)
                                             if (fromIdx != toIdx) {
                                                 viewModel.reorderCalculationStages(fromIdx, toIdx)
                                                 HapticUtils.performCrispClick(context, view)
@@ -843,8 +857,8 @@ private fun DateCalcMultiStageSection(
                                     },
                                     onVerticalDrag = { change, dragAmount ->
                                         change.consume()
-                                        val minAllowedOffset = -initialDragIndex * itemHeightPx
-                                        val maxAllowedOffset = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx
+                                        val minAllowedOffset = -initialDragIndex * itemHeightPx - (itemHeightPx * 0.5f)
+                                        val maxAllowedOffset = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx + (itemHeightPx * 0.5f)
                                         dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
                                     }
                                 )
