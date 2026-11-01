@@ -4,6 +4,7 @@ import android.util.Log
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -791,13 +792,20 @@ private fun DateCalcMultiStageSection(
                     }
 
                     val zIdx = if (isBeingDragged) 10f else 1f
+                    
+                    // 利用 animateFloatAsState 包装非拖拽卡片的位移，使其产生顺畅自动避让的弹簧动效
+                    val animatedSiblingOffsetY by animateFloatAsState(
+                        targetValue = animOffsetY,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "SiblingCardReorder"
+                    )
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .zIndex(zIdx)
                             .graphicsLayer {
-                                translationY = animOffsetY
+                                translationY = if (isBeingDragged) dragOffsetY else animatedSiblingOffsetY
                             }
                             .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
