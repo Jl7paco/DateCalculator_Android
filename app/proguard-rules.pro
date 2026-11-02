@@ -10,19 +10,17 @@
 # 保留所有 Annotations (Jetpack Compose @Composable 需要)
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
 
-# 保留所有 ViewModel 与 UI 状态组件，彻底解决 R8 字节码校验崩溃 (VerifyError)
--keep class me.paco.datecalculator.ui.** { *; }
--keepclassmembers class me.paco.datecalculator.ui.** { *; }
-
--keep class me.paco.datecalculator.data.** { *; }
+# 保留 Data 实体类中序列化所需字段
 -keepclassmembers class me.paco.datecalculator.data.** { *; }
 
--keep class me.paco.datecalculator.ui.viewmodel.** { *; }
--keepclassmembers class me.paco.datecalculator.ui.viewmodel.** { *; }
+# 允许 R8 混淆、重命名与缩减 UI 与 ViewModel 类中的内部方法与字段
+-keepclassmembers class * extends androidx.lifecycle.ViewModel { *; }
 
-# Jetpack Compose 框架保护规则
--dontwarn androidx.compose.**
--keep class androidx.compose.** { *; }
+# 保护 @Keep 注解修饰的类与成员
+-keep @androidx.annotation.Keep class * { *; }
+-keepclassmembers class * {
+    @androidx.annotation.Keep *;
+}
 
 # 保留所有 Enum 类的 values() 与 valueOf()
 -keepclassmembers enum * {
