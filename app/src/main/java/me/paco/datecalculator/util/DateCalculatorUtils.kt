@@ -502,8 +502,8 @@ object DateCalculatorUtils {
 
         stages.forEachIndexed { idx, stage ->
             val daysVal = stage.days.toInt()
-            if (daysVal > 0) {
-                val segEnd = calculateTargetDate(
+            val segEnd = if (daysVal > 0) {
+                calculateTargetDate(
                     baseDate = currentStart,
                     days = daysVal,
                     type = stage.type,
@@ -515,8 +515,12 @@ object DateCalculatorUtils {
                     disableChinaShiftWorkdays = disableChinaShiftWorkdays,
                     includeStartDate = if (idx == 0) includeStartDate else false
                 )
+            } else {
+                currentStart
+            }
 
-                val (_, stat, week) = calculateBreakdown(
+            val (_, statWork, week) = if (daysVal > 0) {
+                calculateBreakdown(
                     startDate = currentStart,
                     endDate = segEnd,
                     weekendRule = weekendRule,
@@ -526,26 +530,28 @@ object DateCalculatorUtils {
                     disableChinaShiftWorkdays = disableChinaShiftWorkdays,
                     includeStartDate = if (idx == 0) includeStartDate else false
                 )
-
-                val remarkText = stage.remark.ifBlank { "阶段 ${idx + 1}" }
-                val rawNat = abs(naturalDaysBetween(currentStart, segEnd))
-                val totalNat = if (idx == 0 && includeStartDate) rawNat + 1 else rawNat
-
-                results.add(
-                    StageSegmentResult(
-                        stageIndex = idx,
-                        remark = remarkText,
-                        type = stage.type,
-                        daysCount = stage.days,
-                        startDate = currentStart,
-                        endDate = segEnd,
-                        totalCalendarDays = totalNat,
-                        restDaysCount = stat + week
-                    )
-                )
-
-                currentStart = segEnd
+            } else {
+                Triple(0L, 0L, 0L)
             }
+
+            val remarkText = stage.remark.ifBlank { "阶段 ${idx + 1}" }
+            val rawNat = abs(naturalDaysBetween(currentStart, segEnd))
+            val totalNat = if (idx == 0 && includeStartDate && daysVal > 0) rawNat + 1 else rawNat
+
+            results.add(
+                StageSegmentResult(
+                    stageIndex = idx,
+                    remark = remarkText,
+                    type = stage.type,
+                    daysCount = stage.days,
+                    startDate = currentStart,
+                    endDate = segEnd,
+                    totalCalendarDays = totalNat,
+                    restDaysCount = statWork + week
+                )
+            )
+
+            currentStart = segEnd
         }
 
         return Pair(currentStart, results)
