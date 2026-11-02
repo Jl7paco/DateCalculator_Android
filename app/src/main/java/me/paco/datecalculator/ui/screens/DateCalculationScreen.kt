@@ -849,16 +849,16 @@ private fun DateCalcMultiStageSection(
                                             val maxAllowedOffset = (uiState.stages.lastIndex - curFromIdx) * itemHeightPx + (itemHeightPx * 0.5f)
                                             dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
 
-                                            // 实时碰撞即刻提交：当位移达到 45% 行高时瞬间完成 List 调换，松手 100% 绝对不弹回！
-                                            val stepThreshold = itemHeightPx * 0.45f
+                                            // 迟滞门限 60% 行高：单次触发换位后归零 dragOffsetY，消灭 16ms 反向震荡死循环！
+                                            val stepThreshold = itemHeightPx * 0.60f
                                             if (dragOffsetY >= stepThreshold && curFromIdx < uiState.stages.lastIndex) {
                                                 viewModel.reorderCalculationStages(curFromIdx, curFromIdx + 1)
                                                 HapticUtils.performCrispClick(context, view)
-                                                dragOffsetY -= itemHeightPx
+                                                dragOffsetY = 0f
                                             } else if (dragOffsetY <= -stepThreshold && curFromIdx > 0) {
                                                 viewModel.reorderCalculationStages(curFromIdx, curFromIdx - 1)
                                                 HapticUtils.performCrispClick(context, view)
-                                                dragOffsetY += itemHeightPx
+                                                dragOffsetY = 0f
                                             }
                                         }
                                     }
