@@ -833,13 +833,10 @@ private fun DateCalcMultiStageSection(
                                     },
                                     onDragEnd = {
                                         val curFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
-                                        if (curFromIdx != -1) {
-                                            val slots = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
-                                            val curToIdx = (curFromIdx + slots).coerceIn(0, uiState.stages.lastIndex)
-                                            if (curFromIdx != curToIdx) {
-                                                viewModel.reorderCalculationStages(curFromIdx, curToIdx)
-                                                HapticUtils.performCrispClick(context, view)
-                                            }
+                                        val curToIdx = computeTargetIndex(dragOffsetY)
+                                        if (curFromIdx != -1 && curToIdx != -1 && curFromIdx != curToIdx) {
+                                            viewModel.reorderCalculationStages(curFromIdx, curToIdx)
+                                            HapticUtils.performCrispClick(context, view)
                                         }
                                         draggedStageId = null
                                         dragOffsetY = 0f
@@ -847,13 +844,10 @@ private fun DateCalcMultiStageSection(
                                     },
                                     onDragCancel = {
                                         val curFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
-                                        if (curFromIdx != -1) {
-                                            val slots = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
-                                            val curToIdx = (curFromIdx + slots).coerceIn(0, uiState.stages.lastIndex)
-                                            if (curFromIdx != curToIdx) {
-                                                viewModel.reorderCalculationStages(curFromIdx, curToIdx)
-                                                HapticUtils.performCrispClick(context, view)
-                                            }
+                                        val curToIdx = computeTargetIndex(dragOffsetY)
+                                        if (curFromIdx != -1 && curToIdx != -1 && curFromIdx != curToIdx) {
+                                            viewModel.reorderCalculationStages(curFromIdx, curToIdx)
+                                            HapticUtils.performCrispClick(context, view)
                                         }
                                         draggedStageId = null
                                         dragOffsetY = 0f
