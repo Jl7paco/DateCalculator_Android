@@ -827,36 +827,34 @@ private fun DateCalcMultiStageSection(
                                         HapticUtils.performCrispClick(context, view)
                                     },
                                     onDragEnd = {
-                                        val targetIdx = computeTargetIndex(dragOffsetY)
-                                        val fromIdx = initialDragIndex
-                                        if (fromIdx != -1 && targetIdx != -1 && fromIdx != targetIdx) {
-                                            viewModel.reorderCalculationStages(fromIdx, targetIdx)
-                                            HapticUtils.performCrispClick(context, view)
-                                        }
                                         draggedStageId = null
                                         dragOffsetY = 0f
                                         initialDragIndex = 0
                                     },
                                     onDragCancel = {
-                                        val targetIdx = computeTargetIndex(dragOffsetY)
-                                        val fromIdx = initialDragIndex
-                                        if (fromIdx != -1 && targetIdx != -1 && fromIdx != targetIdx) {
-                                            viewModel.reorderCalculationStages(fromIdx, targetIdx)
-                                            HapticUtils.performCrispClick(context, view)
-                                        }
                                         draggedStageId = null
                                         dragOffsetY = 0f
                                         initialDragIndex = 0
                                     },
                                     onVerticalDrag = { change, dragAmount ->
                                         change.consume()
-                                        val minAllowedOffset = -initialDragIndex * itemHeightPx - (itemHeightPx * 0.4f)
-                                        val maxAllowedOffset = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx + (itemHeightPx * 0.4f)
-                                        val oldTarget = computeTargetIndex(dragOffsetY)
-                                        dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
-                                        val newTarget = computeTargetIndex(dragOffsetY)
-                                        if (newTarget != oldTarget && newTarget != -1) {
-                                            HapticUtils.performCrispClick(context, view)
+                                        val curFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
+                                        if (curFromIdx != -1) {
+                                            val minAllowedOffset = -curFromIdx * itemHeightPx - (itemHeightPx * 0.5f)
+                                            val maxAllowedOffset = (uiState.stages.lastIndex - curFromIdx) * itemHeightPx + (itemHeightPx * 0.5f)
+                                            dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
+
+                                            // 35% 超灵敏门限碰撞即刻提交 (约 19.6dp)：滑动中途即刻写回 ViewModel，消灭反弹与回放失败！
+                                            val stepThreshold = itemHeightPx * 0.35f
+                                            if (dragOffsetY >= stepThreshold && curFromIdx < uiState.stages.lastIndex) {
+                                                viewModel.reorderCalculationStages(curFromIdx, curFromIdx + 1)
+                                                HapticUtils.performCrispClick(context, view)
+                                                dragOffsetY -= itemHeightPx
+                                            } else if (dragOffsetY <= -stepThreshold && curFromIdx > 0) {
+                                                viewModel.reorderCalculationStages(curFromIdx, curFromIdx - 1)
+                                                HapticUtils.performCrispClick(context, view)
+                                                dragOffsetY += itemHeightPx
+                                            }
                                         }
                                     }
                                 )
