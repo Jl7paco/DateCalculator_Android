@@ -767,10 +767,19 @@ private fun DateCalcMultiStageSection(
             } else -1
 
             val itemHeightPx = with(density) { 56.dp.toPx() }
-            val activeTargetIndex = if (activeDraggedIndex != -1) {
-                val slots = kotlin.math.round(dragOffsetY / itemHeightPx).toInt()
-                (initialDragIndex + slots).coerceIn(0, uiState.stages.lastIndex)
-            } else -1
+
+            fun computeTargetIndex(offsetY: Float): Int {
+                if (activeDraggedIndex == -1) return -1
+                val thresholdRatio = 0.25f
+                val slots = when {
+                    offsetY >= itemHeightPx * thresholdRatio -> (1 + ((offsetY - itemHeightPx * thresholdRatio) / itemHeightPx)).toInt()
+                    offsetY <= -itemHeightPx * thresholdRatio -> (-1 - ((-offsetY - itemHeightPx * thresholdRatio) / itemHeightPx)).toInt()
+                    else -> 0
+                }
+                return (initialDragIndex + slots).coerceIn(0, uiState.stages.lastIndex)
+            }
+
+            val activeTargetIndex = computeTargetIndex(dragOffsetY)
 
             uiState.stages.forEachIndexed { index, stage ->
                 key(stage.id) {
@@ -846,9 +855,14 @@ private fun DateCalcMultiStageSection(
                                     },
                                     onVerticalDrag = { change, dragAmount ->
                                         change.consume()
-                                        val minAllowedOffset = -initialDragIndex * itemHeightPx - (itemHeightPx * 0.4f)
-                                        val maxAllowedOffset = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx + (itemHeightPx * 0.4f)
+                                        val minAllowedOffset = -initialDragIndex * itemHeightPx - (itemHeightPx * 0.8f)
+                                        val maxAllowedOffset = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx + (itemHeightPx * 0.8f)
+                                        val oldTarget = activeTargetIndex
                                         dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
+                                        val newTarget = activeTargetIndex
+                                        if (newTarget != oldTarget && newTarget != -1) {
+                                            HapticUtils.performCrispClick(context, view)
+                                        }
                                     }
                                 )
                             },
