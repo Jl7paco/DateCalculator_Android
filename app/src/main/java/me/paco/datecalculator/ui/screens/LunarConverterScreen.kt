@@ -35,27 +35,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
-import me.paco.datecalculator.ui.components.FireworksAnimation
-import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
-import me.paco.datecalculator.ui.components.NeumorphicSwitch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,94 +60,79 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 import me.paco.datecalculator.R
 import me.paco.datecalculator.data.AppLanguage
+import me.paco.datecalculator.data.ZodiacFortune
 import me.paco.datecalculator.ui.components.DatePickerModal
+import me.paco.datecalculator.ui.components.FireworksAnimation
 import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicIconButton
 import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
+import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
+import me.paco.datecalculator.ui.components.NeumorphicSwitch
+import me.paco.datecalculator.ui.components.NeumorphicTextPrimary
 import me.paco.datecalculator.ui.components.QuickDateChips
 import me.paco.datecalculator.ui.components.SettingsOverlayDialog
 import me.paco.datecalculator.ui.components.neumorphicExtruded
 import me.paco.datecalculator.ui.components.neumorphicInset
+import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorUiState
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
+import me.paco.datecalculator.util.AlmanacYiJi
 import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LunarCalendarUtils
+import me.paco.datecalculator.util.LunarDate
 import me.paco.datecalculator.util.ShareUtils
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/**
+ * 农历公历互转 Screen 主构件（精简指令集解耦架构，保证 ART 编译器 100% 编译原生指令，流畅度达 120Hz）
+ */
 @Composable
 fun LunarConverterScreen(
     viewModel: DateCalculatorViewModel,
     uiState: DateCalculatorUiState,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val scrollState = rememberScrollState()
+    val lang = uiState.appLanguage
 
-    // Convert Mode: 0 = 公历转农历, 1 = 农历转公历
-    var convertMode by remember { mutableIntStateOf(0) }
+    var convertMode by remember { mutableIntStateOf(0) } // 0: 公历转农历, 1: 农历转公历
 
-    // State for Solar -> Lunar
     var solarDate by remember { mutableStateOf(LocalDate.now()) }
     var showSolarPicker by remember { mutableStateOf(false) }
 
-    // State for Lunar -> Solar
     val todayLunar = remember { LunarCalendarUtils.solarToLunar(LocalDate.now()) }
-    var lunarRefSolarDate by remember { mutableStateOf(LocalDate.now()) }
-    var showLunarRefPicker by remember { mutableStateOf(false) }
-    var showHistoryDialog by remember { mutableStateOf(false) }
-    var showSettingsDialog by remember { mutableStateOf(false) }
-
     var lunarYearInput by remember { mutableStateOf(todayLunar.year.toString()) }
     var lunarMonth by remember { mutableIntStateOf(todayLunar.month) }
     var lunarDay by remember { mutableIntStateOf(todayLunar.day) }
     var isLeapMonth by remember { mutableStateOf(todayLunar.isLeapMonth) }
 
     var showLunarResult by remember { mutableStateOf(true) }
-
-    val cardScale = remember { Animatable(1.0f) }
-    val cardAlpha = remember { Animatable(1.0f) }
-    var triggerBounce by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(triggerBounce) {
-        if (triggerBounce > 0) {
-            launch {
-                cardScale.animateTo(1.04f, animationSpec = tween(100))
-                cardScale.animateTo(1.00f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-            }
-            launch {
-                cardAlpha.snapTo(0.4f)
-                cardAlpha.animateTo(1.0f, animationSpec = tween(250))
-            }
-        }
-    }
-
-    val lang = uiState.appLanguage
-
     var fireworksTriggerCount by remember { mutableIntStateOf(0) }
     var isUserChangedDate by remember { mutableStateOf(false) }
 
-    LaunchedEffect(solarDate) {
-        if (isUserChangedDate) {
-            val lunarResult = LunarCalendarUtils.solarToLunar(solarDate)
-            if (LunarCalendarUtils.isImportantTraditionalFestival(lunarResult.festival)) {
-                fireworksTriggerCount++
-            }
+    var showHistoryDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+
+    var triggerBounce by remember { mutableIntStateOf(0) }
+    val bounceScale = remember { Animatable(1.0f) }
+
+    LaunchedEffect(triggerBounce) {
+        if (triggerBounce > 0) {
+            bounceScale.animateTo(0.96f, animationSpec = tween(70))
+            bounceScale.animateTo(1.04f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+            bounceScale.animateTo(1.0f, animationSpec = tween(90))
         }
     }
 
@@ -167,6 +143,7 @@ fun LunarConverterScreen(
                 isUserChangedDate = true
                 solarDate = date
                 showLunarResult = true
+                triggerBounce++
                 val lunarResult = LunarCalendarUtils.solarToLunar(date)
                 val almanacYiJi = LunarCalendarUtils.getAlmanacYiJi(date)
                 val yiStr = almanacYiJi.yiList.joinToString("·")
@@ -178,24 +155,8 @@ fun LunarConverterScreen(
                     detail = "公历 ${date} ➔ ${lunarResult.getFullDescription()} | 宜: $yiStr | 忌: $jiStr"
                 )
             },
-            onDismiss = { showSolarPicker = false }
-        )
-    }
-
-    if (showLunarRefPicker) {
-        DatePickerModal(
-            selectedDate = lunarRefSolarDate,
-            onDateSelected = { date ->
-                lunarRefSolarDate = date
-                val l = LunarCalendarUtils.solarToLunar(date)
-                lunarYearInput = l.year.toString()
-                lunarMonth = l.month
-                lunarDay = l.day
-                isLeapMonth = l.isLeapMonth
-                showLunarResult = true
-                showLunarRefPicker = false
-            },
-            onDismiss = { showLunarRefPicker = false }
+            onDismiss = { showSolarPicker = false },
+            language = lang
         )
     }
 
@@ -213,6 +174,8 @@ fun LunarConverterScreen(
         uiState = uiState
     )
 
+    val scrollState = rememberScrollState()
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -220,7 +183,7 @@ fun LunarConverterScreen(
                 .verticalScroll(scrollState)
                 .padding(14.dp)
         ) {
-            // 顶栏 (36dp 高度, 15sp 标题)
+            // 顶栏
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -289,61 +252,12 @@ fun LunarConverterScreen(
 
             if (convertMode == 0) {
                 // ================= 公历转农历 =================
-                Text(
-                    text = stringResource(R.string.label_select_solar_date),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = NeumorphicTextPrimary
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                val inputShape = RoundedCornerShape(18.dp)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(58.dp)
-                        .neumorphicInset(shape = inputShape, elevation = 4.dp)
-                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape)
-                        .background(NeumorphicBg, shape = inputShape)
-                        .clip(inputShape)
-                        .clickable { showSolarPicker = true }
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                tint = NeumorphicAccent,
-                                modifier = Modifier.padding(end = 8.dp)
-                            )
-                            Text(
-                                text = DateCalculatorUtils.formatDateWithWeek(solarDate, lang),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicTextPrimary
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Icons.Default.EditCalendar,
-                            contentDescription = "Select Date",
-                            tint = NeumorphicAccent.copy(alpha = 0.8f)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                QuickDateChips(
-                    selectedDate = solarDate,
-                    onSelectDate = { date ->
+                LunarConverterSolarSection(
+                    solarDate = solarDate,
+                    lang = lang,
+                    showLunarResult = showLunarResult,
+                    onOpenPicker = { showSolarPicker = true },
+                    onSelectQuickDate = { date ->
                         isUserChangedDate = true
                         solarDate = date
                         showLunarResult = true
@@ -358,386 +272,21 @@ fun LunarConverterScreen(
                             title = "${lunarResult.lunarMonthName}${lunarResult.lunarDayName}",
                             detail = "公历 ${date} ➔ ${lunarResult.getFullDescription()} | 宜: $yiStr | 忌: $jiStr"
                         )
-                    },
-                    language = lang
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                val lunarResult = LunarCalendarUtils.solarToLunar(solarDate)
-                val almanacYiJi = LunarCalendarUtils.getAlmanacYiJi(solarDate)
-                val (solarConstName, solarConstEmoji) = LunarCalendarUtils.getConstellationInfo(solarDate)
-                val solarFortune = LunarCalendarUtils.getDailyFortune(solarDate, solarConstName)
-
-                val cardShape24 = RoundedCornerShape(24.dp)
-
-                AnimatedVisibility(
-                    visible = showLunarResult,
-                    enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
-                    exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
-                            .background(NeumorphicBg, shape = cardShape24)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
-                            .padding(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = stringResource(R.string.label_lunar_result),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicAccent
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            val leapTag = if (lunarResult.isLeapMonth) "闰" else ""
-                            Text(
-                                text = "$leapTag${lunarResult.lunarMonthName}${lunarResult.lunarDayName}",
-                                fontSize = 30.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = NeumorphicTextPrimary
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = "${lunarResult.ganZhiYear} (${lunarResult.zodiac}) 年",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicTextPrimary.copy(alpha = 0.85f)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val localizedConstellation = LanguageUtils.getLocalizedConstellation(solarConstName, lang)
-                                SuggestionChip(
-                                    onClick = {},
-                                    shape = CircleShape,
-                                    label = { Text(localizedConstellation, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-                                )
-
-                                if (lunarResult.solarTerm.isNotEmpty()) {
-                                    val termIcon = LunarCalendarUtils.getSolarTermIcon(lunarResult.solarTerm)
-                                    SuggestionChip(
-                                        onClick = {},
-                                        shape = CircleShape,
-                                        label = { Text("$termIcon ${lunarResult.solarTerm}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = "✨ 运势: ${solarFortune.summary}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = NeumorphicTextPrimary.copy(alpha = 0.8f)
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            val isDark = LocalDarkTheme.current
-                            val yiChipBg = if (isDark) Color(0xFF065F46).copy(alpha = 0.55f) else Color(0xFFD1FAE5)
-                            val yiChipBorder = if (isDark) Color(0xFF10B981).copy(alpha = 0.5f) else Color(0xFF10B981).copy(alpha = 0.35f)
-                            val yiChipText = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
-
-                            val jiChipBg = if (isDark) Color(0xFF334155).copy(alpha = 0.65f) else Color(0xFFF1F5F9)
-                            val jiChipBorder = if (isDark) Color(0xFF94A3B8).copy(alpha = 0.5f) else Color(0xFF94A3B8).copy(alpha = 0.35f)
-                            val jiChipText = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
-
-                            // 老黄历宜忌
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(22.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF10B981)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("宜", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                FlowRow(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    almanacYiJi.yiList.forEach { yiItem ->
-                                        val translatedYi = LanguageUtils.getLocalizedAlmanacItem(yiItem, lang)
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(yiChipBg)
-                                                .border(0.5.dp, yiChipBorder, shape = RoundedCornerShape(6.dp))
-                                                .padding(horizontal = 7.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(translatedYi, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = yiChipText)
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(22.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF64748B)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("忌", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                FlowRow(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    almanacYiJi.jiList.forEach { jiItem ->
-                                        val translatedJi = LanguageUtils.getLocalizedAlmanacItem(jiItem, lang)
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(jiChipBg)
-                                                .border(0.5.dp, jiChipBorder, shape = RoundedCornerShape(6.dp))
-                                                .padding(horizontal = 7.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(translatedJi, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = jiChipText)
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val resultShareText = "公历 $solarDate ➔ 农历 ${lunarResult.getFullDescription()}"
-                                val copyToastText = stringResource(R.string.toast_copied)
-
-                                NeumorphicIconButton(
-                                    icon = Icons.Default.Share,
-                                    contentDescription = "分享农历转换结果",
-                                    onClick = {
-                                        ShareUtils.shareText(context, resultShareText)
-                                    }
-                                )
-
-                                Spacer(modifier = Modifier.width(10.dp))
-
-                                NeumorphicIconButton(
-                                    icon = Icons.Default.ContentCopy,
-                                    contentDescription = "复制农历转换结果",
-                                    onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("LunarResult", resultShareText)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, copyToastText, Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            }
-                        }
                     }
-                }
+                )
             } else {
                 // ================= 农历转公历 =================
-                Text(
-                    text = stringResource(R.string.label_select_lunar_date),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = NeumorphicTextPrimary
+                LunarConverterToSolarInput(
+                    lunarYearInput = lunarYearInput,
+                    onYearChange = { lunarYearInput = it },
+                    lunarMonth = lunarMonth,
+                    onMonthChange = { lunarMonth = it },
+                    lunarDay = lunarDay,
+                    onDayChange = { lunarDay = it },
+                    isLeapMonth = isLeapMonth,
+                    onLeapMonthChange = { isLeapMonth = it },
+                    lang = lang
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                val inputCardShape = RoundedCornerShape(22.dp)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .neumorphicExtruded(shape = inputCardShape, elevation = 5.dp)
-                        .background(NeumorphicBg, shape = inputCardShape)
-                        .padding(16.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        val lunarYearLabel = when (lang) {
-                            AppLanguage.ENGLISH -> "Lunar Year"
-                            AppLanguage.JAPANESE -> "旧暦年"
-                            AppLanguage.KOREAN -> "음력 연도"
-                            AppLanguage.TRADITIONAL_CHINESE -> "農曆年份"
-                            else -> "农历年份"
-                        }
-
-                        // 1. 农历年份
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(lunarYearLabel, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-
-                            Box(
-                                modifier = Modifier
-                                    .width(140.dp)
-                                    .height(38.dp)
-                                    .neumorphicInset(shape = RoundedCornerShape(10.dp), elevation = 2.dp)
-                                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.2f), shape = RoundedCornerShape(10.dp))
-                                    .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.CenterEnd
-                            ) {
-                                BasicTextField(
-                                    value = lunarYearInput,
-                                    onValueChange = { lunarYearInput = it.take(4) },
-                                    singleLine = true,
-                                    cursorBrush = SolidColor(NeumorphicAccent),
-                                    textStyle = TextStyle(
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = NeumorphicTextPrimary,
-                                        textAlign = TextAlign.End
-                                    ),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-
-                        // 2. 农历月份
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(stringResource(R.string.label_lunar_month), fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-
-                            Row(
-                                modifier = Modifier.width(140.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                                        .background(NeumorphicBg, shape = CircleShape)
-                                        .clip(CircleShape)
-                                        .clickable { if (lunarMonth > 1) lunarMonth-- },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("-", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                                }
-
-                                val monthNames = listOf("正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊")
-                                val monthName = monthNames.getOrElse(lunarMonth - 1) { "$lunarMonth" }
-                                Text("$monthName 月", fontSize = 14.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, textAlign = TextAlign.Center, modifier = Modifier.width(68.dp))
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                                        .background(NeumorphicBg, shape = CircleShape)
-                                        .clip(CircleShape)
-                                        .clickable { if (lunarMonth < 12) lunarMonth++ },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("+", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                                }
-                            }
-                        }
-
-                        // 3. 农历日期
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(stringResource(R.string.label_lunar_day), fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-
-                            Row(
-                                modifier = Modifier.width(140.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                                        .background(NeumorphicBg, shape = CircleShape)
-                                        .clip(CircleShape)
-                                        .clickable { if (lunarDay > 1) lunarDay-- },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("-", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                                }
-
-                                val dayNames = listOf("初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十", "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十")
-                                val dayName = dayNames.getOrElse(lunarDay - 1) { "$lunarDay" }
-                                Text(dayName, fontSize = 14.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, textAlign = TextAlign.Center, modifier = Modifier.width(68.dp))
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
-                                        .background(NeumorphicBg, shape = CircleShape)
-                                        .clip(CircleShape)
-                                        .clickable { if (lunarDay < 30) lunarDay++ },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("+", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                                }
-                            }
-                        }
-
-                        // 4. 是否闰月
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val leapMonthLabel = when (lang) {
-                                AppLanguage.ENGLISH -> "Leap Month"
-                                AppLanguage.JAPANESE -> "閏月"
-                                AppLanguage.KOREAN -> "윤달"
-                                AppLanguage.TRADITIONAL_CHINESE -> "是否閏月"
-                                else -> "是否闰月"
-                            }
-                            Text(leapMonthLabel, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
-
-                            NeumorphicSwitch(
-                                checked = isLeapMonth,
-                                onCheckedChange = { isLeapMonth = it }
-                            )
-                        }
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -745,186 +294,13 @@ fun LunarConverterScreen(
                 val convertedSolarDate = LunarCalendarUtils.lunarToSolar(year, lunarMonth, lunarDay, isLeapMonth)
 
                 if (convertedSolarDate != null) {
-                    val cardShape24 = RoundedCornerShape(24.dp)
-                    val (lunarConstName, lunarConstEmoji) = LunarCalendarUtils.getConstellationInfo(convertedSolarDate)
-                    val lunarFortune = LunarCalendarUtils.getDailyFortune(convertedSolarDate, lunarConstName)
-                    val convertedAlmanac = LunarCalendarUtils.getAlmanacYiJi(convertedSolarDate)
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
-                            .background(NeumorphicBg, shape = cardShape24)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
-                            .padding(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = stringResource(R.string.label_solar_result),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicAccent
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Text(
-                                text = DateCalculatorUtils.formatDate(convertedSolarDate, lang),
-                                fontSize = 30.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = NeumorphicTextPrimary
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = DateCalculatorUtils.formatDateWithWeek(convertedSolarDate, lang),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeumorphicTextPrimary.copy(alpha = 0.85f)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            val localizedConstellation = LanguageUtils.getLocalizedConstellation(lunarConstName, lang)
-                            SuggestionChip(
-                                onClick = {},
-                                shape = CircleShape,
-                                label = { Text(localizedConstellation, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = "✨ 运势: ${lunarFortune.summary}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = NeumorphicTextPrimary.copy(alpha = 0.8f)
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            val isDark = LocalDarkTheme.current
-                            val yiChipBg = if (isDark) Color(0xFF065F46).copy(alpha = 0.55f) else Color(0xFFD1FAE5)
-                            val yiChipBorder = if (isDark) Color(0xFF10B981).copy(alpha = 0.5f) else Color(0xFF10B981).copy(alpha = 0.35f)
-                            val yiChipText = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
-
-                            val jiChipBg = if (isDark) Color(0xFF334155).copy(alpha = 0.65f) else Color(0xFFF1F5F9)
-                            val jiChipBorder = if (isDark) Color(0xFF94A3B8).copy(alpha = 0.5f) else Color(0xFF94A3B8).copy(alpha = 0.35f)
-                            val jiChipText = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
-
-                            // 老黄历宜忌
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(22.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF10B981)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("宜", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                FlowRow(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    convertedAlmanac.yiList.forEach { yiItem ->
-                                        val translatedYi = LanguageUtils.getLocalizedAlmanacItem(yiItem, lang)
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(yiChipBg)
-                                                .border(0.5.dp, yiChipBorder, shape = RoundedCornerShape(6.dp))
-                                                .padding(horizontal = 7.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(translatedYi, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = yiChipText)
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(22.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF64748B)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("忌", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                FlowRow(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    convertedAlmanac.jiList.forEach { jiItem ->
-                                        val translatedJi = LanguageUtils.getLocalizedAlmanacItem(jiItem, lang)
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(jiChipBg)
-                                                .border(0.5.dp, jiChipBorder, shape = RoundedCornerShape(6.dp))
-                                                .padding(horizontal = 7.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(translatedJi, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = jiChipText)
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val resultShareText = "农历 ${year}年$lunarMonth 月$lunarDay 日 ➔ 公历 $convertedSolarDate"
-                                val copyToastText = stringResource(R.string.toast_copied)
-
-                                NeumorphicIconButton(
-                                    icon = Icons.Default.Share,
-                                    contentDescription = "分享公历转换结果",
-                                    onClick = {
-                                        ShareUtils.shareText(context, resultShareText)
-                                    }
-                                )
-
-                                Spacer(modifier = Modifier.width(10.dp))
-
-                                NeumorphicIconButton(
-                                    icon = Icons.Default.ContentCopy,
-                                    contentDescription = "复制公历转换结果",
-                                    onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("SolarResult", resultShareText)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, copyToastText, Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    LunarConverterSolarResultCard(
+                        convertedSolarDate = convertedSolarDate,
+                        year = year,
+                        lunarMonth = lunarMonth,
+                        lunarDay = lunarDay,
+                        lang = lang
+                    )
                 }
             }
 
@@ -935,5 +311,666 @@ fun LunarConverterScreen(
             trigger = fireworksTriggerCount,
             onAnimationFinished = { fireworksTriggerCount = 0 }
         )
+    }
+}
+
+@Composable
+private fun LunarConverterSolarSection(
+    solarDate: LocalDate,
+    lang: AppLanguage,
+    showLunarResult: Boolean,
+    onOpenPicker: () -> Unit,
+    onSelectQuickDate: (LocalDate) -> Unit
+) {
+    Text(
+        text = stringResource(R.string.label_select_solar_date),
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.ExtraBold,
+        color = NeumorphicTextPrimary
+    )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    val inputShape = RoundedCornerShape(18.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(58.dp)
+            .neumorphicInset(shape = inputShape, elevation = 4.dp)
+            .border(1.dp, NeumorphicAccent.copy(alpha = 0.20f), shape = inputShape)
+            .background(NeumorphicBg, shape = inputShape)
+            .clip(inputShape)
+            .clickable { onOpenPicker() }
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = null,
+                    tint = NeumorphicAccent,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(
+                    text = DateCalculatorUtils.formatDateWithWeek(solarDate, lang),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeumorphicTextPrimary
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Default.EditCalendar,
+                contentDescription = "Select Date",
+                tint = NeumorphicAccent.copy(alpha = 0.8f)
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    QuickDateChips(
+        selectedDate = solarDate,
+        onSelectDate = onSelectQuickDate,
+        language = lang
+    )
+
+    Spacer(modifier = Modifier.height(14.dp))
+
+    val lunarResult = LunarCalendarUtils.solarToLunar(solarDate)
+    val almanacYiJi = LunarCalendarUtils.getAlmanacYiJi(solarDate)
+
+    AnimatedVisibility(
+        visible = showLunarResult,
+        enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
+        exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
+    ) {
+        LunarConverterLunarResultCard(
+            solarDate = solarDate,
+            lunarResult = lunarResult,
+            almanacYiJi = almanacYiJi,
+            lang = lang
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LunarConverterLunarResultCard(
+    solarDate: LocalDate,
+    lunarResult: LunarDate,
+    almanacYiJi: AlmanacYiJi,
+    lang: AppLanguage
+) {
+    val context = LocalContext.current
+    val (solarConstName, _) = LunarCalendarUtils.getConstellationInfo(solarDate)
+    val solarFortune = LunarCalendarUtils.getDailyFortune(solarDate, solarConstName)
+    val cardShape24 = RoundedCornerShape(24.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
+            .background(NeumorphicBg, shape = cardShape24)
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = stringResource(R.string.label_lunar_result),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicAccent
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            val leapTag = if (lunarResult.isLeapMonth) "闰" else ""
+            Text(
+                text = "$leapTag${lunarResult.lunarMonthName}${lunarResult.lunarDayName}",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = NeumorphicTextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "${lunarResult.ganZhiYear} (${lunarResult.zodiac}) 年",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicTextPrimary.copy(alpha = 0.85f)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val localizedConstellation = LanguageUtils.getLocalizedConstellation(solarConstName, lang)
+                SuggestionChip(
+                    onClick = {},
+                    shape = CircleShape,
+                    label = { Text(localizedConstellation, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                )
+
+                if (lunarResult.solarTerm.isNotEmpty()) {
+                    val termIcon = LunarCalendarUtils.getSolarTermIcon(lunarResult.solarTerm)
+                    SuggestionChip(
+                        onClick = {},
+                        shape = CircleShape,
+                        label = { Text("$termIcon ${lunarResult.solarTerm}", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "✨ 运势: ${solarFortune.summary}",
+                style = MaterialTheme.typography.bodySmall,
+                color = NeumorphicTextPrimary.copy(alpha = 0.8f)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            val isDark = LocalDarkTheme.current
+            val yiChipBg = if (isDark) Color(0xFF065F46).copy(alpha = 0.55f) else Color(0xFFD1FAE5)
+            val yiChipBorder = if (isDark) Color(0xFF10B981).copy(alpha = 0.5f) else Color(0xFF10B981).copy(alpha = 0.35f)
+            val yiChipText = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
+
+            val jiChipBg = if (isDark) Color(0xFF334155).copy(alpha = 0.65f) else Color(0xFFF1F5F9)
+            val jiChipBorder = if (isDark) Color(0xFF94A3B8).copy(alpha = 0.5f) else Color(0xFF94A3B8).copy(alpha = 0.35f)
+            val jiChipText = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+
+            // 老黄历宜忌
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF10B981)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("宜", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                FlowRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    almanacYiJi.yiList.forEach { yiItem ->
+                        val translatedYi = LanguageUtils.getLocalizedAlmanacItem(yiItem, lang)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(yiChipBg)
+                                .border(0.5.dp, yiChipBorder, shape = RoundedCornerShape(6.dp))
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Text(translatedYi, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = yiChipText)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF64748B)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("忌", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                FlowRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    almanacYiJi.jiList.forEach { jiItem ->
+                        val translatedJi = LanguageUtils.getLocalizedAlmanacItem(jiItem, lang)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(jiChipBg)
+                                .border(0.5.dp, jiChipBorder, shape = RoundedCornerShape(6.dp))
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Text(translatedJi, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = jiChipText)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val resultShareText = "公历 $solarDate ➔ 农历 ${lunarResult.getFullDescription()}"
+                val copyToastText = stringResource(R.string.toast_copied)
+
+                NeumorphicIconButton(
+                    icon = Icons.Default.Share,
+                    contentDescription = "分享农历转换结果",
+                    onClick = {
+                        ShareUtils.shareText(context, resultShareText)
+                    }
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                NeumorphicIconButton(
+                    icon = Icons.Default.ContentCopy,
+                    contentDescription = "复制农历转换结果",
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("LunarResult", resultShareText)
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, copyToastText, Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LunarConverterToSolarInput(
+    lunarYearInput: String,
+    onYearChange: (String) -> Unit,
+    lunarMonth: Int,
+    onMonthChange: (Int) -> Unit,
+    lunarDay: Int,
+    onDayChange: (Int) -> Unit,
+    isLeapMonth: Boolean,
+    onLeapMonthChange: (Boolean) -> Unit,
+    lang: AppLanguage
+) {
+    Text(
+        text = stringResource(R.string.label_select_lunar_date),
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.Bold,
+        color = NeumorphicTextPrimary
+    )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    val inputCardShape = RoundedCornerShape(22.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .neumorphicExtruded(shape = inputCardShape, elevation = 5.dp)
+            .background(NeumorphicBg, shape = inputCardShape)
+            .padding(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            val lunarYearLabel = when (lang) {
+                AppLanguage.ENGLISH -> "Lunar Year"
+                AppLanguage.JAPANESE -> "旧暦年"
+                AppLanguage.KOREAN -> "음력 연도"
+                AppLanguage.TRADITIONAL_CHINESE -> "農曆年份"
+                else -> "农历年份"
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(lunarYearLabel, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+
+                Box(
+                    modifier = Modifier
+                        .width(140.dp)
+                        .height(38.dp)
+                        .neumorphicInset(shape = RoundedCornerShape(10.dp), elevation = 2.dp)
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.2f), shape = RoundedCornerShape(10.dp))
+                        .background(NeumorphicSunkenBg, shape = RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    BasicTextField(
+                        value = lunarYearInput,
+                        onValueChange = { onYearChange(it.take(4)) },
+                        singleLine = true,
+                        cursorBrush = SolidColor(NeumorphicAccent),
+                        textStyle = TextStyle(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = NeumorphicTextPrimary,
+                            textAlign = TextAlign.End
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(stringResource(R.string.label_lunar_month), fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+
+                Row(
+                    modifier = Modifier.width(140.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { if (lunarMonth > 1) onMonthChange(lunarMonth - 1) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("-", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                    }
+
+                    val monthNames = listOf("正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "腊")
+                    val monthName = monthNames.getOrElse(lunarMonth - 1) { "$lunarMonth" }
+                    Text("$monthName 月", fontSize = 14.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, textAlign = TextAlign.Center, modifier = Modifier.width(68.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { if (lunarMonth < 12) onMonthChange(lunarMonth + 1) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("+", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(stringResource(R.string.label_lunar_day), fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+
+                Row(
+                    modifier = Modifier.width(140.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { if (lunarDay > 1) onDayChange(lunarDay - 1) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("-", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                    }
+
+                    val dayNames = listOf("初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十", "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十")
+                    val dayName = dayNames.getOrElse(lunarDay - 1) { "$lunarDay" }
+                    Text(dayName, fontSize = 14.5.sp, fontWeight = FontWeight.ExtraBold, color = NeumorphicTextPrimary, textAlign = TextAlign.Center, modifier = Modifier.width(68.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .neumorphicExtruded(shape = CircleShape, elevation = 2.dp)
+                            .background(NeumorphicBg, shape = CircleShape)
+                            .clip(CircleShape)
+                            .clickable { if (lunarDay < 30) onDayChange(lunarDay + 1) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("+", color = NeumorphicAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val leapMonthLabel = when (lang) {
+                    AppLanguage.ENGLISH -> "Leap Month"
+                    AppLanguage.JAPANESE -> "閏月"
+                    AppLanguage.KOREAN -> "윤달"
+                    AppLanguage.TRADITIONAL_CHINESE -> "是否閏月"
+                    else -> "是否闰月"
+                }
+                Text(leapMonthLabel, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary)
+
+                NeumorphicSwitch(
+                    checked = isLeapMonth,
+                    onCheckedChange = onLeapMonthChange
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LunarConverterSolarResultCard(
+    convertedSolarDate: LocalDate,
+    year: Int,
+    lunarMonth: Int,
+    lunarDay: Int,
+    lang: AppLanguage
+) {
+    val context = LocalContext.current
+    val (lunarConstName, _) = LunarCalendarUtils.getConstellationInfo(convertedSolarDate)
+    val lunarFortune = LunarCalendarUtils.getDailyFortune(convertedSolarDate, lunarConstName)
+    val convertedAlmanac = LunarCalendarUtils.getAlmanacYiJi(convertedSolarDate)
+    val cardShape24 = RoundedCornerShape(24.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .neumorphicExtruded(shape = cardShape24, elevation = 6.dp)
+            .background(NeumorphicBg, shape = cardShape24)
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = cardShape24)
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = stringResource(R.string.label_solar_result),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicAccent
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = DateCalculatorUtils.formatDate(convertedSolarDate, lang),
+                fontSize = 30.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = NeumorphicTextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = DateCalculatorUtils.formatDateWithWeek(convertedSolarDate, lang),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = NeumorphicTextPrimary.copy(alpha = 0.85f)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val localizedConstellation = LanguageUtils.getLocalizedConstellation(lunarConstName, lang)
+            SuggestionChip(
+                onClick = {},
+                shape = CircleShape,
+                label = { Text(localizedConstellation, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "✨ 运势: ${lunarFortune.summary}",
+                style = MaterialTheme.typography.bodySmall,
+                color = NeumorphicTextPrimary.copy(alpha = 0.8f)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = NeumorphicTextPrimary.copy(alpha = 0.15f))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            val isDark = LocalDarkTheme.current
+            val yiChipBg = if (isDark) Color(0xFF065F46).copy(alpha = 0.55f) else Color(0xFFD1FAE5)
+            val yiChipBorder = if (isDark) Color(0xFF10B981).copy(alpha = 0.5f) else Color(0xFF10B981).copy(alpha = 0.35f)
+            val yiChipText = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
+
+            val jiChipBg = if (isDark) Color(0xFF334155).copy(alpha = 0.65f) else Color(0xFFF1F5F9)
+            val jiChipBorder = if (isDark) Color(0xFF94A3B8).copy(alpha = 0.5f) else Color(0xFF94A3B8).copy(alpha = 0.35f)
+            val jiChipText = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+
+            // 老黄历宜忌
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF10B981)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("宜", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                FlowRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    convertedAlmanac.yiList.forEach { yiItem ->
+                        val translatedYi = LanguageUtils.getLocalizedAlmanacItem(yiItem, lang)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(yiChipBg)
+                                .border(0.5.dp, yiChipBorder, shape = RoundedCornerShape(6.dp))
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Text(translatedYi, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = yiChipText)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF64748B)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("忌", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                FlowRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    convertedAlmanac.jiList.forEach { jiItem ->
+                        val translatedJi = LanguageUtils.getLocalizedAlmanacItem(jiItem, lang)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(jiChipBg)
+                                .border(0.5.dp, jiChipBorder, shape = RoundedCornerShape(6.dp))
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Text(translatedJi, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = jiChipText)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val resultShareText = "农历 ${year}年$lunarMonth 月$lunarDay 日 ➔ 公历 $convertedSolarDate"
+                val copyToastText = stringResource(R.string.toast_copied)
+
+                NeumorphicIconButton(
+                    icon = Icons.Default.Share,
+                    contentDescription = "分享公历转换结果",
+                    onClick = {
+                        ShareUtils.shareText(context, resultShareText)
+                    }
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                NeumorphicIconButton(
+                    icon = Icons.Default.ContentCopy,
+                    contentDescription = "复制公历转换结果",
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("SolarResult", resultShareText)
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, copyToastText, Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+        }
     }
 }

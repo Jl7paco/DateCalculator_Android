@@ -770,12 +770,7 @@ private fun DateCalcMultiStageSection(
 
             fun computeTargetIndex(offsetY: Float): Int {
                 if (activeDraggedIndex == -1) return -1
-                val thresholdRatio = 0.25f
-                val slots = when {
-                    offsetY >= itemHeightPx * thresholdRatio -> (1 + ((offsetY - itemHeightPx * thresholdRatio) / itemHeightPx)).toInt()
-                    offsetY <= -itemHeightPx * thresholdRatio -> (-1 - ((-offsetY - itemHeightPx * thresholdRatio) / itemHeightPx)).toInt()
-                    else -> 0
-                }
+                val slots = kotlin.math.round(offsetY / itemHeightPx).toInt()
                 return (initialDragIndex + slots).coerceIn(0, uiState.stages.lastIndex)
             }
 
@@ -839,34 +834,36 @@ private fun DateCalcMultiStageSection(
                                         HapticUtils.performCrispClick(context, view)
                                     },
                                     onDragEnd = {
+                                        val targetIdx = computeTargetIndex(dragOffsetY)
+                                        val fromIdx = initialDragIndex
+                                        if (fromIdx != -1 && targetIdx != -1 && fromIdx != targetIdx) {
+                                            viewModel.reorderCalculationStages(fromIdx, targetIdx)
+                                            HapticUtils.performCrispClick(context, view)
+                                        }
                                         draggedStageId = null
                                         dragOffsetY = 0f
                                         initialDragIndex = 0
                                     },
                                     onDragCancel = {
+                                        val targetIdx = computeTargetIndex(dragOffsetY)
+                                        val fromIdx = initialDragIndex
+                                        if (fromIdx != -1 && targetIdx != -1 && fromIdx != targetIdx) {
+                                            viewModel.reorderCalculationStages(fromIdx, targetIdx)
+                                            HapticUtils.performCrispClick(context, view)
+                                        }
                                         draggedStageId = null
                                         dragOffsetY = 0f
                                         initialDragIndex = 0
                                     },
                                     onVerticalDrag = { change, dragAmount ->
                                         change.consume()
-                                        val curFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
-                                        if (curFromIdx != -1) {
-                                            val minAllowedOffset = -curFromIdx * itemHeightPx - (itemHeightPx * 0.5f)
-                                            val maxAllowedOffset = (uiState.stages.lastIndex - curFromIdx) * itemHeightPx + (itemHeightPx * 0.5f)
-                                            dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
-
-                                            // 迟滞门限 60% 行高：单次触发换位后归零 dragOffsetY，消灭 16ms 反向震荡死循环！
-                                            val stepThreshold = itemHeightPx * 0.60f
-                                            if (dragOffsetY >= stepThreshold && curFromIdx < uiState.stages.lastIndex) {
-                                                viewModel.reorderCalculationStages(curFromIdx, curFromIdx + 1)
-                                                HapticUtils.performCrispClick(context, view)
-                                                dragOffsetY = 0f
-                                            } else if (dragOffsetY <= -stepThreshold && curFromIdx > 0) {
-                                                viewModel.reorderCalculationStages(curFromIdx, curFromIdx - 1)
-                                                HapticUtils.performCrispClick(context, view)
-                                                dragOffsetY = 0f
-                                            }
+                                        val minAllowedOffset = -initialDragIndex * itemHeightPx - (itemHeightPx * 0.4f)
+                                        val maxAllowedOffset = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx + (itemHeightPx * 0.4f)
+                                        val oldTarget = computeTargetIndex(dragOffsetY)
+                                        dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
+                                        val newTarget = computeTargetIndex(dragOffsetY)
+                                        if (newTarget != oldTarget && newTarget != -1) {
+                                            HapticUtils.performCrispClick(context, view)
                                         }
                                     }
                                 )
