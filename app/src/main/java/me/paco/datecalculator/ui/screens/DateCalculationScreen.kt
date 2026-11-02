@@ -802,6 +802,13 @@ private fun DateCalcMultiStageSection(
 
                     val zIdx = if (isBeingDragged) 10f else 1f
                     
+                    // 利用 animateFloatAsState 包装拖拽卡片松手时的位移，使其产生 120Hz 柔和自然落座的弹簧回弹跟手动画
+                    val animatedDraggedOffsetY by animateFloatAsState(
+                        targetValue = if (isBeingDragged) dragOffsetY else 0f,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "DraggedCardOffsetY"
+                    )
+
                     // 利用 animateFloatAsState 包装非拖拽卡片的位移，使其产生顺畅自动避让的弹簧动效
                     val animatedSiblingOffsetY by animateFloatAsState(
                         targetValue = animOffsetY,
@@ -814,7 +821,7 @@ private fun DateCalcMultiStageSection(
                             .fillMaxWidth()
                             .zIndex(zIdx)
                             .graphicsLayer {
-                                translationY = if (isBeingDragged) dragOffsetY else animatedSiblingOffsetY
+                                translationY = if (isBeingDragged) dragOffsetY else (animatedSiblingOffsetY + animatedDraggedOffsetY)
                             }
                             .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
