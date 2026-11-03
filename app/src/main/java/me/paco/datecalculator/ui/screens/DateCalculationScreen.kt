@@ -770,7 +770,13 @@ private fun DateCalcMultiStageSection(
 
             fun computeTargetIndex(offsetY: Float): Int {
                 if (activeDraggedIndex == -1) return -1
-                val slots = kotlin.math.round(offsetY / itemHeightPx).toInt()
+                // 25% 超灵敏门限触发行调换：拖动超过 14dp 即可触发槽位让位与调换，绝不因未满 50% 弹回原位
+                val thresholdRatio = 0.25f
+                val slots = when {
+                    offsetY >= itemHeightPx * thresholdRatio -> (1 + ((offsetY - itemHeightPx * thresholdRatio) / itemHeightPx)).toInt()
+                    offsetY <= -itemHeightPx * thresholdRatio -> (-1 - ((-offsetY - itemHeightPx * thresholdRatio) / itemHeightPx)).toInt()
+                    else -> 0
+                }
                 return (initialDragIndex + slots).coerceIn(0, uiState.stages.lastIndex)
             }
 
