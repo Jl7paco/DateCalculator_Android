@@ -142,7 +142,7 @@ fun TimeCalculatorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(14.dp)
+                .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp)
         ) {
             if (showTopHeader) {
                 Row(

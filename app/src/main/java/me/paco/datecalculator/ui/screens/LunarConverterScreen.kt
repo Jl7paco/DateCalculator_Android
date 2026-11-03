@@ -77,6 +77,7 @@ import me.paco.datecalculator.ui.components.HistoryOverlayDialog
 import me.paco.datecalculator.ui.components.NeumorphicAccent
 import me.paco.datecalculator.ui.components.NeumorphicBg
 import me.paco.datecalculator.ui.components.NeumorphicIconButton
+import me.paco.datecalculator.ui.components.NeumorphicIconHeaderBadge
 import me.paco.datecalculator.ui.components.NeumorphicSegmentedRow
 import me.paco.datecalculator.ui.components.NeumorphicSunkenBg
 import me.paco.datecalculator.ui.components.NeumorphicSwitch
@@ -181,9 +182,9 @@ fun LunarConverterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(14.dp)
+                .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp)
         ) {
-            // 顶栏
+            // 顶栏 (100% 绝对与其他 4 个主界面全量像素级对齐: start=16.dp, top=12.dp, height=36.dp)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -192,48 +193,27 @@ fun LunarConverterScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.SwapHoriz,
-                        contentDescription = null,
-                        tint = NeumorphicAccent,
-                        modifier = Modifier.size(20.dp)
+                    NeumorphicIconHeaderBadge(
+                        icon = Icons.Default.SwapHoriz,
+                        size = 28.dp,
+                        iconSize = 14.dp
                     )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showHistoryDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "查看历史记录",
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    NeumorphicIconButton(
+                        icon = Icons.Default.History,
+                        onClick = { showHistoryDialog = true },
+                        contentDescription = LanguageUtils.getString("history_title", lang),
+                        size = 32.dp
+                    )
 
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .neumorphicExtruded(shape = CircleShape, elevation = 3.dp)
-                            .background(NeumorphicBg, shape = CircleShape)
-                            .clip(CircleShape)
-                            .clickable { showSettingsDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "打开设置",
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    NeumorphicIconButton(
+                        icon = Icons.Default.Settings,
+                        onClick = { showSettingsDialog = true },
+                        contentDescription = LanguageUtils.getString("settings_title", lang),
+                        size = 32.dp
+                    )
                 }
             }
 

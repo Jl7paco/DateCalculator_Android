@@ -254,7 +254,7 @@ fun DateCalculationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 14.dp, vertical = 8.dp)
+                .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp)
         ) {
             // 1. 顶栏
             DateCalcHeaderSection(

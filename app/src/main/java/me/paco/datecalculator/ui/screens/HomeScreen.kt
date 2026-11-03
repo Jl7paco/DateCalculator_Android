@@ -197,7 +197,7 @@ fun HomeScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp)
     ) {
         // 1. 顶栏 (标题 + 历史/设置按键)
         HomeHeaderSection(
