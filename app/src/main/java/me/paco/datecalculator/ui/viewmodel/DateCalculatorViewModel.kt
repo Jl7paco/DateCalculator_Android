@@ -524,10 +524,12 @@ class DateCalculatorViewModel : ViewModel() {
 
     fun reorderCalculationStages(fromIndex: Int, toIndex: Int) {
         val currentStages = _uiState.value.stages.toMutableList()
+        Log.d("DragReorder", "ViewModel.reorderCalculationStages: fromIndex=$fromIndex -> toIndex=$toIndex, beforeIDs=${currentStages.map { it.id }}")
         if (fromIndex in currentStages.indices && toIndex in currentStages.indices) {
             val item = currentStages.removeAt(fromIndex)
             currentStages.add(toIndex, item)
             _uiState.value = _uiState.value.copy(stages = currentStages)
+            Log.d("DragReorder", "ViewModel.reorderCalculationStages DONE: afterIDs=${currentStages.map { it.id }}")
         }
     }
 

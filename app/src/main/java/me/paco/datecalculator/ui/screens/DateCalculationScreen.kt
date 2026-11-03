@@ -57,6 +57,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
@@ -761,15 +762,18 @@ private fun DateCalcMultiStageSection(
             var draggedStageId by remember { mutableStateOf<Long?>(null) }
             var dragOffsetY by remember { mutableFloatStateOf(0f) }
 
+            // 彻底解决闭包旧 List 缓存引发错乱的原子状态：
+            val currentStagesList by rememberUpdatedState(uiState.stages)
+
             val activeDraggedIndex = if (draggedStageId != null) {
-                uiState.stages.indexOfFirst { it.id == draggedStageId }
+                currentStagesList.indexOfFirst { it.id == draggedStageId }
             } else -1
 
             val itemHeightPx = with(density) { 56.dp.toPx() }
 
             fun computeTargetIndex(offsetY: Float): Int {
                 if (draggedStageId == null) return -1
-                val liveIndex = uiState.stages.indexOfFirst { it.id == draggedStageId }
+                val liveIndex = currentStagesList.indexOfFirst { it.id == draggedStageId }
                 if (liveIndex == -1) return -1
                 // 25% 超灵敏门限触发行调换：拖动超过 14dp 即可触发槽位让位与调换，绝不因未满 50% 弹回原位
                 val thresholdRatio = 0.25f
@@ -778,12 +782,12 @@ private fun DateCalcMultiStageSection(
                     offsetY <= -itemHeightPx * thresholdRatio -> (-1 - ((-offsetY - itemHeightPx * thresholdRatio) / itemHeightPx)).toInt()
                     else -> 0
                 }
-                return (liveIndex + slots).coerceIn(0, uiState.stages.lastIndex)
+                return (liveIndex + slots).coerceIn(0, currentStagesList.lastIndex)
             }
 
             val activeTargetIndex = computeTargetIndex(dragOffsetY)
 
-            uiState.stages.forEachIndexed { index, stage ->
+            currentStagesList.forEachIndexed { index, stage ->
                 key(stage.id) {
                     val isBeingDragged = (draggedStageId == stage.id)
 
@@ -793,7 +797,7 @@ private fun DateCalcMultiStageSection(
                     val animOffsetY = when {
                         isBeingDragged -> dragOffsetY
                         activeDraggedIndex != -1 && activeTargetIndex != -1 -> {
-                            val liveDraggedIdx = uiState.stages.indexOfFirst { it.id == draggedStageId }
+                            val liveDraggedIdx = currentStagesList.indexOfFirst { it.id == draggedStageId }
                             when {
                                 index > liveDraggedIdx && index <= activeTargetIndex -> -itemHeightPx
                                 index < liveDraggedIdx && index >= activeTargetIndex -> itemHeightPx
@@ -831,11 +835,14 @@ private fun DateCalcMultiStageSection(
                                     onDragStart = {
                                         draggedStageId = stage.id
                                         dragOffsetY = 0f
+                                        val idx = uiState.stages.indexOfFirst { it.id == stage.id }
+                                        Log.d("DragReorder", "onDragStart: stageId=${stage.id}, initialIdx=$idx, totalStages=${uiState.stages.size}")
                                         HapticUtils.performCrispClick(context, view)
                                     },
                                     onDragEnd = {
                                         val liveFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
                                         val curToIdx = computeTargetIndex(dragOffsetY)
+                                        Log.d("DragReorder", "onDragEnd: stageId=${stage.id}, liveFromIdx=$liveFromIdx, curToIdx=$curToIdx, dragOffsetY=$dragOffsetY")
                                         if (liveFromIdx != -1 && curToIdx != -1 && liveFromIdx != curToIdx) {
                                             viewModel.reorderCalculationStages(liveFromIdx, curToIdx)
                                             HapticUtils.performCrispClick(context, view)
@@ -846,6 +853,7 @@ private fun DateCalcMultiStageSection(
                                     onDragCancel = {
                                         val liveFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
                                         val curToIdx = computeTargetIndex(dragOffsetY)
+                                        Log.d("DragReorder", "onDragCancel: stageId=${stage.id}, liveFromIdx=$liveFromIdx, curToIdx=$curToIdx, dragOffsetY=$dragOffsetY")
                                         if (liveFromIdx != -1 && curToIdx != -1 && liveFromIdx != curToIdx) {
                                             viewModel.reorderCalculationStages(liveFromIdx, curToIdx)
                                             HapticUtils.performCrispClick(context, view)
@@ -863,6 +871,7 @@ private fun DateCalcMultiStageSection(
                                             dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
                                             val newTarget = computeTargetIndex(dragOffsetY)
                                             if (newTarget != oldTarget && newTarget != -1) {
+                                                Log.d("DragReorder", "onVerticalDrag target changed: stageId=${stage.id}, oldTarget=$oldTarget -> newTarget=$newTarget, dragOffsetY=$dragOffsetY")
                                                 HapticUtils.performCrispClick(context, view)
                                             }
                                         }
