@@ -792,10 +792,10 @@ private fun DateCalcMultiStageSection(
                     val isBeingDragged = (draggedStageId == stage.id)
 
                     // 100% 严密 GPU 轴线偏移推导：
-                    // 1. 被拖拽卡片直接按手指位移 translationY = dragOffsetY 平移
-                    // 2. 被波及邻近卡片根据 targetIndex 自动向相反方向移动 1 个卡片高度进行跟手让位
-                    val animOffsetY = when {
-                        isBeingDragged -> dragOffsetY
+                    // 1. 被拖拽卡片 100% 绝对 1:1 紧贴手指位移 (translationY = dragOffsetY)，0 延迟、0 夸张回弹
+                    // 2. 被波及邻近卡片根据 targetIndex 自动向相反方向移动 1 个卡片高度进行跟手让位 (StiffnessHigh 极速敏捷避让)
+                    val siblingTargetOffset = when {
+                        isBeingDragged -> 0f
                         activeDraggedIndex != -1 && activeTargetIndex != -1 -> {
                             val liveDraggedIdx = currentStagesList.indexOfFirst { it.id == draggedStageId }
                             when {
@@ -809,11 +809,11 @@ private fun DateCalcMultiStageSection(
 
                     val zIdx = if (isBeingDragged) 10f else 1f
                     
-                    // 利用 animateFloatAsState 包装所有卡片（包括拖拽卡片松手时）的位移，使调换与松手落座产生 120Hz 柔和平滑弹簧动画
-                    val animatedCardOffsetY by animateFloatAsState(
-                        targetValue = animOffsetY,
-                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                        label = "CardReorderOffset"
+                    // 利用 StiffnessHigh 高刚度弹簧包装非拖拽卡片的位移，使其产生顺畅敏捷的避让动效
+                    val animatedSiblingOffsetY by animateFloatAsState(
+                        targetValue = siblingTargetOffset,
+                        animationSpec = spring(stiffness = Spring.StiffnessHigh),
+                        label = "SiblingCardReorder"
                     )
 
                     Row(
@@ -821,7 +821,7 @@ private fun DateCalcMultiStageSection(
                             .fillMaxWidth()
                             .zIndex(zIdx)
                             .graphicsLayer {
-                                translationY = if (isBeingDragged) dragOffsetY else animatedCardOffsetY
+                                translationY = if (isBeingDragged) dragOffsetY else animatedSiblingOffsetY
                             }
                             .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
