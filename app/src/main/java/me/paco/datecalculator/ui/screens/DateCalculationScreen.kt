@@ -804,10 +804,13 @@ private fun DateCalcMultiStageSection(
 
                     val zIdx = if (isBeingDragged) 10f else 1f
                     
-                    // 利用 StiffnessHigh 高刚度弹簧包装非拖拽卡片的位移，使其产生顺畅敏捷的避让动效
+                    // 利用 DampingRatioNoBouncy 无反弹高刚度弹簧，使卡片调换与松手落座无缝平滑吸附，100% 消除夸张弹起过冲
                     val animatedSiblingOffsetY by animateFloatAsState(
                         targetValue = siblingTargetOffset,
-                        animationSpec = spring(stiffness = Spring.StiffnessHigh),
+                        animationSpec = spring(
+                            stiffness = Spring.StiffnessHigh,
+                            dampingRatio = Spring.DampingRatioNoBouncy
+                        ),
                         label = "SiblingCardReorder"
                     )
 
