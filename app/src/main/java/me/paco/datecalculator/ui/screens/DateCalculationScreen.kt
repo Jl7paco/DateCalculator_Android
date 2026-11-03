@@ -775,13 +775,8 @@ private fun DateCalcMultiStageSection(
                 if (draggedStageId == null) return -1
                 val liveIndex = currentStagesList.indexOfFirst { it.id == draggedStageId }
                 if (liveIndex == -1) return -1
-                // 25% 超灵敏门限触发行调换：拖动超过 14dp 即可触发槽位让位与调换，绝不因未满 50% 弹回原位
-                val thresholdRatio = 0.25f
-                val slots = when {
-                    offsetY >= itemHeightPx * thresholdRatio -> (1 + ((offsetY - itemHeightPx * thresholdRatio) / itemHeightPx)).toInt()
-                    offsetY <= -itemHeightPx * thresholdRatio -> (-1 - ((-offsetY - itemHeightPx * thresholdRatio) / itemHeightPx)).toInt()
-                    else -> 0
-                }
+                // 严密 50% 对称行高数学归位：槽位绝对精准居中于每一行物理卡片中心点
+                val slots = kotlin.math.round(offsetY / itemHeightPx).toInt()
                 return (liveIndex + slots).coerceIn(0, currentStagesList.lastIndex)
             }
 
