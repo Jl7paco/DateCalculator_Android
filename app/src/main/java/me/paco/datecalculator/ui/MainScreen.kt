@@ -311,18 +311,17 @@ fun MainScreen(
 
                 HorizontalPager(
                     state = pagerState,
-                    beyondBoundsPageCount = 2,
+                    beyondBoundsPageCount = 0,
                     modifier = modifier.fillMaxSize()
                 ) { page ->
                     key(page) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            val navItemTitle = navItems.getOrNull(page)?.first
-                            when {
-                                navItemTitle == LanguageUtils.getString("tab_home", lang) -> HomeScreen(viewModel = viewModel, uiState = uiState)
-                                navItemTitle == LanguageUtils.getString("tab_calc", lang) -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
-                                navItemTitle == LanguageUtils.getString("tab_time_calc", lang) -> TimeCalculatorScreen(viewModel = viewModel, uiState = uiState)
-                                navItemTitle == LanguageUtils.getString("tab_countdown", lang) -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
-                                navItemTitle == LanguageUtils.getString("tab_lunar", lang) -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
+                            when (page) {
+                                0 -> HomeScreen(viewModel = viewModel, uiState = uiState)
+                                1 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
+                                2 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
+                                3 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
+                                4 -> TimeCalculatorScreen(viewModel = viewModel, uiState = uiState)
                                 else -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
                             }
                         }
