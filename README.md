@@ -1,10 +1,10 @@
-# DateCalculator (日期计算器) - Android v3.0.8
+# DateCalculator (日期计算器) - Android v3.0.9
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-blue.svg)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-2024.02-green.svg)](https://developer.android.com)
 [![Material 3](https://img.shields.io/badge/Material%203-Neumorphic-purple.svg)](https://m3.material.io)
 [![Android SDK](https://img.shields.io/badge/API-26%2B%20(Android%208.0%2B)-orange.svg)](https://developer.android.com)
-[![Version](https://img.shields.io/badge/Version-v3.0.8-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v3.0.9-brightgreen.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
 [ 🇨🇳 简体中文 ](#-简体中文) | [ 🇺🇸 English ](#-english) | [ 🇯🇵 日本語 ](#-日本語)
@@ -47,6 +47,33 @@
 
 #### 6. 桌面小组件
 - 提供倒数日、今日黄历、纪念日、GPS打卡和日期快算 5 款桌面小组件。
+
+---
+
+### 💡 多段加减拖拽调换架构与避坑规约 (Drag Reorder Architecture)
+
+在 `v3.0.9` 版本中，彻底解决了多阶段日期计算列表中“向下/向上拖动卡片误触弹回”、“非第一行无法下拖”、“连续跨行调换后结果混乱”等高频手势 BUG。为防止后续版本迭代引入回归，请遵循以下 5 大核心架构规约：
+
+1. **0 中途 List 篡改 (Zero Mid-Drag List Mutation)**：
+   - 手指按住三条杠句柄拖动时（`onVerticalDrag`），**绝对禁止在手势中途直接篡改 ViewModel 列表**。
+   - 理由：在中途篡改 `uiState.stages` 列表会导致 Compose 的 `key(stage.id)` 在 UI Node 树中重新分配节点位置，引发 16ms 内触摸坐标系的突然断层，直接触发系统 `onDragCancel` 手势取消事件，导致卡片弹回原位。
+   - 规约：拖拽过程中仅更新 `dragOffsetY` 像素位移，全量邻近卡片使用 `animateFloatAsState` 在纯 GPU 轴线层（`translationY`）上进行 120Hz 避让，手势抬起 (`onDragEnd` / `onDragCancel`) 时才进行**单次原子提交 (`reorderCalculationStages`)**。
+
+2. **动态 `liveIndex` 索引查询 (Dynamic Live-Index Calculation)**：
+   - 禁止在 `computeTargetIndex` 算式中使用手势初始阶段捕抓的静态 `initialDragIndex` 闭包变量。
+   - 规约：目标槽位算式必须使用 `currentStagesList.indexOfFirst { it.id == draggedStageId }` 动态实时查询当前卡片在列表中的真实位置，彻底杜绝多行连续拖拽时的陈旧索引死锁。
+
+3. **50% 物理对称行高中心归位 (Symmetric Rounding Engine)**：
+   - 槽位计算必须使用 `slots = round(offsetY / itemHeightPx)`。
+   - 理由：非对称的 25% 门限会导致槽位中心偏离物理卡片中心，使手指悬停在目标卡片正中央时意外连跳两行。50% 物理对称归位保证每个槽位区间 $[-28\text{dp}, +28\text{dp}]$ 精准居中于目标卡片物理中心点。
+
+4. **临界阻尼无反弹弹簧 (DampingRatioNoBouncy)**：
+   - 避让与落座动画统一使用 `spring(stiffness = Spring.StiffnessHigh, dampingRatio = Spring.DampingRatioNoBouncy)`。
+   - 理由：默认的 `DampingRatioMediumBouncy` (0.75f) 会在卡片归位时产生 25% 的物理过冲与二次弹起，使用 `DampingRatioNoBouncy` (1.0f) 可消除任何幅度过冲，实现极速、沉浸、平滑的落座手感。
+
+5. **推算结果 1:1 数组对齐 (1:1 Result Array Alignment)**：
+   - `computeMultiStageSequence` 计算引擎必须为所有阶段（包括天数为 `0` 或空字符 `""` 的中间阶段）都生成占位 `StageSegmentResult`（`endDate = startDate`）。
+   - 理由：若过滤掉 0 天阶段，会导致 `calculatedMultiSegments` 结果数组长度与 `stages` 输入数组长度不一致，UI 层通过 index 索引渲染时会产生 1 行以上的严重结果错位。
 
 ---
 
