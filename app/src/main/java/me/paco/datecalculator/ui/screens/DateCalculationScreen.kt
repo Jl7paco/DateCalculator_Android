@@ -762,7 +762,19 @@ private fun DateCalcMultiStageSection(
             var dragOffsetY by remember { mutableFloatStateOf(0f) }
             var initialDragIndex by remember { mutableIntStateOf(0) }
 
+            val activeDraggedIndex = if (draggedStageId != null) {
+                uiState.stages.indexOfFirst { it.id == draggedStageId }
+            } else -1
+
             val itemHeightPx = with(density) { 56.dp.toPx() }
+
+            fun computeTargetIndex(offsetY: Float): Int {
+                if (activeDraggedIndex == -1) return -1
+                val slots = kotlin.math.round(offsetY / itemHeightPx).toInt()
+                return (initialDragIndex + slots).coerceIn(0, uiState.stages.lastIndex)
+            }
+
+            val activeTargetIndex = computeTargetIndex(dragOffsetY)
 
             uiState.stages.forEachIndexed { index, stage ->
                 key(stage.id) {
@@ -773,6 +785,13 @@ private fun DateCalcMultiStageSection(
                     // 2. 被波及邻近卡片根据 targetIndex 自动向相反方向移动 1 个卡片高度进行跟手让位
                     val animOffsetY = when {
                         isBeingDragged -> dragOffsetY
+                        activeDraggedIndex != -1 && activeTargetIndex != -1 -> {
+                            when {
+                                index > initialDragIndex && index <= activeTargetIndex -> -itemHeightPx
+                                index < initialDragIndex && index >= activeTargetIndex -> itemHeightPx
+                                else -> 0f
+                            }
+                        }
                         else -> 0f
                     }
 
@@ -781,7 +800,7 @@ private fun DateCalcMultiStageSection(
                     // 利用 animateFloatAsState 包装所有卡片（包括拖拽卡片松手时）的位移，使调换与松手落座产生 120Hz 柔和平滑弹簧动画
                     val animatedCardOffsetY by animateFloatAsState(
                         targetValue = animOffsetY,
-                        animationSpec = spring(stiffness = Spring.StiffnessLow),
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "CardReorderOffset"
                     )
 
@@ -808,34 +827,36 @@ private fun DateCalcMultiStageSection(
                                         HapticUtils.performCrispClick(context, view)
                                     },
                                     onDragEnd = {
+                                        val curFromIdx = initialDragIndex
+                                        val curToIdx = activeTargetIndex
+                                        if (curFromIdx != -1 && curToIdx != -1 && curFromIdx != curToIdx) {
+                                            viewModel.reorderCalculationStages(curFromIdx, curToIdx)
+                                            HapticUtils.performCrispClick(context, view)
+                                        }
                                         draggedStageId = null
                                         dragOffsetY = 0f
                                         initialDragIndex = 0
                                     },
                                     onDragCancel = {
+                                        val curFromIdx = initialDragIndex
+                                        val curToIdx = activeTargetIndex
+                                        if (curFromIdx != -1 && curToIdx != -1 && curFromIdx != curToIdx) {
+                                            viewModel.reorderCalculationStages(curFromIdx, curToIdx)
+                                            HapticUtils.performCrispClick(context, view)
+                                        }
                                         draggedStageId = null
                                         dragOffsetY = 0f
                                         initialDragIndex = 0
                                     },
                                     onVerticalDrag = { change, dragAmount ->
                                         change.consume()
-                                        val curFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
-                                        if (curFromIdx != -1) {
-                                            val minAllowedOffset = -curFromIdx * itemHeightPx - (itemHeightPx * 0.5f)
-                                            val maxAllowedOffset = (uiState.stages.lastIndex - curFromIdx) * itemHeightPx + (itemHeightPx * 0.5f)
-                                            dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
-
-                                            // 迟滞死区门限 65% 行高：平移基准准确扣除 itemHeightPx，使卡片 100% 紧贴手指无缝连续跨行调换！
-                                            val stepThreshold = itemHeightPx * 0.65f
-                                            if (dragOffsetY >= stepThreshold && curFromIdx < uiState.stages.lastIndex) {
-                                                viewModel.reorderCalculationStages(curFromIdx, curFromIdx + 1)
-                                                HapticUtils.performCrispClick(context, view)
-                                                dragOffsetY -= itemHeightPx
-                                            } else if (dragOffsetY <= -stepThreshold && curFromIdx > 0) {
-                                                viewModel.reorderCalculationStages(curFromIdx, curFromIdx - 1)
-                                                HapticUtils.performCrispClick(context, view)
-                                                dragOffsetY += itemHeightPx
-                                            }
+                                        val minAllowedOffset = -initialDragIndex * itemHeightPx - (itemHeightPx * 0.4f)
+                                        val maxAllowedOffset = (uiState.stages.lastIndex - initialDragIndex) * itemHeightPx + (itemHeightPx * 0.4f)
+                                        val oldTarget = activeTargetIndex
+                                        dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
+                                        val newTarget = activeTargetIndex
+                                        if (newTarget != oldTarget && newTarget != -1) {
+                                            HapticUtils.performCrispClick(context, view)
                                         }
                                     }
                                 )
