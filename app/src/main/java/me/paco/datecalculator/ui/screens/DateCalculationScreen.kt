@@ -830,17 +830,17 @@ private fun DateCalcMultiStageSection(
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .pointerInput(stage.id, uiState.stages.size) {
+                            .pointerInput(stage.id, currentStagesList) {
                                 detectVerticalDragGestures(
                                     onDragStart = {
                                         draggedStageId = stage.id
                                         dragOffsetY = 0f
-                                        val idx = uiState.stages.indexOfFirst { it.id == stage.id }
-                                        Log.d("DragReorder", "onDragStart: stageId=${stage.id}, initialIdx=$idx, totalStages=${uiState.stages.size}")
+                                        val idx = currentStagesList.indexOfFirst { it.id == stage.id }
+                                        Log.d("DragReorder", "onDragStart: stageId=${stage.id}, initialIdx=$idx, totalStages=${currentStagesList.size}, IDs=${currentStagesList.map { it.id }}")
                                         HapticUtils.performCrispClick(context, view)
                                     },
                                     onDragEnd = {
-                                        val liveFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
+                                        val liveFromIdx = currentStagesList.indexOfFirst { it.id == stage.id }
                                         val curToIdx = computeTargetIndex(dragOffsetY)
                                         Log.d("DragReorder", "onDragEnd: stageId=${stage.id}, liveFromIdx=$liveFromIdx, curToIdx=$curToIdx, dragOffsetY=$dragOffsetY")
                                         if (liveFromIdx != -1 && curToIdx != -1 && liveFromIdx != curToIdx) {
@@ -851,7 +851,7 @@ private fun DateCalcMultiStageSection(
                                         dragOffsetY = 0f
                                     },
                                     onDragCancel = {
-                                        val liveFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
+                                        val liveFromIdx = currentStagesList.indexOfFirst { it.id == stage.id }
                                         val curToIdx = computeTargetIndex(dragOffsetY)
                                         Log.d("DragReorder", "onDragCancel: stageId=${stage.id}, liveFromIdx=$liveFromIdx, curToIdx=$curToIdx, dragOffsetY=$dragOffsetY")
                                         if (liveFromIdx != -1 && curToIdx != -1 && liveFromIdx != curToIdx) {
@@ -863,15 +863,15 @@ private fun DateCalcMultiStageSection(
                                     },
                                     onVerticalDrag = { change, dragAmount ->
                                         change.consume()
-                                        val liveFromIdx = uiState.stages.indexOfFirst { it.id == stage.id }
+                                        val liveFromIdx = currentStagesList.indexOfFirst { it.id == stage.id }
                                         if (liveFromIdx != -1) {
                                             val minAllowedOffset = -liveFromIdx * itemHeightPx - (itemHeightPx * 0.4f)
-                                            val maxAllowedOffset = (uiState.stages.lastIndex - liveFromIdx) * itemHeightPx + (itemHeightPx * 0.4f)
+                                            val maxAllowedOffset = (currentStagesList.lastIndex - liveFromIdx) * itemHeightPx + (itemHeightPx * 0.4f)
                                             val oldTarget = computeTargetIndex(dragOffsetY)
                                             dragOffsetY = (dragOffsetY + dragAmount).coerceIn(minAllowedOffset, maxAllowedOffset)
                                             val newTarget = computeTargetIndex(dragOffsetY)
                                             if (newTarget != oldTarget && newTarget != -1) {
-                                                Log.d("DragReorder", "onVerticalDrag target changed: stageId=${stage.id}, oldTarget=$oldTarget -> newTarget=$newTarget, dragOffsetY=$dragOffsetY")
+                                                Log.d("DragReorder", "onVerticalDrag target changed: stageId=${stage.id}, liveFromIdx=$liveFromIdx, oldTarget=$oldTarget -> newTarget=$newTarget, dragOffsetY=$dragOffsetY")
                                                 HapticUtils.performCrispClick(context, view)
                                             }
                                         }
