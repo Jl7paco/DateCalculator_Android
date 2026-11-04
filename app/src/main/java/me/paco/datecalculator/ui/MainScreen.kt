@@ -319,8 +319,8 @@ fun MainScreen(
                             when (page) {
                                 0 -> HomeScreen(viewModel = viewModel, uiState = uiState)
                                 1 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
-                                2 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
-                                3 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
+                                2 -> DateDiffScreen(viewModel = viewModel, uiState = uiState)
+                                3 -> LunarConverterScreen(viewModel = viewModel, uiState = uiState)
                                 4 -> TimeCalculatorScreen(viewModel = viewModel, uiState = uiState)
                                 else -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
                             }
