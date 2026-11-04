@@ -221,16 +221,10 @@ fun MainScreen(
                             .height(68.dp)
                     ) {
                         navItems.forEachIndexed { index, (label, icon) ->
-                            val pageFraction = pagerState.currentPage + pagerState.currentPageOffsetFraction
-                            val distance = abs(pageFraction - index)
-                            val selectedProgress = (1f - distance).coerceIn(0f, 1f)
+                            val isSelected = (pagerState.currentPage == index)
 
-                            // 点击保留当前高亮颜色：选中状态时 Icon 与 Text 均呈现亮蓝色 (NeumorphicAccent) 高光
-                            val itemContentColor = lerp(
-                                start = NeumorphicTextPrimary.copy(alpha = 0.45f),
-                                stop = NeumorphicAccent,
-                                fraction = selectedProgress
-                            )
+                            // 选中状态时 Icon 与 Text 呈现亮蓝色 (NeumorphicAccent) 高光，0 逐帧重组开销，120FPS 丝滑平移
+                            val itemContentColor = if (isSelected) NeumorphicAccent else NeumorphicTextPrimary.copy(alpha = 0.45f)
 
                             Column(
                                 modifier = Modifier
@@ -263,7 +257,7 @@ fun MainScreen(
                                 Text(
                                     text = label,
                                     color = itemContentColor,
-                                    fontWeight = if (selectedProgress > 0.5f) FontWeight.ExtraBold else FontWeight.Bold,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
                                     fontSize = 10.5.sp
                                 )
                             }
