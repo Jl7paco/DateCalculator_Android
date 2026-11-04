@@ -1,6 +1,5 @@
 package me.paco.datecalculator.ui.components
 
-import android.widget.Toast
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -49,7 +48,9 @@ import me.paco.datecalculator.data.AppLanguage
 import me.paco.datecalculator.data.CalculationType
 import me.paco.datecalculator.util.HapticUtils
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * 模块化精简指令集计算器键盘 (解耦拆分为 2 个轻量级顶层 Composable，解决冷启动 JIT 11MB 编译卡顿)
+ */
 @Composable
 fun NumericCalculatorInput(
     daysInput: String,
@@ -64,282 +65,324 @@ fun NumericCalculatorInput(
     quickOptions: List<Int> = listOf(5, 15, 30),
     modifier: Modifier = Modifier
 ) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        NumericCalculatorDisplayAndOperators(
+            daysInput = daysInput,
+            onDaysInputChange = onDaysInputChange,
+            selectedType = selectedType,
+            onTypeSelected = onTypeSelected,
+            onEqualClick = onEqualClick
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        NumericCalculatorQuickOptions(
+            daysInput = daysInput,
+            onDaysInputChange = onDaysInputChange,
+            onEqualClick = onEqualClick,
+            onDeadlineDatePickerClick = onDeadlineDatePickerClick,
+            targetDeadlineDateText = targetDeadlineDateText,
+            dayUnitLabel = dayUnitLabel,
+            language = language,
+            quickOptions = quickOptions
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NumericCalculatorDisplayAndOperators(
+    daysInput: String,
+    onDaysInputChange: (String) -> Unit,
+    selectedType: CalculationType,
+    onTypeSelected: (CalculationType) -> Unit,
+    onEqualClick: () -> Unit
+) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
-    Column(modifier = modifier.fillMaxWidth()) {
-
-        // 同一行整合: [ 天数输入框 ] + [ 加号 (+) & 减号 (-) 同时显示 ] + [ 红色等于号按键 (=) ]
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 1. 天数输入框 (58dp 高度)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(58.dp)
+                .neumorphicInset(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
+                .border(1.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = RoundedCornerShape(18.dp))
+                .background(NeumorphicBg, shape = RoundedCornerShape(18.dp)),
+            contentAlignment = Alignment.CenterStart
         ) {
-            // 1. 天数输入框 (58dp 高度)
+            OutlinedTextField(
+                value = daysInput,
+                onValueChange = { newValue ->
+                    if (newValue.isEmpty() || newValue.all { it.isDigit() || it == '-' }) {
+                        onDaysInputChange(newValue)
+                    }
+                },
+                placeholder = {
+                    Text(
+                        text = "7",
+                        color = NeumorphicTextPrimary.copy(alpha = 0.45f),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                textStyle = TextStyle(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = NeumorphicTextPrimary
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedTextColor = NeumorphicTextPrimary,
+                    unfocusedTextColor = NeumorphicTextPrimary
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(6.dp))
+
+        // 2. 加号 (+) 按钮
+        val isAddSelected = selectedType == CalculationType.ADD
+        Box(
+            modifier = Modifier
+                .width(46.dp)
+                .height(58.dp)
+                .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
+                .background(
+                    if (isAddSelected) NeumorphicAccent else NeumorphicBg,
+                    shape = RoundedCornerShape(18.dp)
+                )
+                .clip(RoundedCornerShape(18.dp))
+                .clickable {
+                    HapticUtils.performCrispClick(context)
+                    onTypeSelected(CalculationType.ADD)
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "+",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = if (isAddSelected) Color.White else NeumorphicAccent
+            )
+        }
+
+        Spacer(modifier = Modifier.width(6.dp))
+
+        // 3. 减号 (-) 按钮
+        val isSubSelected = selectedType == CalculationType.SUBTRACT
+        Box(
+            modifier = Modifier
+                .width(46.dp)
+                .height(58.dp)
+                .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
+                .background(
+                    if (isSubSelected) Color(0xFFEF4444) else NeumorphicBg,
+                    shape = RoundedCornerShape(18.dp)
+                )
+                .clip(RoundedCornerShape(18.dp))
+                .clickable {
+                    HapticUtils.performCrispClick(context)
+                    onTypeSelected(CalculationType.SUBTRACT)
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "-",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = if (isSubSelected) Color.White else Color(0xFFEF4444)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(6.dp))
+
+        // 4. 红色等于号按键 (=)
+        Box(
+            modifier = Modifier
+                .width(52.dp)
+                .height(58.dp)
+                .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
+                .background(Color(0xFFEF4444), shape = RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(18.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    HapticUtils.performCrispClick(context)
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                    if (daysInput.isBlank()) {
+                        onDaysInputChange("7")
+                    }
+                    onEqualClick()
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "=",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+private fun NumericCalculatorQuickOptions(
+    daysInput: String,
+    onDaysInputChange: (String) -> Unit,
+    onEqualClick: () -> Unit,
+    onDeadlineDatePickerClick: (() -> Unit)?,
+    targetDeadlineDateText: String?,
+    dayUnitLabel: String,
+    language: AppLanguage,
+    quickOptions: List<Int>
+) {
+    val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val chipShape = RoundedCornerShape(14.dp)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        quickOptions.forEach { num ->
+            val labelText = "$num $dayUnitLabel"
+            val isSelected = daysInput == num.toString()
+
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.92f else 1.0f,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "QuickChipPressScale"
+            )
+
+            val chipModifier = if (isSelected) {
+                Modifier
+                    .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
+                    .background(NeumorphicAccent, shape = chipShape)
+            } else {
+                Modifier
+                    .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
+                    .background(NeumorphicBg, shape = chipShape)
+            }
+
+            val chipFontSize = if (language.isChineseLocale) 11.5.sp else 10.sp
+            val chipFontWeight = if (language.isChineseLocale) FontWeight.Bold else FontWeight.SemiBold
+
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(58.dp)
-                    .neumorphicInset(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
-                    .border(1.dp, NeumorphicAccent.copy(alpha = 0.35f), shape = RoundedCornerShape(18.dp))
-                    .background(NeumorphicBg, shape = RoundedCornerShape(18.dp)),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                OutlinedTextField(
-                    value = daysInput,
-                    onValueChange = { newValue ->
-                        if (newValue.isEmpty() || newValue.all { it.isDigit() || it == '-' }) {
-                            onDaysInputChange(newValue)
-                        }
-                    },
-                    placeholder = {
-                        Text(
-                            text = "7",
-                            color = NeumorphicTextPrimary.copy(alpha = 0.45f),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    textStyle = TextStyle(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = NeumorphicTextPrimary
-                    ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedTextColor = NeumorphicTextPrimary,
-                        unfocusedTextColor = NeumorphicTextPrimary
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 2.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            // 2. 加号 (+) 按钮
-            val isAddSelected = selectedType == CalculationType.ADD
-            Box(
-                modifier = Modifier
-                    .width(46.dp)
-                    .height(58.dp)
-                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
-                    .background(
-                        if (isAddSelected) NeumorphicAccent else NeumorphicBg,
-                        shape = RoundedCornerShape(18.dp)
-                    )
-                    .clip(RoundedCornerShape(18.dp))
-                    .clickable {
-                        HapticUtils.performCrispClick(context)
-                        onTypeSelected(CalculationType.ADD)
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "+",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isAddSelected) Color.White else NeumorphicAccent
-                )
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            // 3. 减号 (-) 按钮
-            val isSubSelected = selectedType == CalculationType.SUBTRACT
-            Box(
-                modifier = Modifier
-                    .width(46.dp)
-                    .height(58.dp)
-                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
-                    .background(
-                        if (isSubSelected) Color(0xFFEF4444) else NeumorphicBg,
-                        shape = RoundedCornerShape(18.dp)
-                    )
-                    .clip(RoundedCornerShape(18.dp))
-                    .clickable {
-                        HapticUtils.performCrispClick(context)
-                        onTypeSelected(CalculationType.SUBTRACT)
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "-",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isSubSelected) Color.White else Color(0xFFEF4444)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            // 4. 红色等于号按键 (=)
-            Box(
-                modifier = Modifier
-                    .width(52.dp)
-                    .height(58.dp)
-                    .neumorphicExtruded(shape = RoundedCornerShape(18.dp), elevation = 5.dp)
-                    .background(Color(0xFFEF4444), shape = RoundedCornerShape(18.dp))
-                    .clip(RoundedCornerShape(18.dp))
+                    .height(42.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                    .then(chipModifier)
+                    .clip(chipShape)
                     .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
+                        interactionSource = interactionSource,
                         indication = null
                     ) {
                         HapticUtils.performCrispClick(context)
                         keyboardController?.hide()
                         focusManager.clearFocus()
-                        if (daysInput.isBlank()) {
-                            onDaysInputChange("7")
-                        }
+                        onDaysInputChange(num.toString())
                         onEqualClick()
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "=",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    text = labelText,
+                    color = if (isSelected) Color.White else NeumorphicTextPrimary,
+                    fontWeight = if (isSelected) FontWeight.ExtraBold else chipFontWeight,
+                    fontSize = chipFontSize,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 4个新拟物圆角矩形快捷按键: [5工作日] [15工作日] [30工作日] [📅 截至日期/截止11-03] (尺寸收紧并对齐，圆角矩形设计维持不变)
-        val chipShape = RoundedCornerShape(14.dp)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            quickOptions.forEach { num ->
-                val labelText = "$num $dayUnitLabel"
-                val isSelected = daysInput == num.toString()
-
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val scale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.92f else 1.0f,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "QuickChipPressScale"
-                )
-
-                val chipModifier = if (isSelected) {
-                    Modifier
-                        .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
-                        .background(NeumorphicAccent, shape = chipShape)
-                } else {
-                    Modifier
-                        .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
-                        .background(NeumorphicBg, shape = chipShape)
-                }
-
-                val chipFontSize = if (language.isChineseLocale) 11.5.sp else 10.sp
-                val chipFontWeight = if (language.isChineseLocale) FontWeight.Bold else FontWeight.SemiBold
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp)
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .then(chipModifier)
-                        .clip(chipShape)
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null
-                        ) {
-                            HapticUtils.performCrispClick(context)
-                            keyboardController?.hide()
-                            focusManager.clearFocus()
-                            onDaysInputChange(num.toString())
-                            onEqualClick()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = labelText,
-                        color = if (isSelected) Color.White else NeumorphicTextPrimary,
-                        fontWeight = if (isSelected) FontWeight.ExtraBold else chipFontWeight,
-                        fontSize = chipFontSize,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1
-                    )
-                }
+        // 第 4 个最右侧截止日期选择按键
+        if (onDeadlineDatePickerClick != null) {
+            val promptText = targetDeadlineDateText ?: when (language.getEffectiveLanguage()) {
+                AppLanguage.SIMPLIFIED_CHINESE -> "选择日期"
+                AppLanguage.TRADITIONAL_CHINESE -> "選擇日期"
+                AppLanguage.JAPANESE -> "日付を選択"
+                AppLanguage.KOREAN -> "날짜 선택"
+                AppLanguage.ENGLISH -> "Select Date"
+                else -> "选择日期"
             }
 
-            // 第 4 个最右侧截止日期选择按键 (语言感知加宽 weight，确保英文下不贴边)
-            if (onDeadlineDatePickerClick != null) {
-                val promptText = targetDeadlineDateText ?: when (language.getEffectiveLanguage()) {
-                    AppLanguage.SIMPLIFIED_CHINESE -> "选择日期"
-                    AppLanguage.TRADITIONAL_CHINESE -> "選擇日期"
-                    AppLanguage.JAPANESE -> "日付を選択"
-                    AppLanguage.KOREAN -> "날짜 선택"
-                    AppLanguage.ENGLISH -> "Select Date"
-                    else -> "选择日期"
-                }
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.92f else 1.0f,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "DeadlineChipPressScale"
+            )
 
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val scale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.92f else 1.0f,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "DeadlineChipPressScale"
-                )
-
-                Box(
-                    modifier = Modifier
-                        .weight(if (language.isChineseLocale) 1.15f else 1.35f)
-                        .height(42.dp)
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
-                        .background(NeumorphicBg, shape = chipShape)
-                        .clip(chipShape)
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null
-                        ) {
-                            HapticUtils.performCrispClick(context)
-                            keyboardController?.hide()
-                            focusManager.clearFocus()
-                            onDeadlineDatePickerClick()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(horizontal = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.EditCalendar,
-                            contentDescription = "Select Deadline Date",
-                            tint = NeumorphicAccent,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = promptText,
-                            color = NeumorphicAccent,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 11.sp,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            softWrap = false
-                        )
+            Box(
+                modifier = Modifier
+                    .weight(if (language.isChineseLocale) 1.15f else 1.35f)
+                    .height(42.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
                     }
+                    .neumorphicExtruded(shape = chipShape, elevation = 4.dp)
+                    .background(NeumorphicBg, shape = chipShape)
+                    .clip(chipShape)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) {
+                        HapticUtils.performCrispClick(context)
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                        onDeadlineDatePickerClick()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EditCalendar,
+                        contentDescription = "Select Deadline Date",
+                        tint = NeumorphicAccent,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = promptText,
+                        color = NeumorphicAccent,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
         }
