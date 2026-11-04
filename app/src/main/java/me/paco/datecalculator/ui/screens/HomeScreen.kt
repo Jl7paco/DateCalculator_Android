@@ -187,8 +187,10 @@ fun HomeScreen(
     val fortune = remember(selectedCalendarDate, constName, lang) { LunarCalendarUtils.getDailyFortune(selectedCalendarDate, constName, lang) }
     val realWeatherData = uiState.liveWeatherData ?: remember(selectedCalendarDate) { WeatherUtils.getWeatherForecast(selectedCalendarDate) }
 
+    val homeStartT = remember { System.currentTimeMillis() }
     SideEffect {
-        Log.d("PerfTrace", "[HomeScreen] Recomposed: selectedDate=$selectedCalendarDate, isSecondaryLoaded=$isSecondaryLoaded")
+        val dur = System.currentTimeMillis() - homeStartT
+        Log.d("PerfTrace", "[HomeScreen] Frame render finished in ${dur}ms: selectedDate=$selectedCalendarDate, isSecondaryLoaded=$isSecondaryLoaded")
     }
 
     HistoryOverlayDialog(

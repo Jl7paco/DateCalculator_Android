@@ -281,8 +281,10 @@ fun MainScreen(
                 WeatherUtils.getCityCoordinates(uiState.currentCityName)
             }
 
+            val mainStartT = remember { System.currentTimeMillis() }
             SideEffect {
-                Log.d("PerfTrace", "[MainScreen] Recomposed: currentPage=${pagerState.currentPage}, pageOffsetFrac=${pagerState.currentPageOffsetFraction}")
+                val dur = System.currentTimeMillis() - mainStartT
+                Log.d("PerfTrace", "[MainScreen] Frame render finished in ${dur}ms: currentPage=${pagerState.currentPage}, pageOffsetFrac=${pagerState.currentPageOffsetFraction}")
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
