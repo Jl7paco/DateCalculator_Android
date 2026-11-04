@@ -87,7 +87,9 @@ import me.paco.datecalculator.ui.theme.DateCalculatorTheme
 import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.WeatherUtils
+import androidx.compose.ui.unit.IntOffset
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -194,13 +196,14 @@ fun MainScreen(
                     val tabCount = navItems.size
                     val tabWidth = totalWidth / tabCount
 
-                    val pageFraction = pagerState.currentPage + pagerState.currentPageOffsetFraction
-                    val indicatorOffsetX = tabWidth * pageFraction
-
                     // 1:1 放大参考图精细复刻：自然 3D 凹陷 (neumorphicInset)，无硬边框，内侧自带淡淡高光与阴影
+                    // 利用 Lambda offset { ... } 将指示器位移计算推迟至 GPU 绘制阶段，0 重组、0 布局，彻底消除切页 400ms 弹簧滑行掉帧
                     Box(
                         modifier = Modifier
-                            .offset(x = indicatorOffsetX)
+                            .offset {
+                                val pageFraction = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                                IntOffset((tabWidth.toPx() * pageFraction).roundToInt(), 0)
+                            }
                             .width(tabWidth)
                             .height(68.dp)
                             .padding(horizontal = 6.dp, vertical = 6.dp)
@@ -217,6 +220,7 @@ fun MainScreen(
                             .height(68.dp)
                     ) {
                         navItems.forEachIndexed { index, (label, icon) ->
+                            val pageFraction = pagerState.currentPage + pagerState.currentPageOffsetFraction
                             val distance = abs(pageFraction - index)
                             val selectedProgress = (1f - distance).coerceIn(0f, 1f)
 
@@ -240,10 +244,7 @@ fun MainScreen(
                                             coroutineScope.launch {
                                                 pagerState.animateScrollToPage(
                                                     page = index,
-                                                    animationSpec = tween(
-                                                        durationMillis = 160,
-                                                        easing = FastOutSlowInEasing
-                                                    )
+                                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
                                                 )
                                             }
                                         }
