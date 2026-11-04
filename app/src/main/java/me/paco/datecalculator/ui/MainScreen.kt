@@ -3,7 +3,9 @@ package me.paco.datecalculator.ui
 import android.util.Log
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.movableContentOf
+import me.paco.datecalculator.util.DateCalculatorUtils
 import me.paco.datecalculator.util.HapticUtils
+import me.paco.datecalculator.util.LunarCalendarUtils
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -102,13 +104,20 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        viewModel.initPreferences(context)
-    }
-
     val showHome = uiState.homeConfig.showHomeScreen
     val isChineseLocale = uiState.appLanguage.isChineseLocale
     val lang = uiState.appLanguage
+
+    LaunchedEffect(Unit) {
+        viewModel.initPreferences(context)
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            val t0 = System.currentTimeMillis()
+            LunarCalendarUtils.solarToLunar(java.time.LocalDate.now())
+            LunarCalendarUtils.getAlmanacYiJi(java.time.LocalDate.now())
+            DateCalculatorUtils.formatDate(java.time.LocalDate.now(), lang)
+            Log.d("PerfLog", "[MainScreen] Background pre-warm finished in ${System.currentTimeMillis() - t0}ms")
+        }
+    }
 
     val isDark = when (uiState.darkThemeMode) {
         DarkThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -194,7 +203,7 @@ fun MainScreen(
                             )
                         }
                 ) {
-                    val totalWidth = maxWidth
+                    val totalWidth = this.maxWidth
                     val tabCount = navItems.size
                     val tabWidth = totalWidth / tabCount
 
