@@ -648,7 +648,8 @@ fun WatermarkCameraScreen(
                                                                 landmarkName = liveLandmark,
                                                                 dateTimeStr = nowTimeStr,
                                                                 mapTileBitmap = mapTileBitmap,
-                                                                userScaleFactor = watermarkScale
+                                                                userScaleFactor = watermarkScale,
+                                                                deviceRotationDeg = deviceRotationDeg
                                                             )
 
                                                             val dir = File(context.filesDir, "checkin_photos").apply { if (!exists()) mkdirs() }
@@ -705,7 +706,8 @@ fun WatermarkCameraScreen(
                                                                     landmarkName = liveLandmark,
                                                                     dateTimeStr = nowTimeStr,
                                                                     mapTileBitmap = mapTileBitmap,
-                                                                    userScaleFactor = watermarkScale
+                                                                    userScaleFactor = watermarkScale,
+                                                                    deviceRotationDeg = deviceRotationDeg
                                                                 )
                                                             } else null
 

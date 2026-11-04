@@ -192,7 +192,7 @@ fun WatermarkBadgeOverlay(
 }
 
 /**
- * 需求 1: 在照片 Bitmap 上绘制与预览界面 100% 视觉像素级一致的水印 Badge
+ * 需求 1: 在照片/视频帧 Bitmap 上绘制与预览界面 100% 视觉像素级与方向绝对一致的水印 Badge
  */
 object WatermarkBitmapDrawer {
 
@@ -202,35 +202,67 @@ object WatermarkBitmapDrawer {
         landmarkName: String,
         dateTimeStr: String,
         mapTileBitmap: Bitmap? = null,
-        userScaleFactor: Float = 1.0f
+        userScaleFactor: Float = 1.0f,
+        deviceRotationDeg: Int = 0
     ): Bitmap {
         val width = srcBitmap.width
         val height = srcBitmap.height
         val mutableBitmap = srcBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(mutableBitmap)
 
-        // 需求 3: 水印默认大小设为原面积的 80% (宽度约为画面宽度的 54%)
-        val badgeW = (width * 0.54f * userScaleFactor.coerceIn(0.5f, 1.0f)).coerceAtMost(width * 0.82f)
+        // 水印尺寸按画面短边宽度等比缩放
+        val baseDim = minOf(width, height)
+        val badgeW = (baseDim * 0.54f * userScaleFactor.coerceIn(0.5f, 1.0f)).coerceAtMost(baseDim * 0.82f)
         val badgeH = badgeW * 0.33f
-        val margin = (width * 0.03f).coerceAtLeast(24f)
+        val margin = (baseDim * 0.03f).coerceAtLeast(24f)
 
-        // 需求 1: 水印放置于右上角，与预览界面位置 100% 保持一致
-        val right = width - margin
-        val left = right - badgeW
-        val top = margin + (height * 0.02f)
-        val bottom = top + badgeH
+        // 根据陀螺仪拍摄角度 (0°, 270°, 90°) 计算 Canvas 旋转中心点与边界矩形，保证与实时预览位置 100% 1:1 精确契合
+        val (left, top, rotAngle) = when (deviceRotationDeg) {
+            270 -> {
+                // 前摄靠左 (草图 2)：人眼视角右上角 = 画面右上角 (Vertical, Rotated -90°)
+                val l = width - margin - badgeH
+                val t = margin
+                Triple(l, t, -90f)
+            }
+            90 -> {
+                // 前摄靠右 (草图 3)：人眼视角右上角 = 画面左上角 (Vertical, Rotated +90°)
+                val l = margin
+                val t = margin
+                Triple(l, t, 90f)
+            }
+            else -> {
+                // 正向竖屏 (草图 1)：画面右上角 (Horizontal, Rotated 0°)
+                val l = width - margin - badgeW
+                val t = margin
+                Triple(l, t, 0f)
+            }
+        }
+
+        canvas.save()
+        val centerX = left + (if (rotAngle != 0f) badgeH else badgeW) / 2f
+        val centerY = top + (if (rotAngle != 0f) badgeW else badgeH) / 2f
+
+        if (rotAngle != 0f) {
+            canvas.rotate(rotAngle, centerX, centerY)
+        }
+
+        // 以 (centerX, centerY) 为旋转核心绘制水平标准卡片
+        val rectLeft = centerX - badgeW / 2f
+        val rectTop = centerY - badgeH / 2f
+        val rectRight = rectLeft + badgeW
+        val rectBottom = rectTop + badgeH
 
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.argb(216, 30, 41, 59)
         }
 
-        val rect = RectF(left, top, right, bottom)
+        val rect = RectF(rectLeft, rectTop, rectRight, rectBottom)
         val cornerRadius = badgeH * 0.18f
         canvas.drawRoundRect(rect, cornerRadius, cornerRadius, bgPaint)
 
         val mapMargin = badgeH * 0.10f
         val mapSize = badgeH - (mapMargin * 2)
-        val mapRect = RectF(left + mapMargin, top + mapMargin, left + mapMargin + mapSize, top + mapMargin + mapSize)
+        val mapRect = RectF(rectLeft + mapMargin, rectTop + mapMargin, rectLeft + mapMargin + mapSize, rectTop + mapMargin + mapSize)
 
         if (mapTileBitmap != null) {
             canvas.drawBitmap(mapTileBitmap, null, mapRect, null)
@@ -239,9 +271,8 @@ object WatermarkBitmapDrawer {
             canvas.drawRoundRect(mapRect, cornerRadius * 0.6f, cornerRadius * 0.6f, mapBgPaint)
         }
 
-        // 需求 2: 照片水印文案字号与水印 Badge 总体尺寸 (badgeH) 按 1:1 比例等比动态缩放
-        val textX = left + mapMargin + mapSize + (badgeH * 0.08f)
-        var textY = top + mapMargin + (badgeH * 0.22f)
+        val textX = rectLeft + mapMargin + mapSize + (badgeH * 0.08f)
+        var textY = rectTop + mapMargin + (badgeH * 0.22f)
 
         val cityPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.WHITE
@@ -269,6 +300,7 @@ object WatermarkBitmapDrawer {
         val cleanTime = if (dateTimeStr.isBlank()) LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 a h:mm", Locale.SIMPLIFIED_CHINESE)) else dateTimeStr
         canvas.drawText("🕐 $cleanTime", textX, textY, timePaint)
 
+        canvas.restore()
         return mutableBitmap
     }
 }
