@@ -48,8 +48,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -176,6 +178,10 @@ fun LunarConverterScreen(
     )
 
     val scrollState = rememberScrollState()
+
+    SideEffect {
+        Log.d("PerfTrace", "[LunarConverterScreen] Draw Frame: convertMode=$convertMode")
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(

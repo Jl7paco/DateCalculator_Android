@@ -59,6 +59,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -136,6 +137,10 @@ fun DateCalculationScreen(
     var showSingleDeadlinePicker by remember { mutableStateOf(false) }
 
     val targetDate = viewModel.calculateTargetDate()
+
+    SideEffect {
+        Log.d("PerfTrace", "[DateCalculationScreen] Draw Frame: stagesCount=${uiState.stages.size}")
+    }
 
     val cardScale = remember { Animatable(0.96f) }
     val cardAlpha = remember { Animatable(1.0f) }
