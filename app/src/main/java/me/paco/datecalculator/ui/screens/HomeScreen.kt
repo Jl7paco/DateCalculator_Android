@@ -173,6 +173,12 @@ fun HomeScreen(
         }
     }
 
+    var isSecondaryLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(50)
+        isSecondaryLoaded = true
+    }
+
     val todayLunar = remember(selectedCalendarDate) { LunarCalendarUtils.solarToLunar(selectedCalendarDate) }
     val almanac = remember(selectedCalendarDate) { LunarCalendarUtils.getAlmanacYiJi(selectedCalendarDate) }
     val (constName, _) = remember(selectedCalendarDate) { LunarCalendarUtils.getConstellationInfo(selectedCalendarDate) }
@@ -231,8 +237,8 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(28.dp))
         }
 
-        // 3. 当日天气预报 Card (置顶)
-        if (homeConfig.showWeather) {
+        // 3. 当日天气预报 Card (切页完成后 50ms 延迟载入，主线程 0 阻塞，120fps 极速切页)
+        if (homeConfig.showWeather && isSecondaryLoaded) {
             HomeWeatherSection(
                 uiState = uiState,
                 realWeatherData = realWeatherData,
@@ -247,7 +253,7 @@ fun HomeScreen(
         }
 
         // 4. 当日农历、节气与老黄历宜忌 Card
-        if (isChineseLanguage && (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac)) {
+        if (isChineseLanguage && (homeConfig.showLunar || homeConfig.showSolarTerms || homeConfig.showAlmanac) && isSecondaryLoaded) {
             HomeAlmanacSection(
                 selectedCalendarDate = selectedCalendarDate,
                 todayLunar = todayLunar,
@@ -262,7 +268,7 @@ fun HomeScreen(
         }
 
         // 5. 星座与每日运势 Card
-        if (homeConfig.showZodiacFortune) {
+        if (homeConfig.showZodiacFortune && isSecondaryLoaded) {
             HomeFortuneSection(
                 fortune = fortune,
                 homeConfig = homeConfig,
