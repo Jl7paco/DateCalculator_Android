@@ -236,10 +236,7 @@ fun MainScreen(
                                         HapticUtils.performCrispClick(context)
                                         if (pagerState.currentPage != index) {
                                             coroutineScope.launch {
-                                                pagerState.animateScrollToPage(
-                                                    page = index,
-                                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                                                )
+                                                pagerState.scrollToPage(index)
                                             }
                                         }
                                     },
