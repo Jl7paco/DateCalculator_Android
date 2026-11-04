@@ -242,6 +242,32 @@ fun WatermarkCameraScreen(
         label = "DeviceRotation"
     )
 
+    LaunchedEffect(deviceRotationDeg, watermarkScale) {
+        val targetRot = when (deviceRotationDeg) {
+            270 -> -90f
+            90 -> 90f
+            180 -> 180f
+            else -> 0f
+        }
+        val align = when (deviceRotationDeg) {
+            90 -> "TopStart"
+            else -> "TopEnd"
+        }
+        val badgeW = 220.dp * watermarkScale
+        val badgeH = 72.dp * watermarkScale
+        val halfD = (badgeW - badgeH) / 2f
+        val sx = when (deviceRotationDeg) {
+            270 -> -halfD
+            90 -> halfD
+            else -> 0.dp
+        }
+        val sy = when (deviceRotationDeg) {
+            270, 90 -> halfD
+            else -> 0.dp
+        }
+        Log.d("WatermarkCamera", "WatermarkPos: deviceRot=$deviceRotationDeg, rotZ=$targetRot, align=$align, badgeW=$badgeW, badgeH=$badgeH, halfDiff=$halfD, shiftX=$sx, shiftY=$sy")
+    }
+
     val previewView = remember {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FIT_CENTER
