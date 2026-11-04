@@ -1,5 +1,6 @@
 package me.paco.datecalculator.ui
 
+import android.util.Log
 import me.paco.datecalculator.util.HapticUtils
 
 import androidx.compose.animation.core.Spring
@@ -307,6 +308,10 @@ fun MainScreen(
                             isDark = isDark
                         )
                     }
+                }
+
+                LaunchedEffect(pagerState.currentPage) {
+                    Log.d("PerfLog", "[MainScreen] Tab switched to page: ${pagerState.currentPage}, targetTitle=${navItems.getOrNull(pagerState.currentPage)?.first}")
                 }
 
                 HorizontalPager(
