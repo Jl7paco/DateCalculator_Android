@@ -1,6 +1,7 @@
 package me.paco.datecalculator.ui
 
 import android.util.Log
+import androidx.compose.runtime.SideEffect
 import me.paco.datecalculator.util.HapticUtils
 
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -283,6 +284,10 @@ fun MainScreen(
 
             val (cityLat, cityLon) = remember(uiState.currentCityName) {
                 WeatherUtils.getCityCoordinates(uiState.currentCityName)
+            }
+
+            SideEffect {
+                Log.d("PerfTrace", "[MainScreen] Recomposed: currentPage=${pagerState.currentPage}, pageOffsetFrac=${pagerState.currentPageOffsetFraction}")
             }
 
             Box(modifier = Modifier.fillMaxSize()) {

@@ -19,6 +19,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.platform.LocalView
+import android.util.Log
+import androidx.compose.runtime.SideEffect
 import me.paco.datecalculator.util.HapticUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -184,6 +186,10 @@ fun HomeScreen(
     val (constName, _) = remember(selectedCalendarDate) { LunarCalendarUtils.getConstellationInfo(selectedCalendarDate) }
     val fortune = remember(selectedCalendarDate, constName, lang) { LunarCalendarUtils.getDailyFortune(selectedCalendarDate, constName, lang) }
     val realWeatherData = uiState.liveWeatherData ?: remember(selectedCalendarDate) { WeatherUtils.getWeatherForecast(selectedCalendarDate) }
+
+    SideEffect {
+        Log.d("PerfTrace", "[HomeScreen] Recomposed: selectedDate=$selectedCalendarDate, isSecondaryLoaded=$isSecondaryLoaded")
+    }
 
     HistoryOverlayDialog(
         visible = showHistoryDialog,
