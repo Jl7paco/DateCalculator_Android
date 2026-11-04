@@ -3,8 +3,10 @@ package me.paco.datecalculator.ui
 import android.util.Log
 import me.paco.datecalculator.util.HapticUtils
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -236,7 +238,13 @@ fun MainScreen(
                                         HapticUtils.performCrispClick(context)
                                         if (pagerState.currentPage != index) {
                                             coroutineScope.launch {
-                                                pagerState.scrollToPage(index)
+                                                pagerState.animateScrollToPage(
+                                                    page = index,
+                                                    animationSpec = tween(
+                                                        durationMillis = 160,
+                                                        easing = FastOutSlowInEasing
+                                                    )
+                                                )
                                             }
                                         }
                                     },
