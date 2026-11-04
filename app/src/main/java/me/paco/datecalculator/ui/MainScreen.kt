@@ -2,6 +2,7 @@ package me.paco.datecalculator.ui
 
 import android.util.Log
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.movableContentOf
 import me.paco.datecalculator.util.HapticUtils
 
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -324,8 +325,8 @@ fun MainScreen(
                     beyondBoundsPageCount = 0,
                     modifier = modifier.fillMaxSize()
                 ) { page ->
-                    key(page) {
-                        Box(modifier = Modifier.fillMaxSize()) {
+                    val pageContent = remember(page) {
+                        movableContentOf {
                             when (page) {
                                 0 -> HomeScreen(viewModel = viewModel, uiState = uiState)
                                 1 -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
@@ -335,6 +336,9 @@ fun MainScreen(
                                 else -> DateCalculationScreen(viewModel = viewModel, uiState = uiState)
                             }
                         }
+                    }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        pageContent()
                     }
                 }
             }
