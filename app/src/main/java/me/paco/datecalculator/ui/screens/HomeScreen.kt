@@ -252,7 +252,7 @@ fun HomeScreen(
                 realWeatherData = realWeatherData,
                 lang = lang,
                 effectiveLang = effectiveLang,
-                weatherFloatScale = weatherFloatScale,
+                weatherFloatScaleProvider = { weatherFloatScale },
                 onLocationClick = { viewModel.fetchCurrentGpsLocation(context) },
                 onDayClick = { weather, idx -> selectedWeatherDayDetail = Pair(weather, idx) }
             )
@@ -576,7 +576,7 @@ private fun HomeWeatherSection(
     realWeatherData: RealTimeWeatherData,
     lang: AppLanguage,
     effectiveLang: AppLanguage,
-    weatherFloatScale: Float,
+    weatherFloatScaleProvider: () -> Float,
     onLocationClick: () -> Unit,
     onDayClick: (DailyWeather, Int) -> Unit
 ) {
@@ -690,8 +690,9 @@ private fun HomeWeatherSection(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .graphicsLayer {
-                                        scaleX = weatherFloatScale
-                                        scaleY = weatherFloatScale
+                                        val s = weatherFloatScaleProvider()
+                                        scaleX = s
+                                        scaleY = s
                                     }
                             )
                             Spacer(modifier = Modifier.height(3.dp))
