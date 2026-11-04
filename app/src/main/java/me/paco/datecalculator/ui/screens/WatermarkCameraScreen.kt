@@ -894,7 +894,19 @@ fun WatermarkCameraScreen(
                                 .clickable {
                                     HapticUtils.performCrispClick(context, view)
                                     val path = pendingPhotoPath
+                                    val bmp = pendingPhotoBmp
                                     if (path != null) {
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                if (path.endsWith(".mp4")) {
+                                                    DateCalculatorUtils.saveWatermarkedVideoToGallery(context, File(path))
+                                                } else if (bmp != null) {
+                                                    DateCalculatorUtils.saveWatermarkedPhotoToGallery(context, bmp, "watermark_photo_${System.currentTimeMillis()}")
+                                                }
+                                            } catch (e: Exception) {
+                                                Log.e("WatermarkCamera", "Save to gallery failed", e)
+                                            }
+                                        }
                                         pendingPhotoPath = null
                                         pendingPhotoBmp = null
                                         onPhotoCaptured(path)
