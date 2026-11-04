@@ -407,8 +407,8 @@ fun WatermarkCameraScreen(
                     val halfDiff = (badgeWidthDp - badgeHeightDp) / 2f
 
                     val shiftX = when (deviceRotationDeg) {
-                        270 -> -halfDiff  // 前摄靠左 (草图 2)：-74dp 左拉
-                        90 -> halfDiff    // 前摄靠右 (草图 3)：+74dp 右推
+                        270 -> halfDiff   // 前摄靠左 (草图 2)：+74dp 推靠，使竖版水印右边缘 100% 齐平贴合取景框右上角
+                        90 -> -halfDiff   // 前摄靠右 (草图 3)：-74dp 推靠，使竖版水印左边缘 100% 齐平贴合取景框右上角
                         else -> 0.dp
                     }
 
