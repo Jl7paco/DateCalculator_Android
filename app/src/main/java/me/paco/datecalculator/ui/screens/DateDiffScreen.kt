@@ -37,6 +37,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import android.util.Log
+import androidx.compose.runtime.SideEffect
 import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -1148,6 +1150,11 @@ fun DateDiffScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val diffStartT = remember { System.currentTimeMillis() }
+    SideEffect {
+        val dur = System.currentTimeMillis() - diffStartT
+        Log.d("PerfTrace", "[DateDiffScreen] Frame render finished in ${dur}ms")
+    }
     val isDark = LocalDarkTheme.current
     val lang = uiState.appLanguage
     val effectiveLang = lang.getEffectiveLanguage()

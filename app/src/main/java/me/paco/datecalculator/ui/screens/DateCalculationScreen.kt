@@ -138,8 +138,10 @@ fun DateCalculationScreen(
 
     val targetDate = viewModel.calculateTargetDate()
 
+    val calcStartT = remember { System.currentTimeMillis() }
     SideEffect {
-        Log.d("PerfTrace", "[DateCalculationScreen] Draw Frame: stagesCount=${uiState.stages.size}")
+        val dur = System.currentTimeMillis() - calcStartT
+        Log.d("PerfTrace", "[DateCalculationScreen] Frame render finished in ${dur}ms: stagesCount=${uiState.stages.size}, mode=${uiState.calcSubMode}")
     }
 
     val cardScale = remember { Animatable(0.96f) }
