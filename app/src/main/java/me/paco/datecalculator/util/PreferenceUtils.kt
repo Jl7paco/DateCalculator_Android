@@ -8,6 +8,7 @@ import me.paco.datecalculator.data.BackgroundMode
 import me.paco.datecalculator.data.DarkThemeMode
 import me.paco.datecalculator.data.HolidayRegion
 import me.paco.datecalculator.data.HomeConfig
+import me.paco.datecalculator.data.RegionalHolidays
 import me.paco.datecalculator.data.ThemeColorPreset
 import me.paco.datecalculator.data.WeekendRule
 import me.paco.datecalculator.ui.viewmodel.CustomEventItem
@@ -80,14 +81,19 @@ object PreferenceUtils {
      * - forceManual == true: 手动强制同步全量 19 地区数据
      * - forceManual == false: 检查是否超过 7 天 (7 * 24 * 60 * 60 * 1000ms)，超过则后台静默更新
      */
-    fun syncAllRegionsHolidayData(context: Context, forceManual: Boolean): Boolean {
+    fun syncAllRegionsHolidayData(context: Context, forceManual: Boolean, onResult: ((Boolean, String) -> Unit)? = null): Boolean {
         val now = System.currentTimeMillis()
         val lastSync = getLastHolidaySyncTime(context)
         val sevenDaysMs = 7 * 24 * 60 * 60 * 1000L
 
         if (forceManual || (now - lastSync > sevenDaysMs)) {
             saveLastHolidaySyncTime(context, now)
+            RegionalHolidays.fetchLatestHolidaysOnline(context) { success, msg ->
+                onResult?.invoke(success, msg)
+            }
             return true
+        } else {
+            onResult?.invoke(true, "节假日数据已是最新 (已校准至 2025-2027 最新国务院排期)")
         }
         return false
     }

@@ -542,8 +542,10 @@ fun SettingsScreen(
                         .background(NeumorphicAccent, shape = CircleShape)
                         .clip(CircleShape)
                         .clickable {
-                            viewModel.syncAllRegionsHolidays(context, forceManual = true)
-                            Toast.makeText(context, syncedToastText, Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "正在连接国务院节假日服务器同步...", Toast.LENGTH_SHORT).show()
+                            viewModel.syncAllRegionsHolidays(context, forceManual = true) { msg ->
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                            }
                         },
                     contentAlignment = Alignment.Center
                 ) {

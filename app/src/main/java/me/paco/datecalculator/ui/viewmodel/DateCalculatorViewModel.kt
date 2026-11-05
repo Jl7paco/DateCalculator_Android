@@ -214,8 +214,12 @@ class DateCalculatorViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(anniversaryList = saved)
     }
 
-    fun syncAllRegionsHolidays(context: Context, forceManual: Boolean = true): Boolean {
-        return PreferenceUtils.syncAllRegionsHolidayData(context, forceManual)
+    fun syncAllRegionsHolidays(context: Context, forceManual: Boolean = true, onMessage: ((String) -> Unit)? = null) {
+        PreferenceUtils.syncAllRegionsHolidayData(context, forceManual) { _, msg ->
+            viewModelScope.launch(Dispatchers.Main) {
+                onMessage?.invoke(msg)
+            }
+        }
     }
 
     fun addAnniversary(item: AnniversaryItem, context: Context) {
