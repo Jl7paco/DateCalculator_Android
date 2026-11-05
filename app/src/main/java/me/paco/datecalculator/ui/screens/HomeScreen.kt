@@ -468,6 +468,10 @@ private fun HomeCalendarSection(
             val startOffset = firstDayOfMonth.dayOfWeek.value % 7
             val totalGridCells = ((daysInMonth + startOffset + 6) / 7) * 7
 
+            val monthLunarDays = remember(currentYearMonth) {
+                (1..daysInMonth).associateWith { d -> LunarCalendarUtils.solarToLunar(currentYearMonth.atDay(d)) }
+            }
+
             val rows = totalGridCells / 7
             for (r in 0 until rows) {
                 Row(
@@ -482,86 +486,111 @@ private fun HomeCalendarSection(
 
                         if (dayNum in 1..daysInMonth) {
                             val cellDate = currentYearMonth.atDay(dayNum)
-                            val isToday = cellDate == LocalDate.now()
-                            val isSelected = cellDate == selectedCalendarDate
+                            val dayLunar = monthLunarDays[dayNum]
 
-                            val isStatutory = uiState.enableChineseHolidays && RegionalHolidays.isStatutoryHoliday(cellDate, uiState.holidayRegion)
-                            val isShift = uiState.enableChineseHolidays && !uiState.disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(cellDate, uiState.holidayRegion)
-                            val isWeekend = uiState.weekendRule.isWeekend(cellDate, uiState.isCurrentWeekBigWeek)
-
-                            val dayLunar = LunarCalendarUtils.solarToLunar(cellDate)
-                            val lunarText = if (isChineseLanguage) {
-                                if (dayLunar.solarTerm.isNotEmpty()) dayLunar.solarTerm
-                                else if (dayLunar.festival.isNotEmpty()) dayLunar.festival.take(2)
-                                else dayLunar.lunarDayName
-                            } else ""
-
-                            val cellShape = RoundedCornerShape(10.dp)
-                            val cellModifier = if (isSelected) {
-                                Modifier
-                                    .neumorphicExtruded(shape = cellShape, elevation = 3.dp)
-                                    .background(NeumorphicAccent, shape = cellShape)
-                            } else if (isToday) {
-                                Modifier
-                                    .border(1.2.dp, NeumorphicAccent, shape = cellShape)
-                                    .background(NeumorphicBg, shape = cellShape)
-                            } else {
-                                Modifier.background(Color.Transparent)
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(42.dp)
-                                    .then(cellModifier)
-                                    .clip(cellShape)
-                                    .clickable { onDateSelect(cellDate) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        val textColor = if (isSelected) Color.White
-                                        else if (isStatutory) Color(0xFFEF4444)
-                                        else if (isShift) Color(0xFF10B981)
-                                        else if (isWeekend) Color(0xFFF59E0B)
-                                        else NeumorphicTextPrimary
-
-                                        Text(
-                                            text = dayNum.toString(),
-                                            fontSize = 12.5.sp,
-                                            fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Bold,
-                                            color = textColor,
-                                            maxLines = 1,
-                                            softWrap = false
-                                        )
-
-                                        if (isSimplifiedChinese && isStatutory) {
-                                            Text(" 休", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFFEF4444))
-                                        } else if (isSimplifiedChinese && isShift) {
-                                            Text(" 班", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFF10B981))
-                                        }
-                                    }
-
-                                    if (lunarText.isNotEmpty()) {
-                                        Text(
-                                            text = lunarText,
-                                            fontSize = 9.sp,
-                                            color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-                            }
+                            HomeCalendarCell(
+                                cellDate = cellDate,
+                                dayNum = dayNum,
+                                dayLunar = dayLunar,
+                                selectedCalendarDate = selectedCalendarDate,
+                                uiState = uiState,
+                                isChineseLanguage = isChineseLanguage,
+                                isSimplifiedChinese = isSimplifiedChinese,
+                                onDateSelect = onDateSelect,
+                                modifier = Modifier.weight(1f)
+                            )
                         } else {
                             Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeCalendarCell(
+    cellDate: LocalDate,
+    dayNum: Int,
+    dayLunar: LunarDate?,
+    selectedCalendarDate: LocalDate,
+    uiState: DateCalculatorUiState,
+    isChineseLanguage: Boolean,
+    isSimplifiedChinese: Boolean,
+    onDateSelect: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isToday = cellDate == LocalDate.now()
+    val isSelected = cellDate == selectedCalendarDate
+
+    val isStatutory = uiState.enableChineseHolidays && RegionalHolidays.isStatutoryHoliday(cellDate, uiState.holidayRegion)
+    val isShift = uiState.enableChineseHolidays && !uiState.disableChinaShiftWorkdays && RegionalHolidays.isShiftWorkday(cellDate, uiState.holidayRegion)
+    val isWeekend = uiState.weekendRule.isWeekend(cellDate, uiState.isCurrentWeekBigWeek)
+
+    val lunarText = if (isChineseLanguage && dayLunar != null) {
+        if (dayLunar.solarTerm.isNotEmpty()) dayLunar.solarTerm
+        else if (dayLunar.festival.isNotEmpty()) dayLunar.festival.take(2)
+        else dayLunar.lunarDayName
+    } else ""
+
+    val cellShape = RoundedCornerShape(10.dp)
+    val cellModifier = if (isSelected) {
+        Modifier
+            .neumorphicExtruded(shape = cellShape, elevation = 3.dp)
+            .background(NeumorphicAccent, shape = cellShape)
+    } else if (isToday) {
+        Modifier
+            .border(1.2.dp, NeumorphicAccent, shape = cellShape)
+            .background(NeumorphicBg, shape = cellShape)
+    } else {
+        Modifier.background(Color.Transparent)
+    }
+
+    Box(
+        modifier = modifier
+            .height(42.dp)
+            .then(cellModifier)
+            .clip(cellShape)
+            .clickable { onDateSelect(cellDate) },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val textColor = if (isSelected) Color.White
+                else if (isStatutory) Color(0xFFEF4444)
+                else if (isShift) Color(0xFF10B981)
+                else if (isWeekend) Color(0xFFF59E0B)
+                else NeumorphicTextPrimary
+
+                Text(
+                    text = dayNum.toString(),
+                    fontSize = 12.5.sp,
+                    fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Bold,
+                    color = textColor,
+                    maxLines = 1,
+                    softWrap = false
+                )
+
+                if (isSimplifiedChinese && isStatutory) {
+                    Text(" 休", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFFEF4444))
+                } else if (isSimplifiedChinese && isShift) {
+                    Text(" 班", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else Color(0xFF10B981))
+                }
+            }
+
+            if (lunarText.isNotEmpty()) {
+                Text(
+                    text = lunarText,
+                    fontSize = 9.sp,
+                    color = if (isSelected) Color.White.copy(alpha = 0.85f) else NeumorphicTextPrimary.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
