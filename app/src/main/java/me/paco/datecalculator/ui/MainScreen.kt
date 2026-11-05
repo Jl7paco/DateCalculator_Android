@@ -333,7 +333,7 @@ fun MainScreen(
 
                 HorizontalPager(
                     state = pagerState,
-                    beyondBoundsPageCount = 0,
+                    beyondBoundsPageCount = 4,
                     modifier = modifier.fillMaxSize()
                 ) { page ->
                     val pageContent = remember(page) {
