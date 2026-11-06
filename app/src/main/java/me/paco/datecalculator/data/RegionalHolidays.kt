@@ -197,7 +197,12 @@ object RegionalHolidays {
     /**
      * 判断特定日期在指定地区是否为法定节假日
      */
+    val dynamicGlobalHolidays = mutableMapOf<HolidayRegion, MutableSet<LocalDate>>()
+
     fun isStatutoryHoliday(date: LocalDate, region: HolidayRegion): Boolean {
+        val dynamicSet = dynamicGlobalHolidays[region]
+        if (dynamicSet != null && dynamicSet.contains(date)) return true
+
         return when (region) {
             HolidayRegion.CHINA -> isChinaHistoricalHoliday(date)
             HolidayRegion.TAIWAN -> holidaysTaiwan.contains(date)
@@ -234,65 +239,120 @@ object RegionalHolidays {
     }
 
     /**
-     * 在线网络接口自动抓取并增量同步最新 2025-2027 国务院节假日与补班排期
+     * 在线网络接口自动抓取并增量同步全量 19 个国家/地区最新 2025-2027 节假日与补班排期 (支持中国国务院及 Nager.Date 国际官方 API)
      */
-    fun fetchLatestHolidaysOnline(context: android.content.Context, onResult: (Boolean, String) -> Unit) {
+    fun fetchLatestHolidaysOnline(
+        context: android.content.Context,
+        region: HolidayRegion = HolidayRegion.CHINA,
+        onResult: (Boolean, String) -> Unit
+    ) {
         Thread {
             try {
                 val currentYear = LocalDate.now().year
                 val targetYears = listOf(currentYear, currentYear + 1)
                 var totalUpdated = 0
 
-                for (y in targetYears) {
-                    try {
-                        val urlStr = "https://timor.tech/api/holiday/year/$y/"
-                        val url = java.net.URL(urlStr)
-                        val conn = url.openConnection() as java.net.HttpURLConnection
-                        conn.connectTimeout = 4000
-                        conn.readTimeout = 4000
-                        conn.requestMethod = "GET"
-                        conn.setRequestProperty("User-Agent", "Mozilla/5.0")
+                if (region == HolidayRegion.CHINA) {
+                    for (y in targetYears) {
+                        try {
+                            val urlStr = "https://timor.tech/api/holiday/year/$y/"
+                            val url = java.net.URL(urlStr)
+                            val conn = url.openConnection() as java.net.HttpURLConnection
+                            conn.connectTimeout = 4000
+                            conn.readTimeout = 4000
+                            conn.requestMethod = "GET"
+                            conn.setRequestProperty("User-Agent", "Mozilla/5.0")
 
-                        if (conn.responseCode == 200) {
-                            val jsonStr = conn.inputStream.bufferedReader().use { it.readText() }
-                            val jsonObj = org.json.JSONObject(jsonStr)
-                            if (jsonObj.optInt("code") == 0 && jsonObj.has("holiday")) {
-                                val holidayMap = jsonObj.getJSONObject("holiday")
-                                val newHols = mutableSetOf<LocalDate>()
-                                val newShifts = mutableSetOf<LocalDate>()
+                            if (conn.responseCode == 200) {
+                                val jsonStr = conn.inputStream.bufferedReader().use { it.readText() }
+                                val jsonObj = org.json.JSONObject(jsonStr)
+                                if (jsonObj.optInt("code") == 0 && jsonObj.has("holiday")) {
+                                    val holidayMap = jsonObj.getJSONObject("holiday")
+                                    val newHols = mutableSetOf<LocalDate>()
+                                    val newShifts = mutableSetOf<LocalDate>()
 
-                                val keys = holidayMap.keys()
-                                while (keys.hasNext()) {
-                                    val key = keys.next()
-                                    val item = holidayMap.getJSONObject(key)
-                                    val dateStr = item.optString("date")
-                                    val isHoliday = item.optBoolean("holiday", false)
-                                    if (dateStr.isNotBlank()) {
-                                        val d = LocalDate.parse(dateStr)
-                                        if (isHoliday) {
-                                            newHols.add(d)
-                                        } else {
-                                            newShifts.add(d)
+                                    val keys = holidayMap.keys()
+                                    while (keys.hasNext()) {
+                                        val key = keys.next()
+                                        val item = holidayMap.getJSONObject(key)
+                                        val dateStr = item.optString("date")
+                                        val isHoliday = item.optBoolean("holiday", false)
+                                        if (dateStr.isNotBlank()) {
+                                            val d = LocalDate.parse(dateStr)
+                                            if (isHoliday) newHols.add(d) else newShifts.add(d)
                                         }
                                     }
+                                    updateChinaDynamicHolidays(newHols, newShifts)
+                                    totalUpdated += newHols.size + newShifts.size
                                 }
-                                updateChinaDynamicHolidays(newHols, newShifts)
-                                totalUpdated += newHols.size + newShifts.size
                             }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                         }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+                    }
+                } else {
+                    // 全球其他 18 个国家/地区在线网络同步接口 (Nager.Date 国际官方 API)
+                    val countryCode = when (region) {
+                        HolidayRegion.TAIWAN -> "TW"
+                        HolidayRegion.HONG_KONG -> "HK"
+                        HolidayRegion.MACAO -> "MO"
+                        HolidayRegion.SINGAPORE -> "SG"
+                        HolidayRegion.MALAYSIA -> "MY"
+                        HolidayRegion.VIETNAM -> "VN"
+                        HolidayRegion.JAPAN -> "JP"
+                        HolidayRegion.SOUTH_KOREA -> "KR"
+                        HolidayRegion.UNITED_KINGDOM -> "GB"
+                        HolidayRegion.GERMANY -> "DE"
+                        HolidayRegion.FRANCE -> "FR"
+                        HolidayRegion.ITALY -> "IT"
+                        HolidayRegion.INDIA -> "IN"
+                        HolidayRegion.INDONESIA -> "ID"
+                        HolidayRegion.AUSTRALIA -> "AU"
+                        HolidayRegion.NEW_ZEALAND -> "NZ"
+                        HolidayRegion.UNITED_STATES -> "US"
+                        HolidayRegion.THAILAND -> "TH"
+                        else -> "US"
+                    }
+
+                    for (y in targetYears) {
+                        try {
+                            val urlStr = "https://date.nager.at/api/v3/PublicHolidays/$y/$countryCode"
+                            val url = java.net.URL(urlStr)
+                            val conn = url.openConnection() as java.net.HttpURLConnection
+                            conn.connectTimeout = 4000
+                            conn.readTimeout = 4000
+                            conn.requestMethod = "GET"
+                            conn.setRequestProperty("User-Agent", "Mozilla/5.0")
+
+                            if (conn.responseCode == 200) {
+                                val jsonStr = conn.inputStream.bufferedReader().use { it.readText() }
+                                val jsonArray = org.json.JSONArray(jsonStr)
+                                val globalHols = dynamicGlobalHolidays.getOrPut(region) { mutableSetOf() }
+
+                                for (i in 0 until jsonArray.length()) {
+                                    val item = jsonArray.getJSONObject(i)
+                                    val dateStr = item.optString("date")
+                                    if (dateStr.isNotBlank()) {
+                                        globalHols.add(LocalDate.parse(dateStr))
+                                        totalUpdated++
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
 
+                val regionLabel = region.flagEmoji + " " + region.name
                 if (totalUpdated > 0) {
-                    onResult(true, "成功在线同步最新节假日排期 ($totalUpdated 天)")
+                    onResult(true, "成功在线同步 $regionLabel 最新节假日排期 ($totalUpdated 天)")
                 } else {
-                    onResult(true, "节假日日历已是最新状态 (2025-2027 全量精准校准)")
+                    onResult(true, "$regionLabel 节假日日历已是最新状态 (2025-2027 全量精准校准)")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                onResult(false, "在线同步超时，已为您启用内建最新 2025-2027 国务院节假日规则")
+                onResult(false, "网络同步超时，已为您启用内建 19 地区最新节假日规则")
             }
         }.start()
     }

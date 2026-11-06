@@ -215,7 +215,8 @@ class DateCalculatorViewModel : ViewModel() {
     }
 
     fun syncAllRegionsHolidays(context: Context, forceManual: Boolean = true, onMessage: ((String) -> Unit)? = null) {
-        PreferenceUtils.syncAllRegionsHolidayData(context, forceManual) { _, msg ->
+        val currentRegion = _uiState.value.holidayRegion
+        PreferenceUtils.syncAllRegionsHolidayData(context, forceManual, region = currentRegion) { _, msg ->
             viewModelScope.launch(Dispatchers.Main) {
                 onMessage?.invoke(msg)
             }
