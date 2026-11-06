@@ -1,10 +1,10 @@
-# DateCalculator (日期计算器) - Android v1.0.0.1
+# DateCalculator (日期计算器) - Android v1.0.0.2
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-blue.svg)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-2024.02-green.svg)](https://developer.android.com)
 [![Material 3](https://img.shields.io/badge/Material%203-Neumorphic-purple.svg)](https://m3.material.io)
 [![Android SDK](https://img.shields.io/badge/API-26%2B%20(Android%208.0%2B)-orange.svg)](https://developer.android.com)
-[![Version](https://img.shields.io/badge/Version-v1.0.0.1-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v1.0.0.2-brightgreen.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
 [ 🇨🇳 简体中文 ](#-简体中文) | [ 🇺🇸 English ](#-english) | [ 🇯🇵 日本語 ](#-日本語)

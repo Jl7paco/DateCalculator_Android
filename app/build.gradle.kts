@@ -21,8 +21,8 @@ android {
         applicationId = "me.paco.datecalculator"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1001
-        versionName = "1.0.0.1"
+        versionCode = 1002
+        versionName = "1.0.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
