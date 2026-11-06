@@ -542,7 +542,23 @@ fun SettingsScreen(
                         .background(NeumorphicAccent, shape = CircleShape)
                         .clip(CircleShape)
                         .clickable {
-                            Toast.makeText(context, "正在连接国务院节假日服务器同步...", Toast.LENGTH_SHORT).show()
+                            val syncPrompt = when (selected) {
+                                HolidayRegion.CHINA -> when (effectiveLang) {
+                                    AppLanguage.ENGLISH -> "Connecting to State Council holiday server..."
+                                    AppLanguage.TRADITIONAL_CHINESE -> "正在連接國務院節假日伺服器同步..."
+                                    AppLanguage.JAPANESE -> "中国国務院の祝日サーバーに接続中..."
+                                    AppLanguage.KOREAN -> "중국 국무원 공휴일 서버 연결 중..."
+                                    else -> "正在连接国务院节假日服务器同步..."
+                                }
+                                else -> when (effectiveLang) {
+                                    AppLanguage.ENGLISH -> "Syncing ${selected.getLocalizedName(lang)} public holidays..."
+                                    AppLanguage.TRADITIONAL_CHINESE -> "正在同步 ${selected.flagEmoji} ${selected.getLocalizedName(lang)} 官方節假日資料..."
+                                    AppLanguage.JAPANESE -> "${selected.flagEmoji} ${selected.getLocalizedName(lang)} の祝日データを同期中..."
+                                    AppLanguage.KOREAN -> "${selected.flagEmoji} ${selected.getLocalizedName(lang)} 공휴일 데이터 동기화 중..."
+                                    else -> "正在同步 ${selected.flagEmoji} ${selected.getLocalizedName(lang)} 官方节假日排期..."
+                                }
+                            }
+                            Toast.makeText(context, syncPrompt, Toast.LENGTH_SHORT).show()
                             viewModel.syncAllRegionsHolidays(context, forceManual = true) { msg ->
                                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
