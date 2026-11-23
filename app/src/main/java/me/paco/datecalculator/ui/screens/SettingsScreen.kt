@@ -38,14 +38,18 @@ import me.paco.datecalculator.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -90,6 +94,7 @@ import me.paco.datecalculator.ui.viewmodel.DateCalculatorViewModel
 import me.paco.datecalculator.util.LanguageUtils
 import me.paco.datecalculator.util.LocationUtils
 import me.paco.datecalculator.util.TemperatureUnit
+import me.paco.datecalculator.util.WeatherUtils
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -459,6 +464,86 @@ fun SettingsScreen(
                             }
                         }
                     )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 手动输入地点匹配城市搜索框 (支持全量全国地级市/省份/全球热门城市匹配)
+                var citySearchQuery by remember { mutableStateOf("") }
+                val matchedCities = remember(citySearchQuery) {
+                    if (citySearchQuery.isBlank()) {
+                        WeatherUtils.allSupportedCities.take(10)
+                    } else {
+                        val q = citySearchQuery.trim().replace("市", "")
+                        WeatherUtils.allSupportedCities.filter {
+                            it.contains(q, ignoreCase = true) || WeatherUtils.getEnglishCityName(it).contains(q, ignoreCase = true)
+                        }.take(16)
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .neumorphicInset(shape = RoundedCornerShape(14.dp), elevation = 3.dp)
+                        .border(1.dp, NeumorphicAccent.copy(alpha = 0.25f), shape = RoundedCornerShape(14.dp))
+                        .background(NeumorphicBg, shape = RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    OutlinedTextField(
+                        value = citySearchQuery,
+                        onValueChange = { citySearchQuery = it },
+                        placeholder = {
+                            val hintTxt = when (effectiveLang) {
+                                AppLanguage.ENGLISH -> "Type city name (e.g. Shenzhen, Tokyo)..."
+                                AppLanguage.TRADITIONAL_CHINESE -> "輸入城市/地點名稱 (如 深圳, 台北)..."
+                                AppLanguage.JAPANESE -> "都市名を入力 (例: 東京, 上海)..."
+                                AppLanguage.KOREAN -> "도시 이름 입력 (예: 서울, 베이징)..."
+                                else -> "输入城市/地点名称 (如 深圳、北京、成都)..."
+                            }
+                            Text(hintTxt, fontSize = 12.sp, color = NeumorphicTextPrimary.copy(alpha = 0.45f))
+                        },
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeumorphicTextPrimary),
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = NeumorphicAccent, modifier = Modifier.size(16.dp))
+                        },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    matchedCities.forEach { city ->
+                        val isCurrent = uiState.currentCityName.contains(city.replace("市", ""))
+                        NeumorphicChip(
+                            text = city,
+                            selected = isCurrent,
+                            onClick = {
+                                viewModel.updateGpsAutoDetect(false, context)
+                                viewModel.updateCurrentCity(city, context)
+                                val toastTxt = when (effectiveLang) {
+                                    AppLanguage.ENGLISH -> "City set to: $city"
+                                    AppLanguage.TRADITIONAL_CHINESE -> "城市已切換至: $city"
+                                    AppLanguage.JAPANESE -> "都市を $city に設定しました"
+                                    AppLanguage.KOREAN -> "도시가 $city (으)로 설정되었습니다"
+                                    else -> "城市地点已成功切换至: $city"
+                                }
+                                Toast.makeText(context, toastTxt, Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))

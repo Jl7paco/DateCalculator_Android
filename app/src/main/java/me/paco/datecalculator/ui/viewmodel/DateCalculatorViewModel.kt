@@ -278,6 +278,22 @@ class DateCalculatorViewModel : ViewModel() {
         PreferenceUtils.saveAnniversaries(context, updated)
     }
 
+    fun updateCurrentCity(cityName: String, context: Context) {
+        val cleanName = cityName.trim()
+        if (cleanName.isBlank()) return
+        PreferenceUtils.saveLastCityName(context, cleanName)
+        val (lat, lon) = WeatherUtils.getCityCoordinates(cleanName)
+        viewModelScope.launch(Dispatchers.IO) {
+            val realWeather = WeatherUtils.fetchRealLiveWeather(lat, lon, _uiState.value.holidayRegion)
+            withContext(Dispatchers.Main) {
+                _uiState.value = _uiState.value.copy(
+                    currentCityName = cleanName,
+                    liveWeatherData = realWeather
+                )
+            }
+        }
+    }
+
     private var lastLocationFetchTime = 0L
     private var isFetchingLocation = false
 
